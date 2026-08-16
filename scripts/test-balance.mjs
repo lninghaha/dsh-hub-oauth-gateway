@@ -82,5 +82,5 @@ async function stubFetchOnce(payload, status = 200) {
 }
 
 delete globalThis.fetch;
-assert.deepEqual(supportedBalanceSchemes().sort(), ["deepseek", "moonshot", "openrouter", "zai"]);
+assert.deepEqual(supportedBalanceSchemes().sort(), ["dashscope", "deepseek", "moonshot", "openrouter", "siliconflow", "zai"]);
 console.log("BALANCE TESTS PASSED");

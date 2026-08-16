@@ -8,7 +8,7 @@
 
 Provider balances, subscription quotas, and token-usage analytics for the DeepSeek Harness Web GUI (`dsh web`).
 
-![dsh-usage-stats v0.2.0 interface preview](docs/images/usage-panel.svg)
+![dsh-usage-stats v0.3.0 interface preview](docs/images/usage-panel.svg)
 
 > 展示图使用脱敏演示数据；插件不会把 API Key、Cookie、管理 PAT 或上游原始响应发送到浏览器。
 
@@ -16,13 +16,16 @@ Provider balances, subscription quotas, and token-usage analytics for the DeepSe
 
 | | 能力 | 说明 |
 | --- | --- | --- |
-| 💳 | 统一账户卡片 | API 供应商显示余额，Token Plan 显示分窗口额度；面板一次只呈现当前供应商 |
-| 📊 | Token 用量分析 | 今日、本月、累计、缓存命中率、月历热图，以及按日期/供应商/模型下钻 |
+| 💳 | 多账户总览 | 同屏列出全部 provider；API 供应商显示余额摘要，Token Plan 显示分窗口额度，点击后在右侧查看明细 |
+| 📊 | Token 用量分析 | 今日、本月、累计、缓存命中率、约 12 个月紧凑热力图，以及按日期/供应商/模型下钻 |
 | 🔄 | 后台监测 | 服务端启动即刷新，之后每五分钟更新全部已配置账户与本地 Token 聚合 |
 | 🧩 | 可扩展适配器 | 支持 New API、Sub2API、通用余额模板，以及声明式 JSON Pointer 自定义查询 |
-| 🔒 | 本机安全边界 | 五个端点仅接受回环 GET；凭据只在服务端解析并发往校验后的供应商地址 |
+| 🔒 | 本机安全边界 | 全部端点仅接受回环请求，只读端点仅接受 GET；凭据只在服务端解析并发往校验后的供应商地址 |
 
-界面支持中文和英文。浏览器只请求当前选择的 provider；后台刷新与面板是否打开无关。手动刷新会更新用量、供应商列表，并强制刷新当前账户，不会批量强制请求其他供应商。
+- 界面支持中文和英文，并完全复用 DSH 的语义颜色 token，亮色、暗色和跟随系统主题会同步切换。
+- 后台刷新与面板是否打开无关；列表读取服务端缓存摘要，点击账户再读取该 provider 的统一快照。
+- 标题栏手动刷新会更新 Token 并强制刷新全部已配置账户。
+- 点击弹窗外或按 `Escape` 会先收起明细，再关闭整个弹窗。
 
 ## 快速安装 / Quick start
 
@@ -78,10 +81,19 @@ npx --yes github:Ychris12138/dsh-usage-stats --no-enable
 | DeepSeek | 余额 | provider `apiKeyEnv` | `/user/balance` |
 | OpenRouter | 余额 | `OPENROUTER_MANAGEMENT_KEY` | `/api/v1/credits` |
 | Moonshot / Kimi API | 余额 | provider `apiKeyEnv` | `/v1/users/me/balance` |
+| DashScope / 百炼 | 余额 | `DASHSCOPE_API_KEY` | `/api/v1/api-key/dashboard` |
+| SiliconFlow | 余额 | `SILICONFLOW_API_KEY` | `/v1/user/info` |
 | OpenCode Go | 订阅 | `OPENCODE_GO_API_KEY` 或本地 `auth.json` | `/zen/go/v1/usage` |
 | Z.ai / 智谱 | 订阅 | `ZAI_API_KEY` | Coding Plan quota/subscription |
 | Kimi For Coding | 订阅 | `KIMI_API_KEY` | `/coding/v1/usages` |
 | MiniMax Coding Plan | 订阅 | `MINIMAX_API_KEY` | `/v1/token_plan/remains` |
+| Claude (Anthropic) | 订阅 | `CLAUDE_OAUTH_TOKEN` | `/api/oauth/usage` |
+| Codex (ChatGPT) | 订阅 | `CODEX_ACCESS_TOKEN` | `/backend-api/wham/usage` |
+| Gemini Code Assist | 订阅 | `GEMINI_ACCESS_TOKEN` | `cloudcode-pa.googleapis.com` quota |
+| GitHub Copilot | 订阅 | `GITHUB_COPILOT_TOKEN` | `/copilot_internal/user` |
+| Cursor | 订阅 | `CURSOR_ACCESS_TOKEN` | `api2.cursor.sh` Connect-RPC |
+| Grok (xAI) | 订阅 | `GROK_ACCESS_TOKEN` | `cli-chat-proxy.grok.com/v1/billing` |
+| Amp | 订阅 | `AMP_API_KEY` | `ampcode.com/api/internal` JSON-RPC |
 | New API | 余额 | provider 推理 Token | `/api/usage/token/` |
 | Sub2API / Passion | 自动判别 | provider `apiKeyEnv` | `/v1/usage` |
 | General / Declarative | 余额或订阅 | 配置中的 credential ref | 受限 GET + JSON |
@@ -92,7 +104,7 @@ npx --yes github:Ychris12138/dsh-usage-stats --no-enable
 
 凭据由 Harness 从 `~/.dsh/.credentials.yaml` 解析。安装器不会读取、创建或修改该文件。不要把真实 Key、Cookie 或管理令牌提交到 Git、公开 issue，或粘贴给编码 Agent。
 
-### 余额型供应商
+### 余额型供应商 / Balance providers
 
 DeepSeek、Moonshot 等默认复用对应 provider profile 的 `apiKeyEnv`。例如：
 
@@ -110,7 +122,7 @@ OPENROUTER_MANAGEMENT_KEY: sk-or-v1-your-management-key
 
 插件按 `total_credits - total_usage` 显示 OpenRouter 余额，并同时展示累计已用和总 credits。普通 Key 的 `/api/v1/key` 只描述单个 Key 的 spending limit，不会被当作账户余额。自定义引用可在 `monitors.openrouter` 中设置 `adapter: openrouter-balance` 与 `credentialRef`。
 
-### Token Plan 供应商
+### Token Plan 与订阅供应商 / Token plans & subscriptions
 
 ```yaml
 # ~/.dsh/.credentials.yaml
@@ -122,13 +134,31 @@ KIMI_API_KEY: your-kimi-key
 MINIMAX_API_KEY: your-minimax-key
 # 中国区 MiniMax 用户可选；默认 global
 MINIMAX_API_REGION: cn
+# Claude OAuth（从 ~/.claude/.credentials.json 导入或手动粘贴）
+CLAUDE_OAUTH_TOKEN: sk-ant-oat...
+# Codex / ChatGPT（从 ~/.codex/auth.json 导入）
+CODEX_ACCESS_TOKEN: eyJhbGci...
+# Gemini Code Assist（从 ~/.gemini/oauth_creds.json 导入）
+GEMINI_ACCESS_TOKEN: ya29.a0A...
+# GitHub Copilot（通过设备授权流获取）
+GITHUB_COPILOT_TOKEN: gho_...
+# DashScope / 百炼余额
+DASHSCOPE_API_KEY: sk-...
+# SiliconFlow 余额
+SILICONFLOW_API_KEY: sk-...
+# Cursor（Auth0 OAuth token）
+CURSOR_ACCESS_TOKEN: eyJhbGci...
+# Grok（从 ~/.grok/auth.json 导入或 grok login）
+GROK_ACCESS_TOKEN: xai-...
+# Amp（从 ~/.local/share/amp/secrets.json 导入）
+AMP_API_KEY: sgamp_user_...
 ```
 
 OpenCode Go 依次尝试 Harness credential、`~/.local/share/opencode/auth.json`，最后才使用显式 `OPENCODE_GO_AUTH_COOKIE + OPENCODE_GO_WORKSPACE_ID` 兼容回退。Bearer usage endpoint 目前不是公开 API，可能随上游变化；Cookie 等同登录凭据，不应进入日志或 issue。
 
 Z.ai 全球区使用 `api.z.ai`，中国区使用 `open.bigmodel.cn`。MiniMax 优先使用官方 `www.minimax.io` / `www.minimaxi.com` Token Plan 地址，并解析 5 小时与周窗口的剩余比例和重置时间。
 
-### New API、Sub2API 与自定义 monitor
+### New API、Sub2API 与自定义 monitor / Custom monitors
 
 在现有 `name: dsh-usage-stats` Cordis entry 下合并 `config`，不要追加第二个插件 entry。monitor 键必须是 Harness 中真实存在的 provider id；未知 provider、adapter 或非法映射会在路由和 timer 注册前阻止插件启动。
 
@@ -198,18 +228,34 @@ Passion（provider id 为 `passion` 或域名为 `*.passionapi.com`）会自动�
 
 </details>
 
-支持的 adapter：`deepseek-balance`、`openrouter-balance`、`moonshot-balance`、`zai-balance`、`new-api`、`sub2api`、`general`、`opencode-go`、`zai-token-plan`、`kimi-token-plan`、`minimax-token-plan`、`declarative`。
+支持的 adapter：`deepseek-balance`、`openrouter-balance`、`moonshot-balance`、`zai-balance`、`dashscope-balance`、`siliconflow-balance`、`new-api`、`sub2api`、`general`、`opencode-go`、`zai-token-plan`、`kimi-token-plan`、`minimax-token-plan`、`claude-oauth`、`codex-wham`、`gemini-quota`、`copilot-device`、`cursor-subscription`、`grok-subscription`、`amp-subscription`、`declarative`。
 
 `warning.warnBelow` 与 `warning.criticalBelow` 是余额绝对值阈值。具有总额度的余额和 Token Plan 会自动产生 `normal / warning / critical` 剩余比例状态（默认 30% / 10%）。
 
+### 凭据配置 / Credential management
+
+所有供应商的凭据统一在 **设置 → 用量统计** 中配置（DSH 设置面板的独立分区，与模型、通用等分区同级），支持三种方式：
+
+1. **API Key 粘贴**：每个供应商卡片点击「配置 API Key」或「更新 API Key」，输入密钥。密钥通过服务端写入 `~/.dsh/.credentials.yaml`（使用 DSH credentials seam），不会发送到浏览器或出现在响应中。
+2. **本地文件导入**：Claude、Codex、Gemini、Grok、Amp 等 provider 支持从对应 CLI 的本地凭据文件一键导入（`~/.claude/.credentials.json`、`~/.codex/auth.json`、`~/.gemini/oauth_creds.json`、`~/.grok/auth.json`、`~/.local/share/amp/secrets.json`）。
+3. **OAuth 设备授权**：GitHub Copilot 支持 RFC 8628 设备流。后续版本将扩展至更多 provider。
+
+服务端凭据端点仅接受回环请求，并叠加 CSRF 防护（自定义头 + JSON content-type + Origin 校验）。写入后立即生效，无需重启 `dsh web`。弹出框中未配置凭据的供应商会显示引导文案指向该设置分区。
+
+### 供应商显示开关 / Provider visibility
+
+**设置 → 用量统计 → 供应商显示** 中为每个 provider 提供开关，可批量管理。隐藏状态持久化到 `~/.dsh/storages/usage-stats-prefs.json`，重启或刷新后保留。隐藏的供应商仍参与后台刷新，但不出现在弹出框列表中。同一分区还可设置列表密度、热力图默认模式与调试日志开关。
+
 ## 使用 / Usage
 
-1. 点击侧边栏“用量/余额”。
-2. 用“当前供应商”切换账户卡片；一次只显示一个 provider。
-3. 使用 `‹` / `›` 切换月份，点击热图日期查看当天的 provider/model 明细。
-4. 标题栏刷新会更新 Token、provider 列表，并强制刷新当前账户。
+1. 点击侧边栏“用量/余额”，在账户列表中直接查看全部 provider 的余额或额度摘要。
+2. “详细 / 精简”控制列表行密度；点击任一账户后，右侧飞出层显示完整余额或 Token Plan 窗口。
+3. 点击“使用详情与历史”打开约 12 个月的紧凑热力图，可切换“每日 / 每周 / 累计”。
+4. 点击有数据的小方格查看当天的 provider/model 明细；按 `Escape` 返回上一层，点击弹窗外关闭。
+5. 标题栏刷新会更新 Token，并强制刷新全部账户摘要与当前明细。
+6. 凭据、显示开关与默认偏好统一在 **设置 → 用量统计** 中配置；弹出框仅负责展示。
 
-“最近 14 天”按本地日历计算，只显示窗口内存在用量的日期；未来时间戳不会计入。同一模型来自不同 provider 时会分别统计，例如 `deepseek-official · deepseek-chat` 与 `ark · deepseek-chat`。
+热力图按本地日历、周一为每周起点生成 53 周 × 7 天；未来日期始终为空。每日模式按当天 Token 着色，每周模式按整周合计着色，累计模式显示窗口起点至当天的运行累计。同一模型来自不同 provider 时会分别统计，例如 `deepseek-official · deepseek-chat` 与 `ark · deepseek-chat`。
 
 ## Agent 友好安装 / Agent-friendly installation
 
@@ -266,7 +312,7 @@ npx --yes github:Ychris12138/dsh-usage-stats --check
 - 自定义 monitor 默认要求 HTTPS、同源相对路径、手动 redirect 和 JSON 响应，body 上限为 1 MiB。
 - 发凭据前会校验域名的全部 IPv4/IPv6 解析结果并固定连接地址，防止 DNS rebinding 绕过私网限制。
 - `usageBaseURL` 禁止内嵌 username/password；`Authorization`、`X-API-Key`、`API-Key` 等 header 必须由 credential ref 注入。
-- 五个端点仅接受 GET，并同时校验 peer socket 与 Host；支持 IPv4、IPv4-mapped IPv6 和 `[::1]:port`。
+- 只读端点仅接受 GET，凭据与偏好写入走带 CSRF 防护的 POST/PUT/DELETE；所有端点同时校验 peer socket 与 Host，支持 IPv4、IPv4-mapped IPv6 和 `[::1]:port`。
 - 用量缓存 `~/.dsh/storages/usage-stats-cache.json` 只保存聚合 Token、会话 id、不透明 revision 与折叠游标，不保存提示词、回复或文件路径。
 
 本机反向代理会让插件看到代理自身的回环地址。请勿把端点经反向代理暴露到局域网或公网；确需代理时必须在代理层增加可靠认证与访问控制。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
@@ -286,10 +332,16 @@ npx --yes github:Ychris12138/dsh-usage-stats --check
 | Method | Path | Response |
 | --- | --- | --- |
 | `GET` | `/api/usage-stats/usage` | 按日期/provider/model 聚合的 Token 与缓存命中率 |
-| `GET` | `/api/usage-stats/providers` | provider 列表、account mode、adapter、状态与预警摘要 |
+| `GET` | `/api/usage-stats/providers` | provider 列表及缓存的 plan/windows/balance/nextResetAt 摘要；`refresh=1` 强制刷新全部账户 |
 | `GET` | `/api/usage-stats/account?provider=<id>` | 当前 provider 的统一余额或 Token Plan 快照；`refresh=1` 强制刷新 |
 | `GET` | `/api/usage-stats/balance?provider=<id>` | `0.1.x` 余额兼容路由 |
 | `GET` | `/api/usage-stats/subscriptions` | `0.1.x` Token Plan 兼容路由 |
+| `GET` | `/api/usage-stats/credential?ref=<REF>` | 凭据状态（configured/source/writable），不返回值 |
+| `POST` | `/api/usage-stats/credential` | 写入凭据 `{ ref, value }`；CSRF 防护 |
+| `DELETE` | `/api/usage-stats/credential?ref=<REF>` | 清除凭据；CSRF 防护 |
+| `POST` | `/api/usage-stats/credential/import` | 从本地 CLI 文件导入凭据 `{ providerId }` |
+| `GET` | `/api/usage-stats/prefs` | 用户偏好（hiddenProviders/density/historyMode） |
+| `PUT` | `/api/usage-stats/prefs` | 写入用户偏好；CSRF 防护 |
 
 非 GET 返回 `405`，非回环请求返回 `403`；所有响应均为 JSON 并带 `Cache-Control: no-cache`。
 
@@ -313,7 +365,7 @@ node scripts/check-balance.mjs
 
 ## 兼容性与致谢 / Compatibility & credits
 
-当前版本为 `0.2.0`。插件依赖 Harness 客户端模块加载器、Cordis 服务与 session persistence；Harness 预发布接口变化时可能需要同步适配。
+当前版本为 `0.3.0`。插件依赖 Harness 客户端模块加载器、Cordis 服务与 session persistence；Harness 预发布接口变化时可能需要同步适配。
 
 - [Javis603/token-monitor](https://github.com/Javis603/token-monitor)：参考多 provider 配额归一化与 Z.ai 限额解析。
 - [xiaoqi20/dsh-opencode-go-usage](https://github.com/xiaoqi20/dsh-opencode-go-usage)：参考 DSH 凭据接入、OpenCode `auth.json` 回退与 Bearer usage endpoint。

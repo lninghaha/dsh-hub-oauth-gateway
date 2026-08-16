@@ -46,7 +46,15 @@ async function testRouteFence(root) {
 	const routes = new Map();
 	const empty = { list: () => [] };
 	const persistence = { listSnapshots: async () => [], list: async () => [] };
-	await plugin.apply(makeContext({ sessions: empty, persistence, routes }), {}, { disableBackgroundRefresh: true });
+	const notConfigured = (id, displayName, mode) => ({ id, displayName, mode, status: "not-configured", windows: [], balance: null });
+	const accounts = {
+		validate: async () => {},
+		providerViews: async () => [],
+		subscriptionAccounts: async () => [notConfigured("opencode-go", "OpenCode Go", "subscription"), notConfigured("zai", "Z.ai", "subscription")],
+		get: async (id) => id === "deepseek-official" ? notConfigured(id, "DeepSeek", "balance") : null,
+		refreshAll: async () => []
+	};
+	await plugin.apply(makeContext({ sessions: empty, persistence, routes }), {}, { disableBackgroundRefresh: true, accounts });
 	const handler = routes.get(plugin.USAGE_PATH);
 	assert.equal(typeof handler, "function");
 
@@ -71,6 +79,64 @@ async function testRouteFence(root) {
 	await routes.get(plugin.ACCOUNT_PATH)({ method: "GET", url: `${plugin.ACCOUNT_PATH}?provider=deepseek-official`, headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, account);
 	assert.equal(account.status, 200);
 	assert.equal(JSON.parse(account.body).account.status, "not-configured");
+}
+
+async function testProviderRefresh(root) {
+	const plugin = await freshModule("provider-refresh", join(root, "provider-refresh"));
+	const routes = new Map();
+	const order = [];
+	let failRefresh = false;
+	const summary = {
+		id: "zai-coding-cn",
+		displayName: "Z.ai CN",
+		accountMode: "subscription",
+		adapter: "zai-token-plan",
+		configured: true,
+		status: "ok",
+		fetchedAt: 1,
+		alert: null,
+		plan: "Coding Plan",
+		windows: [{ kind: "weekly", usedPercent: 25, remainingPercent: 75, resetsAt: "2026-08-16T00:00:00Z" }],
+		balance: null,
+		nextResetAt: "2026-08-16T00:00:00.000Z",
+		stale: false
+	};
+	const accounts = {
+		validate: async () => {},
+		providerViews: async () => { order.push("views"); return [summary]; },
+		subscriptionAccounts: async () => [],
+		get: async () => null,
+		refreshAll: async () => { order.push("refresh"); if (failRefresh) throw new Error("refresh failed"); return []; }
+	};
+	await plugin.apply(makeContext({ sessions: { list: () => [] }, persistence: { listSnapshots: async () => [], list: async () => [] }, routes }), {}, { disableBackgroundRefresh: true, accounts });
+	const handler = routes.get(plugin.PROVIDERS_PATH);
+	const normal = makeResponse();
+	await handler({ method: "GET", url: plugin.PROVIDERS_PATH, headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, normal);
+	assert.equal(normal.status, 200);
+	assert.deepEqual(order, ["views"], "plain providers reads must not force upstream refreshes");
+	const body = JSON.parse(normal.body);
+	assert.equal(body.providers[0].id, "zai-coding-cn", "provider views must retain the real provider id");
+	for (const field of ["plan", "windows", "balance", "nextResetAt", "accountMode", "status", "stale"]) assert.equal(Object.hasOwn(body.providers[0], field), true, `provider summary missing ${field}`);
+
+	order.length = 0;
+	const forced = makeResponse();
+	await handler({ method: "GET", url: `${plugin.PROVIDERS_PATH}?refresh=1`, headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, forced);
+	assert.equal(forced.status, 200);
+	assert.deepEqual(order, ["refresh", "views"], "refresh=1 must refresh all accounts before rendering views");
+
+	order.length = 0;
+	const ignored = makeResponse();
+	await handler({ method: "GET", url: `${plugin.PROVIDERS_PATH}?refresh=true`, headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, ignored);
+	assert.equal(ignored.status, 200);
+	assert.deepEqual(order, ["views"], "only the literal refresh=1 may force upstream requests");
+
+	order.length = 0;
+	failRefresh = true;
+	const failed = makeResponse();
+	await handler({ method: "GET", url: `${plugin.PROVIDERS_PATH}?refresh=1`, headers: { host: "localhost:3080" }, socket: { remoteAddress: "127.0.0.1" } }, failed);
+	assert.equal(failed.status, 500);
+	assert.deepEqual(order, ["refresh"]);
+	console.log("provider summary refresh endpoint contract ok");
 }
 
 async function testConfigValidation(root) {
@@ -193,6 +259,7 @@ async function testRevisionRewrite(root) {
 const root = await mkdtemp(join(tmpdir(), "dsh-usage-stats-"));
 try {
 	await testRouteFence(root);
+	await testProviderRefresh(root);
 	await testConfigValidation(root);
 	await testLegacyZaiSubscriptionId(root);
 	await testBackgroundRefresh(root);

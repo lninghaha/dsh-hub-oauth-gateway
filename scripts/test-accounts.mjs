@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
 	createAccountService,
 	isPrivateAddress,
+	nextResetAt,
 	queryAccount,
 	resolveAccountSpec,
 	validateAccountConfig
@@ -499,7 +500,14 @@ console.log("IPv4/IPv6 private-address classification ok");
 	const second = await service.get("relay-a");
 	assert.equal(first.balance.remaining, 8);
 	assert.equal(second.balance.remaining, 8);
-	assert.equal(calls, 2, "fresh cache must avoid another upstream request");
+	const view = (await service.providerViews())[0];
+	assert.equal(view.status, "ok");
+	assert.equal(view.balance.remaining, 8);
+	assert.deepEqual(view.windows, []);
+	assert.equal(view.nextResetAt, null);
+	assert.equal(view.plan, null);
+	assert.equal(view.stale, false);
+	assert.equal(calls, 2, "fresh cache and provider views must avoid another upstream request");
 	await service.refreshAll();
 	assert.equal(calls, 4, "background refresh must force an upstream update");
 	console.log("account cache and background refresh contract ok");
@@ -536,6 +544,59 @@ console.log("IPv4/IPv6 private-address classification ok");
 	assert.equal(unauthorized.status, "unauthorized");
 	assert.equal(unauthorized.balance, null, "auth failures must not retain stale account data");
 	console.log("transient stale retention and auth clearing ok");
+}
+
+{
+	assert.equal(nextResetAt(null, now), null);
+	assert.equal(nextResetAt([{ resetsAt: null }, { resetsAt: "bad" }], now), null);
+	assert.equal(nextResetAt([
+		{ resetsAt: "2026-08-15T05:00:00Z" },
+		{ resetsAt: "2026-08-15T01:00:00Z" },
+		{ resetsAt: "2026-08-14T23:00:00Z" }
+	], now), "2026-08-15T01:00:00.000Z");
+	assert.equal(nextResetAt([
+		{ resetsAt: "2026-08-14T23:00:00Z" },
+		{ resetsAt: "2026-08-14T22:00:00Z" }
+	], now), "2026-08-14T22:00:00.000Z");
+	console.log("nearest quota reset selection ok");
+}
+
+{
+	const provider = { ...relay, id: "sub2" };
+	const service = createAccountService({
+		credentials: credentials({ RELAY_A_KEY: "sk-sub2" }),
+		getProviders: async () => [provider],
+		config: validateAccountConfig({ monitors: { sub2: { adapter: "sub2api" } } }),
+		deps: {
+			includeLegacyProviders: false,
+			now: () => now,
+			fetch: async () => jsonResponse({
+				mode: "quota_limited",
+				isValid: true,
+				planName: "Quota Plan",
+				quota: { limit: 100, used: 25, remaining: 75, unit: "USD" },
+				rate_limits: [{ window: "5h", limit: 20, used: 18, remaining: 2, reset_at: "2026-08-15T05:00:00Z" }]
+			})
+		}
+	});
+	const pending = (await service.providerViews())[0];
+	assert.equal(pending.status, "pending");
+	assert.equal(pending.plan, null);
+	assert.deepEqual(pending.windows, []);
+	assert.equal(pending.balance, null);
+	assert.equal(pending.nextResetAt, null);
+	await service.refreshAll();
+	const view = (await service.providerViews())[0];
+	assert.equal(view.id, "sub2");
+	assert.equal(view.accountMode, "subscription");
+	assert.equal(view.status, "ok");
+	assert.equal(view.plan, "Quota Plan");
+	assert.equal(view.windows.length, 2);
+	assert.equal(view.balance, null);
+	assert.equal(view.nextResetAt, "2026-08-15T05:00:00.000Z");
+	assert.equal(view.stale, false);
+	assert.equal(JSON.stringify(view).includes("sk-sub2"), false, "provider views must never expose credentials");
+	console.log("provider view cached account summary contract ok");
 }
 
 {
