@@ -193,7 +193,8 @@ describe("v1 API router", () => {
 		proxiedPreflight.value.headers.referer = "https://dsh.example.com/";
 		proxiedPreflight.value.headers["sec-fetch-site"] = "same-origin";
 		proxiedPreflight.value.headers["access-control-request-method"] = "GET";
-		proxiedPreflight.value.headers["access-control-request-headers"] = "x-dsh-hub-oauth-gateway, x-dsh-hub-oauth-gateway-authority";
+		proxiedPreflight.value.headers["access-control-request-headers"] =
+			"x-dsh-hub-oauth-gateway, x-dsh-hub-oauth-gateway-authority";
 		const proxiedResponse = new TestResponse();
 		await routes.get(API_PATHS.overview)?.(proxiedPreflight.value, proxiedResponse as unknown as ServerResponse);
 		expect(proxiedResponse.status).toBe(403);

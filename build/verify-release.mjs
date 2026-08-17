@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const root = resolve(".");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
-assert.equal(manifest.version, "1.0.0");
+assert.equal(manifest.version, "1.1.0");
 assert.notEqual(manifest.private, true, "release package must not be private");
 
 for (const path of [
@@ -32,7 +32,10 @@ for (const stale of ["usage.js", "accounts.js", "balance.js", "subscriptions.js"
 }
 
 const serverSource = await readFile(resolve(root, "lib/index.js"), "utf8");
-assert.match(serverSource.slice(0, 200), new RegExp(`dsh-hub-oauth-gateway ${manifest.version.replaceAll(".", "\\.")}`));
+assert.match(
+	serverSource.slice(0, 200),
+	new RegExp(`dsh-hub-oauth-gateway ${manifest.version.replaceAll(".", "\\.")}`),
+);
 assert.doesNotMatch(serverSource, /from\s+["'](?:zod|@tanstack|uplot)/);
 assert.doesNotMatch(serverSource, /import\(["'](?:zod|@tanstack|uplot)/);
 const plugin = await import(`${pathToFileURL(resolve(root, "lib/index.js")).href}?verify=${Date.now()}`);

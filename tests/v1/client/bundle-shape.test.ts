@@ -20,7 +20,9 @@ const allowedRequires = new Set([
 describe("generated DSH client bundle", () => {
 	it("registers a single classic-script factory with only platform requires", async () => {
 		const source = await readFile(resolve(".next/lib/client.js"), "utf8");
-		expect(source.startsWith('window.__ModuleLoader__.load({id:"dsh-hub-oauth-gateway",factory:(require)=>{')).toBe(true);
+		expect(source.startsWith('window.__ModuleLoader__.load({id:"dsh-hub-oauth-gateway",factory:(require)=>{')).toBe(
+			true,
+		);
 		expect(source).not.toMatch(/^\s*(?:import|export)\s/m);
 
 		const requires = [...source.matchAll(/require\("([^"]+)"\)/g)].map((match) => match[1]);

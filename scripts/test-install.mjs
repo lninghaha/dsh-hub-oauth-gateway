@@ -145,7 +145,11 @@ try {
 	assert.match(runFailure(), /invalid web profile manifest/, "non-object web profile manifest must fail closed");
 	await writeFile(webManifest, JSON.stringify({ dsh: { profile: { bundles: "dsh-hub-oauth-gateway" } } }), "utf8");
 	assert.match(runFailure("--check"), /invalid dsh\.profile\.bundles/, "string bundles field must fail closed");
-	await writeFile(webManifest, JSON.stringify({ dsh: { profile: { bundles: ["dsh-hub-oauth-gateway", 42] } } }), "utf8");
+	await writeFile(
+		webManifest,
+		JSON.stringify({ dsh: { profile: { bundles: ["dsh-hub-oauth-gateway", 42] } } }),
+		"utf8",
+	);
 	assert.match(runFailure("--dry-run"), /invalid dsh\.profile\.bundles/, "non-string bundle entries must fail closed");
 	await writeFile(webManifest, JSON.stringify({ dsh: "usage-stats" }), "utf8");
 	assert.match(runFailure("--dry-run"), /invalid dsh field/, "non-object dsh field must fail closed");

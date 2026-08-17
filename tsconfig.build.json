@@ -15,5 +15,8 @@
     "src/index.ts",
     "src/server/**/*.ts",
     "src/shared/**/*.ts"
+  ],
+  "exclude": [
+    "src/server/coding-oauth/**"
   ]
 }

@@ -28,9 +28,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "bin": {
-    "dsh-hub-oauth-gateway-install": "scripts/install.mjs",
-    "dsh-coding-oauth": "lib/bin.js",
-    "dsh-grok-build": "lib/bin.js"
+    "dsh-hub-oauth-gateway-install": "scripts/install.mjs"
   },
   "files": [
     "lib/",

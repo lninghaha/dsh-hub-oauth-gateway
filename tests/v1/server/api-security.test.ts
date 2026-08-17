@@ -55,7 +55,9 @@ describe("local API request guards", () => {
 		expect(passesBrowserContextGuard(request({ "sec-fetch-site": "same-origin" }))).toBe(true);
 		expect(passesBrowserContextGuard(request({ "x-dsh-hub-oauth-gateway": "1" }))).toBe(true);
 		expect(
-			passesBrowserContextGuard(request({ "x-dsh-hub-oauth-gateway": "1", "x-dsh-hub-oauth-gateway-authority": "example.com" })),
+			passesBrowserContextGuard(
+				request({ "x-dsh-hub-oauth-gateway": "1", "x-dsh-hub-oauth-gateway-authority": "example.com" }),
+			),
 		).toBe(false);
 		expect(passesBrowserContextGuard(request({}))).toBe(false);
 		expect(passesBrowserContextGuard(request({ referer: "https://example.com/page" }))).toBe(false);
@@ -66,17 +68,19 @@ describe("local API request guards", () => {
 	it("accepts a contradictory cross-site signal only with exact local corroboration", () => {
 		const marked = { "sec-fetch-site": "cross-site", "x-dsh-hub-oauth-gateway": "1" };
 		expect(passesBrowserContextGuard(request(marked))).toBe(false);
-		expect(passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "localhost:3080" }))).toBe(
-			true,
-		);
-		expect(passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "127.0.0.1:3080" }))).toBe(
-			false,
-		);
-		expect(passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "localhost:3081" }))).toBe(
-			false,
-		);
 		expect(
-			passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "localhost:3080,localhost:3080" })),
+			passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "localhost:3080" })),
+		).toBe(true);
+		expect(
+			passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "127.0.0.1:3080" })),
+		).toBe(false);
+		expect(
+			passesBrowserContextGuard(request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "localhost:3081" })),
+		).toBe(false);
+		expect(
+			passesBrowserContextGuard(
+				request({ ...marked, "x-dsh-hub-oauth-gateway-authority": "localhost:3080,localhost:3080" }),
+			),
 		).toBe(false);
 		const duplicateAuthority = request(marked);
 		duplicateAuthority.headers["x-dsh-hub-oauth-gateway-authority"] = ["localhost:3080", "localhost:3080"];
@@ -156,7 +160,9 @@ describe("local API request guards", () => {
 			accepted: false,
 			reason: "proxy-authority-missing",
 		});
-		expect(browserContextGuardDecision(proxiedRequest({ "x-dsh-hub-oauth-gateway-authority": "evil.example" }))).toEqual({
+		expect(
+			browserContextGuardDecision(proxiedRequest({ "x-dsh-hub-oauth-gateway-authority": "evil.example" })),
+		).toEqual({
 			accepted: false,
 			reason: "authority-mismatch",
 		});

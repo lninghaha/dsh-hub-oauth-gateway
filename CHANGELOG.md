@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.1.0
+
 ### Added
 
 - Add public project governance, contribution, conduct, and release-inspection

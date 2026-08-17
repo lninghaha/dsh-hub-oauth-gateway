@@ -48,7 +48,10 @@ export function safeMessage(error: unknown): string {
 		.replace(/\\bxai-[A-Za-z0-9._-]{8,}\\b/gu, "[redacted token]")
 		.replace(/(\\bBearer\\s+)[^\\s"',}]+/giu, "$1[redacted]")
 		.replace(/(\\b(?:code|user_code|token|id_token|refresh_token|access_token)=)[^&\\s]+/giu, "$1[redacted]")
-		.replace(/(["']?(?:code|user_code|id_token|refresh_token|access_token)["']?\\s*:\\s*["'])[^"']+/giu, "$1[redacted]");
+		.replace(
+			/(["']?(?:code|user_code|id_token|refresh_token|access_token)["']?\\s*:\\s*["'])[^"']+/giu,
+			"$1[redacted]",
+		);
 	// Generic opaque sweep catches long values preceded by labels such as
 	// client_secret, api_key, password, or Authorization. The minimum length
 	// guards against ordinary prose and the case-insensitive pass handles repeats.

@@ -189,7 +189,8 @@ async function verify(expectEnabled) {
 	if (expectEnabled) {
 		const patch = await readOptional(patchPath);
 		const count = patch === null ? 0 : [...patch.matchAll(pluginLine)].length;
-		if (count !== 1) throw new Error(`expected exactly one dsh-hub-oauth-gateway entry in ${patchPath}; found ${count}`);
+		if (count !== 1)
+			throw new Error(`expected exactly one dsh-hub-oauth-gateway entry in ${patchPath}; found ${count}`);
 		assertNoEmptyRootConflict(patch);
 	}
 	console.log(`Verified ${sourcePackage.name}@${sourcePackage.version}`);
