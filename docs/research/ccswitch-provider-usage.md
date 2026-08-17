@@ -1,4 +1,4 @@
-# CC Switch 用量查询方案与 dsh-usage-stats 扩展设计
+# CC Switch 用量查询方案与 dsh-hub-oauth-gateway 扩展设计
 
 > 研究时间：2026-08-15
 >
@@ -126,25 +126,23 @@ CC Switch 为 Token Plan 使用原生 adapter，而不是通用 JS。所有 adap
 | --- | --- | --- |
 | Kimi For Coding | `GET https://api.kimi.com/coding/v1/usages`；`Authorization: Bearer` | `limits[].detail.limit/remaining/resetTime` 为 5 小时窗口；`usage.limit/remaining/resetTime` 为周窗口；已用率 `(limit-remaining)/limit*100`。[源码](https://github.com/farion1231/cc-switch/blob/40d747c009bff6a6097d5094e57d205420d9b24c/src-tauri/src/services/coding_plan.rs#L103-L208) |
 | Z.ai / 智谱个人版 | 全球 `https://api.z.ai/api/monitor/usage/quota/limit`，国内 `https://open.bigmodel.cn/...`；`Authorization: {apiKey}`，不加 Bearer | `data.limits[]` 的 `TOKENS_LIMIT/CREDIT_LIMIT`；`percentage` 是已用率，`nextResetTime` 是重置时间，`unit=3` 为 5 小时，`unit=6` 为周；`data.level` 为套餐标签。[源码](https://github.com/farion1231/cc-switch/blob/40d747c009bff6a6097d5094e57d205420d9b24c/src-tauri/src/services/coding_plan.rs#L211-L410) |
-| MiniMax | 当前官方地址：中国 `https://www.minimaxi.com/v1/token_plan/remains`，国际 `https://www.minimax.io/v1/token_plan/remains`；Bearer。CC Switch 使用的旧 `api.* /v1/api/openplatform/coding_plan/remains` 仅作 404/405 兼容回退 | 仅取 `model_remains[].model_name === "general"`；`100-current_interval_remaining_percent` 为 5 小时已用率；仅 `current_weekly_status===1` 时显示周窗口，周已用率为 `100-current_weekly_remaining_percent`。[MiniMax 中国区文档](https://platform.minimaxi.com/docs/token-plan/faq) [MiniMax 国际区文档](https://platform.minimax.io/docs/token-plan/faq) [CC Switch 源码](https://github.com/farion1231/cc-switch/blob/40d747c009bff6a6097d5094e57d205420d9b24c/src-tauri/src/services/coding_plan.rs#L413-L496) [解析](https://github.com/farion1231/cc-switch/blob/40d747c009bff6a6097d5094e57d205420d9b24c/src-tauri/src/services/coding_plan.rs#L636-L700) |
+| MiniMax | 当前官方 CLI 地址：中国 `https://api.minimaxi.com/v1/token_plan/remains`，国际 `https://api.minimax.io/v1/token_plan/remains`；Bearer。旧 `api.* /v1/api/openplatform/coding_plan/remains` 仅作受限兼容回退 | 优先取 `model_remains[].model_name === "general"`，响应改名后可退到首个带有效百分比的非视频模型；`100-current_interval_remaining_percent` 为 5 小时已用率；仅 `current_weekly_status===1` 时显示周窗口，周已用率为 `100-current_weekly_remaining_percent`。[MiniMax 中国区文档](https://platform.minimaxi.com/docs/token-plan/faq) [MiniMax 国际区文档](https://platform.minimax.io/docs/token-plan/faq) [官方 CLI endpoint 修复](https://github.com/MiniMax-AI/cli/pull/104) [官方 CLI base URL 修复](https://github.com/MiniMax-AI/cli/commit/c3a58e9d3e32875c4c7719e3d9bcfb41c82007ab) [CC Switch 解析](https://github.com/farion1231/cc-switch/blob/40d747c009bff6a6097d5094e57d205420d9b24c/src-tauri/src/services/coding_plan.rs#L636-L700) |
 
 智谱官方当前说明个人套餐同时具有 5 小时动态窗口和 7 天周期窗口，与上述归一化相符。[GLM Coding Plan 套餐说明](https://docs.bigmodel.cn/cn/coding-plan/overview)
 
-MiniMax 的 endpoint 存在版本漂移风险，不能只用硬编码 URL 判定成功。实现时应以脱敏 fixture 锁定当前响应，并将 endpoint/path 放入 adapter 常量，允许后续兼容第二路径。
+MiniMax 的 endpoint 和响应存在版本漂移风险，不能把 HTTP 2xx 或任意空 envelope 当作成功。实现应以脱敏 fixture 锁定当前 `api.* /v1/token_plan/remains` 响应；只有显式业务状态为 0 但无可用 quota 字段时才允许尝试同一 `api.*` origin 的旧路径，HTTP、业务级错误和畸形响应均应 fail closed。
 
-## 本插件现状与缺口
+## 本插件的 1.0 实现落点
 
-当前实现已经具备可复用的基础：
+本调研提出的抽象已在 1.0 TypeScript 重构中落地：
 
-- [`lib/balance.js`](../../lib/balance.js) 是纯 balance registry，但 `balanceSchemeOf(providerId)` 完全依赖固定 provider ID，无法表达任意名称的 New API 或自定义 provider。
-- [`lib/subscriptions.js`](../../lib/subscriptions.js) 已把 OpenCode Go 和 Z.ai 归一化成 `mode: subscription` + `windows[]`，这一 wire shape 可继续用于 Kimi/MiniMax。
-- [`lib/index.js`](../../lib/index.js) 的 `configuredProviders()` 能读取官方 DeepSeek 与所有 `llm-pi-ai` provider 的 `id/displayName/apiKeyEnv/baseURL`，但会丢弃额外的 account-monitor 配置。
-- [`lib/client.js`](../../lib/client.js) 已有统一 `ProviderAccountCard`，内部可切换余额与订阅窗口；但 `subscriptionIdFor()` 只硬编码 OpenCode Go/Z.ai。
-- `/subscriptions` 是 `0.1.x` 兼容路由；`0.2.0` 客户端改用按 provider 的 `/account`，一次只请求当前选择项。服务端则按产品要求在启动时及每五分钟主动刷新所有已配置账户，以便面板读取缓存并在关闭时继续预警。
+- [`src/server/accounts/registry.ts`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/src/server/accounts/registry.ts) 提供显式 adapter registry；[`specs.ts`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/src/server/accounts/specs.ts) 把 Harness provider 与 monitor 配置解析为账户规格，不再依赖固定 provider ID 分支。
+- [`src/server/accounts/types.ts`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/src/server/accounts/types.ts) 统一定义 `mode: balance | subscription` 的 snapshot wire shape，余额与窗口型适配器共享同一查询和持久化路径。
+- [`src/server/host/providers.ts`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/src/server/host/providers.ts) 负责读取、归一化 Harness provider descriptor；monitor 扩展配置在 account spec 解析阶段合并。
+- [`src/client/components/AccountGrid.tsx`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/src/client/components/AccountGrid.tsx) 根据统一 snapshot 展示余额或订阅窗口，不需要按 provider 硬编码组件分支。
+- 版本化 `/api/usage-stats/v1` API 返回本地 snapshot；服务端在启动、调度和显式 refresh mutation 时更新账户，普通 GET 不携带凭据访问上游。
 
-这里需要区分两类“自定义模型监测”：Harness 已产生的调用事件仍由现有本地统计按 `provider/model` 自动聚合，不需要为每个模型新增 adapter；本方案新增的是自定义 provider 或中转站的远端账户监测，例如余额、套餐窗口和重置时间。远端监测绑定在 `providerId`，不会改变已有的逐模型 token 统计口径。
-
-主要结构问题不是缺少更多 `if (providerId === ...)`，而是缺少“provider 配置到 account adapter”的显式绑定。
+这里仍需区分两类“自定义模型监测”：Harness 已产生的调用事件由本地统计按 `provider/model` 自动聚合，不需要为每个模型新增 adapter；account adapter 负责的是自定义 provider 或中转站的远端账户监测，例如余额、套餐窗口和重置时间。远端监测绑定在 `providerId`，不会改变逐模型 Token 统计口径。
 
 ## 推荐实现
 
@@ -262,7 +260,7 @@ Harness 官方支持 Cordis entry 的 `config`，并把配置作为 `apply(ctx, 
 ```yaml
 - insert:
     - id: usage-stats
-      name: dsh-usage-stats
+      name: dsh-hub-oauth-gateway
       config:
         monitors:
           relay-a:

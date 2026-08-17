@@ -1,17 +1,93 @@
 # Security Policy
 
+## Supported versions
+
+Security fixes target the latest 1.x release and the default branch. The 0.3 runtime is no longer supported after the 1.0 release.
+
 ## Reporting a vulnerability
 
-Please use this repository's private vulnerability-reporting form under the GitHub **Security** tab when it is available. If it is unavailable, open a minimal issue asking the maintainer for a private contact channel; do not include exploit details in that issue.
+Use this repository's private vulnerability-reporting form under the GitHub **Security** tab when available. If it is unavailable, open a minimal issue asking the maintainer for a private contact channel; do not include exploit details in the issue.
 
-请优先通过 GitHub **Security** 页面中的私密漏洞报告功能联系维护者。如果该入口不可用，请只创建一个不含利用细节的简短 issue，请求私下沟通渠道。
+请优先使用 GitHub **Security** 页面中的私密漏洞报告。若入口不可用，只创建一个不含利用细节的简短 issue，请求私下沟通渠道。
 
-Never include DeepSeek API keys, credentials files, session contents, raw logs, or unredacted balance data in a report. Revoke any credential that may already have been exposed.
+Never attach API keys, OAuth tokens, cookies, credential files, prompt/response content, raw session logs, local paths, raw provider responses, or unredacted exports. Revoke any credential that may have been exposed.
 
-报告中不要附带 DeepSeek API key、凭据文件、会话内容、原始日志或未脱敏余额。已经暴露的凭据应立即吊销。
+## Supported deployment model
 
-## Scope
+The plugin is designed for one trusted user running DeepSeek Harness Web on loopback. Its HTTP endpoints are not a public service and do not implement internet-facing authentication or multi-user authorization.
 
-Security fixes target the latest version on the default branch. The five HTTP endpoints are designed for direct loopback use only; exposing them through a reverse proxy is outside the supported security model unless the proxy adds authentication and access control.
+Supported:
 
-Declarative account monitors are trusted local configuration, but they still default to HTTPS, same-origin relative paths, manual redirects, JSON-only responses, and a 1 MiB response limit. Before sending credentials, the plugin rejects non-public IPv4/IPv6 DNS answers and pins the validated address for the connection. Enabling cross-origin, insecure HTTP, or private-network access expands the trust boundary and should be done only for an endpoint you control.
+- direct browser access to a loopback DSH Web instance;
+- the DSH plugin manager or included local fallback installer;
+- trusted local Cordis configuration;
+- outbound HTTPS account APIs validated by the plugin transport.
+
+Unsupported without an independent authenticated security layer:
+
+- exposing `/api/usage-stats/**` through a reverse proxy;
+- binding DSH Web to a LAN/public interface;
+- sharing one DSH profile among mutually untrusted OS users;
+- enabling arbitrary private-network, HTTP, or cross-origin monitors without reviewing the target.
+
+A malicious process already running as the same OS user may be able to read the user's DSH files or impersonate local browser requests. The plugin limits credential references and browser contexts, but it cannot provide an isolation boundary stronger than the host user account.
+
+## Local API protections
+
+Every plugin route validates:
+
+- the peer socket is loopback;
+- `Host` is `localhost` or a loopback literal;
+- any presented browser `Origin` or `Referer` resolves to the loopback backend authority or a validated browser-facing forwarded origin;
+- normal client requests carry `x-dsh-hub-oauth-gateway: 1` and an exact target-authority corroboration header.
+
+POST/PUT/DELETE additionally require `application/json`. Direct requests use the loopback `Host` as their authority. A reverse-proxied request may additionally use exactly one canonical `X-Forwarded-Host` plus exactly one `X-Forwarded-Proto: http|https`, but only after the socket peer and backend `Host` have both passed the loopback checks. Forwarded mode always requires the plugin marker and a client target-authority value matching the forwarded authority; each presented `Origin` or `Referer` must match either the backend origin rewritten by the proxy or the forwarded browser origin. Opaque, malformed, duplicate, and unrelated contexts remain rejected.
+
+Both client headers are non-safelisted, and the API does not return permissive CORS headers, so hostile cross-origin scripts cannot complete the required preflight. Forwarded headers and the authority value are same-client/proxy corroboration, not authentication or secrets; a hostile local same-user process can forge them and remains outside the isolation boundary. Guard rejections expose and log only a bounded classification such as `origin-opaque` or `authority-mismatch`; raw header values, URLs, cookies, and authorization data are never included. Ordinary GET endpoints read local SQLite/cache state only; credential-bearing upstream refresh occurs through explicit mutation endpoints and background scheduler work.
+
+Credential writes are limited to references used by resolved account specs or a fixed supported import/device-flow catalog. Responses expose only configuration metadata, never values.
+
+## Outbound request protections
+
+Account adapters use a centralized transport that:
+
+- defaults to HTTPS;
+- rejects embedded URL usernames/passwords;
+- keeps credentials on the original provider origin by default;
+- requires explicit `allowCrossOrigin` for a different origin;
+- rejects private/reserved IPv4 and IPv6 targets by default;
+- validates all DNS results and pins the selected result into the actual connection;
+- handles redirects manually;
+- applies timeouts and response-size limits;
+- validates JSON media/content where required;
+- never logs or returns response bodies on failure.
+
+`allowCrossOrigin`, `allowPrivateNetwork`, and `allowInsecure` expand the trust boundary. Enable them only for an endpoint you control and understand.
+
+Declarative monitors are trusted local configuration but remain limited to GET, relative paths, known auth modes, literal non-sensitive headers, and JSON Pointer extraction. They cannot run JavaScript or provide literal Authorization/Cookie/API-key headers.
+
+## OAuth and credentials
+
+The project does not bundle an unverified third-party GitHub OAuth client ID. Device flow is disabled until the operator configures a public client ID for an OAuth app they control or explicitly trust.
+
+OAuth device codes are stored only in a bounded, expiring in-memory server map. The browser receives a random flow ID. Successful access tokens are written directly through the DSH credential seam and are not persisted in the usage SQLite database.
+
+Local CLI import reads only a fixed provider/path catalog. API responses and migration state do not expose filesystem paths.
+
+## Data at rest
+
+The main database is `${DSH_HOME}/storages/usage-stats-v1.sqlite`. The plugin recognizes existing SQLite ownership/schema before changing file modes or enabling WAL, then repairs the storage directory to mode `0700` and the main file to `0600` where the platform supports POSIX modes.
+
+SQLite contains normalized usage facts, opaque session identifiers/cursors, account snapshots, user preferences, price rules, and sanitized migration state. It must not contain:
+
+- credential values;
+- prompts or responses;
+- working directories;
+- local credential-file paths;
+- raw provider responses.
+
+Session identifiers are anonymized at the API/UI boundary unless explicitly enabled. Export redaction can independently force them to remain hidden. CSV output prefixes formula-like cells to reduce spreadsheet injection risk.
+
+## Security-sensitive test coverage
+
+The release suite covers loopback/Host validation, cross-site and write guards, credential-reference allowlisting, request/body limits, DNS/private-target rejection, DNS pinning policy, cross-origin credential containment, migration retry behavior, session anonymization, CSV formula escaping, restrictive file modes, refusal to mutate foreign/unknown/future databases, standalone package import, and transactional fallback installation with rollback.

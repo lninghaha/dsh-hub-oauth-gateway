@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const knownFlags = new Set(["--check", "--dry-run", "--no-enable", "--help"]);
 const args = new Set(process.argv.slice(2));
@@ -15,10 +15,10 @@ for (const arg of args) {
 }
 
 if (args.has("--help")) {
-	console.log(`dsh-usage-stats installer
+	console.log(`dsh-hub-oauth-gateway installer
 
 Usage:
-  npx --yes github:Ychris12138/dsh-usage-stats [options]
+  npx --yes github:lninghaha/dsh-hub-oauth-gateway [options]
 
 Options:
   --check      Verify the installed package and Cordis patch without changing them
@@ -33,22 +33,25 @@ Set DSH_HOME to override the default ~/.dsh location.`);
 const sourceRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const sourcePackage = JSON.parse(await readFile(join(sourceRoot, "package.json"), "utf8"));
 const dshHome = process.env.DSH_HOME ?? join(homedir(), ".dsh");
-const target = join(dshHome, "profiles", "node_modules", "dsh-usage-stats");
+const target = join(dshHome, "profiles", "node_modules", "dsh-hub-oauth-gateway");
 const patchPath = join(dshHome, "profiles", "web", "cordis.patch.yml");
-const pluginLine = /^\s+name:\s*dsh-usage-stats\s*$/gm;
-const patchBlock = `# dsh-usage-stats: token usage heatmap + DeepSeek balance
+const pluginLine = /^\s+name:\s*dsh-hub-oauth-gateway\s*$/gm;
+const patchBlock = `# dsh-hub-oauth-gateway: local usage, cost, account, and quota dashboard
 - insert:
     - id: usage-stats
-      name: dsh-usage-stats
+      name: dsh-hub-oauth-gateway
 `;
 const emptySequenceRoot = /^\[\](?:[ \t]+#.*)?$/;
 
 function meaningfulPatchLines(text) {
-	return String(text).split(/\r?\n/).map((line, index) => ({
-		index,
-		indent: line.match(/^[ \t]*/)?.[0].length ?? 0,
-		content: line.trim()
-	})).filter(({ content }) => content !== "" && !content.startsWith("#") && content !== "---" && content !== "...");
+	return String(text)
+		.split(/\r?\n/)
+		.map((line, index) => ({
+			index,
+			indent: line.match(/^[ \t]*/)?.[0].length ?? 0,
+			content: line.trim(),
+		}))
+		.filter(({ content }) => content !== "" && !content.startsWith("#") && content !== "---" && content !== "...");
 }
 
 /** Remove a YAML document whose only value is the empty root sequence `[]`. */
@@ -62,7 +65,10 @@ function withoutEmptySequenceRoot(text) {
 	const inlineComment = lines[emptyRoot.index].match(/^([ \t]*)\[\][ \t]+(#.*)$/);
 	if (inlineComment === null) lines.splice(emptyRoot.index, 1);
 	else lines[emptyRoot.index] = `${inlineComment[1]}${inlineComment[2]}`;
-	return lines.filter((line) => line.trim() !== "...").join("\n").trimEnd();
+	return lines
+		.filter((line) => line.trim() !== "...")
+		.join("\n")
+		.trimEnd();
 }
 
 /** Detect the exact invalid shape produced by older installers: `[]` plus list entries. */
@@ -72,7 +78,9 @@ function assertNoEmptyRootConflict(text) {
 	const rootIndent = Math.min(...meaningful.map(({ indent }) => indent));
 	const roots = meaningful.filter(({ indent }) => indent === rootIndent);
 	if (roots.some(({ content }) => emptySequenceRoot.test(content)) && roots.length > 1) {
-		throw new Error(`invalid YAML in ${patchPath}: empty root sequence [] cannot be combined with patch entries; rerun the installer to repair it`);
+		throw new Error(
+			`invalid YAML in ${patchPath}: empty root sequence [] cannot be combined with patch entries; rerun the installer to repair it`,
+		);
 	}
 }
 
@@ -92,17 +100,96 @@ async function readOptional(path) {
 	}
 }
 
-async function verify(expectEnabled) {
-	const installedRaw = await readOptional(join(target, "package.json"));
-	if (installedRaw === null) throw new Error(`package is not installed at ${target}`);
+async function validatePackageRoot(root) {
+	const installedRaw = await readOptional(join(root, "package.json"));
+	if (installedRaw === null) throw new Error(`package manifest is missing from ${root}`);
 	const installed = JSON.parse(installedRaw);
 	if (installed.name !== sourcePackage.name || installed.version !== sourcePackage.version) {
-		throw new Error(`installed package is ${installed.name ?? "unknown"}@${installed.version ?? "unknown"}; expected ${sourcePackage.name}@${sourcePackage.version}`);
+		throw new Error(
+			`installed package is ${installed.name ?? "unknown"}@${installed.version ?? "unknown"}; expected ${sourcePackage.name}@${sourcePackage.version}`,
+		);
 	}
+	const client = await readOptional(join(root, "lib", "client.js"));
+	if (client === null || (client.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length !== 1) {
+		throw new Error(`client bundle validation failed in ${root}`);
+	}
+	const serverPath = join(root, "lib", "index.js");
+	if ((await readOptional(serverPath)) === null) throw new Error(`server bundle is missing from ${root}`);
+	const plugin = await import(`${pathToFileURL(serverPath).href}?installer=${Date.now()}`);
+	if (plugin.name !== "usage-stats" || typeof plugin.apply !== "function") {
+		throw new Error(`server plugin contract validation failed in ${root}`);
+	}
+}
+
+function asPlainObject(value) {
+	return value !== null && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function parseWebProfileManifest(raw, path) {
+	let parsed;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw new Error(`invalid JSON in ${path}; refusing to install until the web profile manifest can be parsed`);
+	}
+	const manifest = asPlainObject(parsed);
+	if (manifest === null) {
+		throw new Error(`invalid web profile manifest in ${path}; refusing to install`);
+	}
+	if (manifest.dsh === undefined) return false;
+	const dsh = asPlainObject(manifest.dsh);
+	if (dsh === null) throw new Error(`invalid dsh field in ${path}; refusing to install`);
+	if (dsh.profile === undefined) return false;
+	const profile = asPlainObject(dsh.profile);
+	if (profile === null) throw new Error(`invalid dsh.profile in ${path}; refusing to install`);
+	if (profile.bundles === undefined) return false;
+	if (!Array.isArray(profile.bundles) || profile.bundles.some((bundle) => typeof bundle !== "string")) {
+		throw new Error(`invalid dsh.profile.bundles in ${path}; refusing to install`);
+	}
+	return profile.bundles.includes("dsh-hub-oauth-gateway");
+}
+
+async function managedByPluginManager() {
+	const path = join(dshHome, "profiles", "web", "package.json");
+	const raw = await readOptional(path);
+	if (raw === null) return false;
+	return parseWebProfileManifest(raw, path);
+}
+
+function injectFault(stage) {
+	if (process.env.DSH_USAGE_STATS_INSTALL_FAULT === stage) {
+		throw new Error(`injected ${stage} failure`);
+	}
+}
+
+async function writeTextAtomic(path, value) {
+	const temporary = `${path}.install-${process.pid}`;
+	await mkdir(dirname(path), { recursive: true });
+	await rm(temporary, { force: true });
+	try {
+		await writeFile(temporary, value, "utf8");
+		await rename(temporary, path);
+	} finally {
+		await rm(temporary, { force: true });
+	}
+}
+
+async function restorePackage(backup, installed) {
+	await rm(installed, { recursive: true, force: true });
+	if (backup !== null) await rename(backup, installed);
+}
+
+async function restorePatch(previous, path) {
+	if (previous === null) await rm(path, { force: true });
+	else await writeTextAtomic(path, previous);
+}
+
+async function verify(expectEnabled) {
+	await validatePackageRoot(target);
 	if (expectEnabled) {
 		const patch = await readOptional(patchPath);
 		const count = patch === null ? 0 : [...patch.matchAll(pluginLine)].length;
-		if (count !== 1) throw new Error(`expected exactly one dsh-usage-stats entry in ${patchPath}; found ${count}`);
+		if (count !== 1) throw new Error(`expected exactly one dsh-hub-oauth-gateway entry in ${patchPath}; found ${count}`);
 		assertNoEmptyRootConflict(patch);
 	}
 	console.log(`Verified ${sourcePackage.name}@${sourcePackage.version}`);
@@ -111,6 +198,11 @@ async function verify(expectEnabled) {
 }
 
 const enable = !args.has("--no-enable");
+if (await managedByPluginManager()) {
+	throw new Error(
+		"dsh-hub-oauth-gateway is registered in dsh.profile.bundles; use `dsh plugin --profile web update dsh-hub-oauth-gateway` instead of the fallback installer",
+	);
+}
 if (args.has("--dry-run")) {
 	console.log(`Would install ${sourcePackage.name}@${sourcePackage.version}`);
 	console.log(`  package: ${target}`);
@@ -123,20 +215,69 @@ if (args.has("--check")) {
 	process.exit(0);
 }
 
-await mkdir(target, { recursive: true });
+const staging = `${target}.install-${process.pid}`;
+const packageBackup = `${target}.backup-${process.pid}`;
+const patchBackup = `${patchPath}.backup-${process.pid}`;
+await mkdir(dirname(target), { recursive: true });
+await rm(staging, { recursive: true, force: true });
+await rm(packageBackup, { recursive: true, force: true });
+await rm(patchBackup, { force: true });
+await mkdir(staging, { recursive: true });
 for (const entry of ["lib", "cordis.patch.yml", "package.json", "README.md", "LICENSE", "SECURITY.md"]) {
-	await cp(join(sourceRoot, entry), join(target, entry), { recursive: true, force: true });
+	await cp(join(sourceRoot, entry), join(staging, entry), { recursive: true, force: true });
 }
-await mkdir(join(target, "scripts"), { recursive: true });
-await cp(fileURLToPath(import.meta.url), join(target, "scripts", "install.mjs"), { force: true });
+await mkdir(join(staging, "scripts"), { recursive: true });
+await cp(fileURLToPath(import.meta.url), join(staging, "scripts", "install.mjs"), { force: true });
+await validatePackageRoot(staging);
 
-if (enable) {
-	await mkdir(dirname(patchPath), { recursive: true });
-	const current = await readOptional(patchPath) ?? "";
-	const enabledPatch = enablePluginInPatch(current);
-	if (enabledPatch !== current) await writeFile(patchPath, enabledPatch, "utf8");
+const previousPatch = enable ? await readOptional(patchPath) : null;
+let packageBackedUp = false;
+let packageInstalled = false;
+let succeeded = false;
+try {
+	try {
+		await rename(target, packageBackup);
+		packageBackedUp = true;
+	} catch (error) {
+		if (error?.code !== "ENOENT") throw error;
+	}
+	if (previousPatch !== null) await writeFile(patchBackup, previousPatch, "utf8");
+
+	await rename(staging, target);
+	packageInstalled = true;
+	injectFault("package");
+
+	if (enable) {
+		await mkdir(dirname(patchPath), { recursive: true });
+		const enabledPatch = enablePluginInPatch(previousPatch ?? "");
+		if (enabledPatch !== (previousPatch ?? "")) await writeTextAtomic(patchPath, enabledPatch);
+		injectFault("patch");
+	}
+
+	await verify(enable);
+	injectFault("verify");
+	succeeded = true;
+} catch (error) {
+	try {
+		if (packageInstalled || packageBackedUp) {
+			await restorePackage(packageBackedUp ? packageBackup : null, target);
+		}
+		if (enable) await restorePatch(previousPatch, patchPath);
+		await rm(packageBackup, { recursive: true, force: true });
+		await rm(patchBackup, { force: true });
+	} catch (rollbackError) {
+		throw new Error(
+			`${error instanceof Error ? error.message : error}; rollback failed: ${rollbackError instanceof Error ? rollbackError.message : rollbackError}`,
+		);
+	}
+	throw error;
+} finally {
+	await rm(staging, { recursive: true, force: true });
+	if (succeeded) {
+		await rm(packageBackup, { recursive: true, force: true });
+		await rm(patchBackup, { force: true });
+	}
 }
 
-await verify(enable);
-console.log("Installation complete. Restart dsh web, then hard-refresh the browser.");
-console.log("Balance is optional: configure DEEPSEEK_API_KEY in <DSH_HOME>/.credentials.yaml.");
+console.log("Installation complete. Restart dsh web manually when convenient, then refresh the browser.");
+console.log("Credentials are optional and can be managed in Settings → Usage Center.");

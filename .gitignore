@@ -2,5 +2,8 @@ node_modules/
 .playwright-cli/
 output/
 coverage/
+.next/
+*.tsbuildinfo
 *.log
 .DS_Store
+.npmrc

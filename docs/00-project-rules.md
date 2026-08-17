@@ -1,0 +1,319 @@
+# 00 · Project rules: open source, releases, and maintenance
+
+> This document is the source of truth for the public project rules of
+> `dsh-hub-oauth-gateway`. It governs repository content, public documentation,
+> versioning, release artifacts, and maintenance. Contributor workflow is in
+> [`CONTRIBUTING.md`](../CONTRIBUTING.md); security reporting is in
+> [`SECURITY.md`](../SECURITY.md).
+
+The guiding principle is: **develop in public without publishing private
+development data**. Public material must be useful, generic, reproducible, and
+safe to redistribute.
+
+## 0. Open-source principles
+
+### 0.1 Purpose
+
+`dsh-hub-oauth-gateway` is an independent, community-maintained MIT-licensed plugin.
+It is open so people can use, inspect, audit, fork, and improve local-first
+usage analytics for DeepSeek Harness Web. Public claims must describe behavior
+that exists and can be verified; the project must not imply vendor endorsement
+or billing accuracy.
+
+### 0.2 License and provenance
+
+- Repository contributions are accepted under the [MIT License](../LICENSE).
+- Preserve copyright and license notices when copying or adapting code.
+- Before adding third-party code, assets, datasets, or generated material,
+  verify its source and license compatibility. Record required attribution in
+  a dedicated notice before release.
+- Prefer auditable dependency versions and commit the pnpm lockfile. Do not
+  vendor a dependency merely to hide its origin or license.
+
+### 0.3 Privacy is a hard publication boundary
+
+The following must never enter Git history, an npm artifact, an issue, a pull
+request, a release note, or public logs:
+
+- API keys, OAuth tokens, cookies, passwords, private keys, device codes, or
+  credential-file contents;
+- personal account details, unredacted session identifiers, prompts,
+  responses, working directories, or raw provider payloads;
+- private hostnames, internal IP addresses, personal absolute paths, or
+  machine-specific incident notes;
+- production databases, exports, traces, screenshots, or fixtures containing
+  real user data.
+
+Use neutral placeholders such as `example.com`, `provider-a`, `YOUR_API_KEY`,
+and `${DSH_HOME}`. Sanitization means replacing the sensitive value, not merely
+blurring part of it. If publication safety is uncertain, keep the material
+local until it has been reviewed.
+
+### 0.4 Security and product honesty
+
+- The supported deployment is one trusted user on a loopback-only DSH Web
+  instance. Do not present the plugin as an authenticated multi-user or
+  internet-facing service.
+- Usage and cost values are analytics and estimates, not provider invoices.
+  Missing prices remain uncovered and must never be represented as free.
+- Ordinary reads remain local and side-effect free. Credential-bearing refresh
+  and network trust expansion must be explicit.
+- Do not add telemetry, remote error reporting, or data upload by default. Any
+  future networked analytics feature requires a documented threat/privacy
+  review and affirmative user configuration.
+- Query only accounts and endpoints the operator owns or is authorized to use.
+  The project does not support credential sharing, quota resale, bulk-account
+  operation, paywall bypass, client impersonation, or unauthorized monitoring.
+
+## 1. Repository and publication layers
+
+A file can be public in Git without belonging in the runtime package. Every
+new file must be assigned to one of these layers deliberately.
+
+| Layer | Typical locations | Git | npm | Rule |
+| --- | --- | ---: | ---: | --- |
+| Public source and tests | `src/`, `tests/`, `build/`, `.github/` | yes | no | Reproducible and free of private data |
+| Public community docs | `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, selected `docs/` | yes | selected | Generic, durable, externally readable |
+| Runtime release artifact | `lib/`, `cordis.patch.yml`, `scripts/install.mjs` | yes | yes | Generated/verified and sufficient to install |
+| Local-only investigation | `docs/local/` | no | no | Private fault notes and machine-specific research |
+| Local reference material | `reference/` | no | no | Temporary third-party checkouts or personal notes |
+| Ephemeral output | `.next/`, `output/`, `coverage/`, `*.tsbuildinfo`, databases | no | no | Rebuildable or sensitive local state |
+
+Hard rules:
+
+1. `package.json#files` is an explicit allowlist. List publishable documents
+   individually; never use a broad `docs/` or `docs/**` entry.
+2. Public documents must not link to or depend on `docs/local/` or `reference/`.
+3. `.gitignore` is only a guardrail. Review staged changes and the actual npm
+   file manifest before every release.
+4. Do not use `git add -f` to bypass the local-only boundary. Promote a
+   sanitized document by moving it into the public layer and reviewing it as
+   a new public file.
+5. Research documents may be public when they contain reusable product or
+   protocol analysis and no private incident/account data. Label assumptions
+   and distinguish observations from current guarantees.
+
+## 2. Source, generated artifacts, and dependencies
+
+### 2.1 Source of truth
+
+- `src/` is the source of truth for runtime behavior.
+- `lib/` is a committed release artifact because Git-host installation must
+  work without compiling TypeScript. Never edit it by hand.
+- Build and verify `lib/` only in the Docker `artifacts` target. Export it to
+  ignored `output/docker-artifacts/`, review it, and then replace the generated
+  tree with file operations; never run the release build on the host.
+- A runtime change is incomplete until the corresponding container-generated
+  `lib/` diff is committed and the Docker `verify` target confirms exact
+  reproducibility. A documentation-only change must not create an unrelated
+  `lib/` diff.
+
+### 2.2 Toolchain and lockfile
+
+- Use the Node.js range and exact pnpm major/version declared in
+  `package.json`.
+- Dependency changes include both `package.json` and `pnpm-lock.yaml`.
+- `package-lock.json` and mixed package-manager state are not accepted.
+- Keep runtime dependencies bundled or explicitly declared according to the
+  architecture. Do not rely on undeclared packages from a developer machine.
+- Dependency upgrades require the normal test/release gates and a review of
+  relevant security, license, and bundle-size impact.
+
+### 2.3 Docker sandbox boundary
+
+The host checkout is an editing surface, not an execution environment. All
+project code and tooling run in the repository `Dockerfile`:
+
+- Do not execute Node.js, npm/npx/pnpm, Biome, TypeScript, Vitest, installers,
+  build scripts, lifecycle scripts, or package inspection directly on the
+  host.
+- The only supported test entry points are Docker build targets (`check`,
+  `inspect`, `artifacts`, `verify`, `package`, and `lockfile`). CI uses the same
+  `verify` target rather than installing Node dependencies on the runner.
+- Never bind mount the checkout, `$HOME`, a DSH profile, credentials, Docker
+  socket, or another project into a test container. Never use host networking,
+  privileged mode, host port publication, or access to a running DSH Web
+  service.
+- `.dockerignore` is an explicit public-file allowlist. New build inputs must
+  be deliberately added and reviewed; unknown/untracked local files stay out
+  of the Docker context.
+- Dependency resolution may use the network only in toolchain/dependency or
+  lockfile stages, before source is copied. Every stage that executes project
+  code uses `RUN --network=none` and a container-only `DSH_HOME`.
+- Docker output reaches the checkout only through an explicit BuildKit local
+  export under ignored `output/`. Review exported files before replacing a
+  committed generated tree.
+
+These constraints protect other local projects and user data. A successful
+host-side command is not valid verification and must not be reported as such.
+
+### 2.4 Runtime invariants
+
+Changes must preserve these architectural boundaries unless an explicitly
+reviewed breaking release changes them:
+
+- one Cordis server plugin and one classic-script client registration;
+- no second HTTP server and no replacement DSH root application;
+- versioned API contracts and strict runtime configuration validation;
+- local SQLite facts/snapshots without credentials, prompts, responses,
+  working directories, credential paths, or raw provider bodies;
+- provider credentials remain server-side and are sent only through the
+  centralized target-validation transport;
+- installers and development tools never restart DSH Web automatically.
+
+See [`architecture.md`](architecture.md) and
+[`configuration.md`](configuration.md) for the implementation contracts.
+
+## 3. Documentation and change records
+
+- `README.md` is intentionally concise and bilingual (Simplified Chinese and
+  English). User-visible UI strings must remain available in both languages.
+- Detailed public engineering documentation is English-first. A translation
+  is welcome, but it must identify its canonical source and avoid silently
+  diverging on commands or security statements.
+- Observable behavior, configuration, API, installation, migration, or trust
+  boundary changes require updates to the relevant docs in the same pull
+  request.
+- Record user- and operator-visible changes under `Unreleased` in
+  `CHANGELOG.md`, following Keep a Changelog categories. Do not add entries for
+  formatting-only or internal changes with no release impact.
+- Examples must be copy-safe: use fake domains, references, and values; explain
+  flags that weaken network restrictions.
+- Public documentation is versioned with the repository. There is no separate
+  document-version number and documentation edits do not, by themselves,
+  force an immediate release.
+
+## 4. Compatibility and semantic versioning
+
+The project follows [Semantic Versioning](https://semver.org/) after 1.0.0.
+
+| Change | Version |
+| --- | --- |
+| Backward-compatible bug, security, packaging, or documentation fix | patch |
+| Backward-compatible capability, adapter, preference, or endpoint | minor |
+| Incompatible public API/export/config/storage/install contract | major |
+
+The public compatibility surface includes:
+
+- package entry points declared in `exports`;
+- Cordis plugin name, configuration schema, and bundle declaration;
+- documented versioned HTTP API behavior;
+- persisted data for which migration is promised;
+- documented installation and upgrade behavior.
+
+Internal TypeScript modules, undocumented shapes, CSS class names, and test
+helpers are not stable API. Nevertheless, avoid gratuitous churn. Deprecate a
+public contract before removal when a safe compatibility window is possible.
+Pre-release versions may iterate faster, but every incompatibility must still
+be documented.
+
+## 5. Contribution and review gates
+
+- Keep changes focused and reviewable. Use `feat:`, `fix:`, `docs:`, `test:`,
+  `refactor:`, `build:`, or `chore:` commit prefixes when practical.
+- A bug fix should include a regression test. A security-boundary change must
+  include negative/adversarial coverage.
+- Tests and CI must not require real credentials, provider accounts, internet
+  access, or an existing DSH profile. Use mocks and temporary directories.
+- Reviews consider correctness, compatibility, failure isolation, privacy,
+  accessibility, documentation, generated artifacts, and packed contents.
+- Do not merge a behavior change while required docs/changelog/tests or the
+  generated `lib/` update are missing.
+
+The sandbox gates are:
+
+```bash
+# Fast source-development loop
+docker build --target check --build-arg NODE_VERSION=22.19.0 \
+  --tag dsh-hub-oauth-gateway-sandbox:check .
+
+# Full build/test/reproducibility/package gate
+docker build --target verify --build-arg NODE_VERSION=22.19.0 \
+  --tag dsh-hub-oauth-gateway-sandbox:verify .
+```
+
+The `check` target does not promote artifacts into the checkout and is not the
+final release gate. The `verify` target runs the repository `check` and
+`release:inspect` commands inside the container, and compares the rebuilt
+`lib/` tree with the committed copy. Host-side pnpm/npm commands are forbidden,
+not an alternative shortcut.
+
+## 6. Release process
+
+Only maintainers release. Preparing and inspecting a release is deliberately
+separate from external writes.
+
+1. Choose the SemVer change from the actual compatibility impact.
+2. Move relevant `CHANGELOG.md` entries from `Unreleased` into the target
+   version and update user-facing docs.
+3. Update `package.json` (and any generated version metadata) without weakening
+   the Node/pnpm or peer-dependency contract.
+4. From a reviewed working tree, run the complete sandbox gate on every
+   supported Node line:
+
+   ```bash
+   docker build --target verify --build-arg NODE_VERSION=22.19.0 \
+     --tag dsh-hub-oauth-gateway-sandbox:release-22 .
+   docker build --target verify --build-arg NODE_VERSION=24 \
+     --tag dsh-hub-oauth-gateway-sandbox:release-24 .
+   ```
+
+5. Inspect the complete file list and metadata printed by the container. To
+   create a local tarball, export the `package` target to an ignored directory:
+
+   ```bash
+   rm -rf output/docker-package
+   docker build --target package --build-arg NODE_VERSION=22.19.0 \
+     --output type=local,dest=output/docker-package .
+   ```
+
+   Test any tarball in another no-mount Docker sandbox, never in the host DSH
+   profile.
+6. Confirm the changelog version, package version, bundle banner, and tag will
+   all be identical.
+7. Only after explicit human approval, commit, create annotated tag
+   `v<version>`, push, publish to the intended npm registry, and create release
+   notes from the changelog.
+8. Verify the registry/release metadata and installation path after publishing.
+
+The release helper runs only inside the Docker targets. It may build, inspect,
+and export a local tarball under `output/`; it must never bump a version,
+commit, tag, push, publish, restart DSH Web, or read user credentials.
+
+## 7. Pre-release privacy and security checklist
+
+Before an external release, verify all of the following:
+
+- [ ] `git diff --cached` contains no secret, personal path, account/session
+      data, raw provider response, or private investigation note.
+- [ ] Docker `verify` passes on every supported Node.js line; no project
+      command was executed on the host.
+- [ ] The intended container-generated `lib/` output is reproducible and no
+      stale legacy runtime is present.
+- [ ] The Docker release inspection reports only explicitly allowed files.
+- [ ] No `docs/local/`, `reference/`, source tree, tests, database, export,
+      environment file, package-manager cache, or lockfile is in the tarball.
+- [ ] README, configuration, migration, security, and changelog statements
+      match actual behavior.
+- [ ] New third-party material has compatible licensing and attribution.
+- [ ] No live-provider smoke test or credential-bearing operation is hidden in
+      a lifecycle script.
+- [ ] Publishing target, package name, version, tag, and release notes have
+      been reviewed by a human.
+
+If a secret may have been exposed, stop the release, revoke/rotate it, remove
+it from pending changes and artifacts, and follow `SECURITY.md`. Rewriting Git
+history is not a substitute for revocation.
+
+## 8. Maintenance and governance
+
+- Respond constructively to reproducible issues and focused pull requests.
+- Keep CI green on the declared Node.js support range and remove unsupported
+  versions deliberately rather than accidentally.
+- Prefer meaningful releases over artificial activity. Never pad a changelog,
+  fabricate support, or publish empty versions merely to appear active.
+- Security fixes target the versions stated in `SECURITY.md`; support-policy
+  changes must update that file before release.
+- Changes to this rules document use the normal pull-request process and must
+  be mentioned under `Unreleased` when they materially change contributor or
+  release obligations.

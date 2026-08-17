@@ -1,0 +1,176 @@
+# dsh-hub-oauth-gateway 1.0 architecture
+
+## Goals
+
+1. Remain a normal DeepSeek Harness Web bundle instead of replacing the Web shell.
+2. Keep usage history and account snapshots local by default.
+3. Separate passive usage projection from credential-bearing account refreshes.
+4. Make partial failures visible without turning one corrupt session or provider into a global outage.
+5. Treat pricing as user-owned, versioned estimation data rather than a hard-coded billing truth.
+6. Publish deterministic, dependency-independent runtime artifacts.
+
+## Runtime shape
+
+```text
+DSH session inventory ──> usage projector ──> SQLite facts/cursors ──> query service
+                                               │                         │
+DSH provider settings ──> account specs ──> adapters ──> snapshots       ├─ v1 API
+                                               │                         └─ legacy API views
+DSH credentials seam ──────────────────────────┘
+
+DSH Web slots ──> classic client bundle ──> TanStack Query ──> Quick Peek / Dashboard / Settings
+```
+
+The server exports the Cordis contract `name`, `inject`, `Config`, and `apply`. The client registers only declared DSH slots:
+
+- `sidebar.footer.action`
+- `shell.overlay`
+- `settings.section`
+
+It never registers a `root` application or starts a second web server.
+
+## Usage projection
+
+The session inventory exposes persisted and live snapshots. Projection folds only usage-bearing events and writes one fact per:
+
+```text
+(session_id, turn, step)
+```
+
+A later observation of the same logical step replaces the prior fact. This is essential because streaming and persisted snapshots can expose the same turn repeatedly. Each session cursor records source kind, revision, next event sequence, current provider/model, last-seen time, and deletion state.
+
+Projection properties:
+
+- session failures are isolated;
+- duplicate inventory IDs are rejected and counted as partial failures;
+- deleted-session facts are preserved by default;
+- startup projection precedes legacy usage migration, preventing double imports;
+- every successful projection synchronization retries unfinished legacy usage migration;
+- GET requests never trigger projection; startup, scheduler, and explicit refresh POST do.
+
+## SQLite storage
+
+The database lives at `${DSH_HOME}/storages/usage-stats-v1.sqlite` and uses WAL, foreign keys, a busy timeout, prepared statements, and transactions.
+
+Logical tables cover:
+
+- schema migrations;
+- session cursors;
+- usage facts;
+- account snapshots;
+- price rules;
+- user preferences;
+- legacy migration state.
+
+Existing files are classified and checked for this application's id/schema before any `chmod`, WAL, or other mutable PRAGMA. Unrecognized, foreign, or newer databases are left untouched. After a file is recognized as ours, the storage layer repairs the parent directory to mode `0700` and the main database file to `0600`. Retention is enforced at startup and during scheduled usage synchronization.
+
+The database deliberately excludes credential values, prompts, responses, working directories, local credential-file paths, and raw provider payloads.
+
+## Account subsystem
+
+Provider descriptors come from DSH settings and a compatibility catalog. `resolveAccountSpecs()` combines each descriptor with the validated monitor config and selects one of 21 adapters.
+
+Every adapter returns the same normalized snapshot:
+
+- provider/display/adapter identifiers;
+- `balance` or `subscription` mode;
+- configured and status state;
+- optional plan and balance;
+- zero or more quota windows;
+- missing credential references;
+- freshness and warning metadata.
+
+The service provides single-flight refresh, bounded concurrency, memory caching, persisted snapshots, and stale-on-transient-error behavior.
+
+### Outbound network boundary
+
+All adapter requests pass through the central transport:
+
+1. validate protocol and reject embedded URL credentials;
+2. enforce the provider's original origin unless cross-origin access is explicitly allowed;
+3. resolve all addresses and reject private/reserved targets by default;
+4. pin the validated DNS answer into the actual HTTP(S) connection;
+5. disable automatic redirects;
+6. enforce timeout, media type, status, and response-size limits.
+
+Injected test transports pass through the same target policy. This prevents a monitor override from sending a provider bearer token to an arbitrary public origin.
+
+## Pricing and cost estimation
+
+A price rule is selected by currency, effective time, provider pattern, model pattern, source priority, pattern specificity, and update time. Patterns support literal text plus `*`; they are not regular expressions.
+
+Each Token category is priced separately. Missing categories remain uncovered, and the API returns a coverage ratio. Cost values are always marked estimated. There is no bundled volatile price catalog in 1.0.
+
+## Query and API layer
+
+The versioned API base is `/api/usage-stats/v1` and returns a shared envelope:
+
+```json
+{
+  "ok": true,
+  "data": {},
+  "meta": {
+    "schemaVersion": 1,
+    "generatedAt": 0,
+    "sourceUpdatedAt": 0,
+    "partial": false,
+    "stale": false,
+    "warnings": []
+  }
+}
+```
+
+Read endpoints query local SQLite/account snapshots only. `/refresh` is the sole general refresh mutation. Compatibility endpoints render v0.3 shapes from the same v1 repositories and likewise do not refresh on GET.
+
+The browser never reads SQLite, credentials, or provider endpoints directly. It calls the API under the current DSH Web origin, and the plugin server returns local projections. The backend still requires a loopback socket peer and loopback Host; when the complete DSH Web is published through a trusted local HTTPS reverse proxy, canonical `X-Forwarded-Host`/`X-Forwarded-Proto` identify the browser-facing origin without changing that backend boundary.
+
+Calendar ranges and buckets use the configured IANA timezone, including DST transitions. Forecasts use bounded linear extrapolation and are returned as a distinct series.
+
+Session grouping is disabled unless the privacy preference explicitly enables identifiers. When disabled, both breakdown keys and labels are anonymized.
+
+## Client architecture
+
+The source client uses React 18, TanStack Query, Zod validation, and uPlot. The build emits one classic script wrapped in:
+
+```js
+window.__ModuleLoader__.load("dsh-hub-oauth-gateway", async function (require, module, exports) {
+  // bundled plugin
+});
+```
+
+DSH platform packages are externalized to `require()` IDs. TanStack Query, Zod, CSS, and uPlot are bundled; uPlot initialization remains lazy.
+
+Presentation state is split between:
+
+- server-backed user preferences;
+- ephemeral overlay/filter state;
+- cached, schema-validated API queries.
+
+Optional account, alert, series, or breakdown failures degrade their own sections rather than blanking the dashboard.
+
+## Build and release
+
+The repository `Dockerfile` is the only supported execution boundary. Its
+`dependencies` stage resolves the pinned pnpm lockfile before source is copied;
+all later stages that execute project code use `RUN --network=none`, a
+container-only `DSH_HOME`, and no host bind mount.
+
+Inside the Docker `artifacts` / `verify` targets, `pnpm run release:build`
+performs a clean build into `.next/lib`, bundles server dependencies into a
+standalone ESM `index.js`, emits the classic client bundle, atomically replaces
+`lib/`, and verifies:
+
+- package entrypoints;
+- Cordis plugin exports;
+- standard-schema config;
+- no bare runtime import of bundled dependencies;
+- one client module-loader registration;
+- no stale v0.3 runtime files;
+- compatibility installer behavior.
+
+The `verify` target additionally hashes the committed and rebuilt `lib/` trees
+and runs release/package inspection. The `artifacts`, `package`, and `lockfile`
+targets export only deliberate output under ignored `output/`; tests never
+write into the checkout. Committed `lib/` artifacts are the Git-host
+installation contract, so the fallback installer does not need to install
+transitive runtime dependencies.

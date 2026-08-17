@@ -1,19 +1,27 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const home = await mkdtemp(join(tmpdir(), "dsh-usage-stats-install-"));
+const home = await mkdtemp(join(tmpdir(), "dsh-hub-oauth-gateway-install-"));
 const installer = fileURLToPath(new URL("./install.mjs", import.meta.url));
 const patchPath = join(home, "profiles", "web", "cordis.patch.yml");
-const pluginEntry = /^\s+name:\s*dsh-usage-stats\s*$/gm;
+const target = join(home, "profiles", "node_modules", "dsh-hub-oauth-gateway");
+const pluginEntry = /^\s+name:\s*dsh-hub-oauth-gateway\s*$/gm;
+
+function installerEnv(fault) {
+	const env = { ...process.env, DSH_HOME: home };
+	delete env.DSH_USAGE_STATS_INSTALL_FAULT;
+	if (fault !== undefined) env.DSH_USAGE_STATS_INSTALL_FAULT = fault;
+	return env;
+}
 
 function run(...args) {
 	const result = spawnSync(process.execPath, [installer, ...args], {
-		env: { ...process.env, DSH_HOME: home },
-		encoding: "utf8"
+		env: installerEnv(),
+		encoding: "utf8",
 	});
 	assert.equal(result.status, 0, result.stderr || result.stdout);
 	return result.stdout;
@@ -21,17 +29,38 @@ function run(...args) {
 
 function runFailure(...args) {
 	const result = spawnSync(process.execPath, [installer, ...args], {
-		env: { ...process.env, DSH_HOME: home },
-		encoding: "utf8"
+		env: installerEnv(),
+		encoding: "utf8",
 	});
 	assert.notEqual(result.status, 0, "command should fail");
 	return `${result.stderr}\n${result.stdout}`;
 }
 
+function runFault(fault, ...args) {
+	const result = spawnSync(process.execPath, [installer, ...args], {
+		env: installerEnv(fault),
+		encoding: "utf8",
+	});
+	assert.notEqual(result.status, 0, `${fault} fault should fail installation`);
+	return `${result.stderr}\n${result.stdout}`;
+}
+
+async function leftoverBackups() {
+	const leftovers = [];
+	for (const directory of [dirname(target), dirname(patchPath)]) {
+		for (const name of await readdir(directory)) {
+			if (name.includes(".backup-") || name.includes(".install-")) leftovers.push(join(directory, name));
+		}
+	}
+	return leftovers;
+}
+
 try {
 	run();
+	await writeFile(join(target, "lib", "stale-runtime.js"), "stale", "utf8");
 	run();
-	assert.match(run("--check"), /Verified dsh-usage-stats@/);
+	await assert.rejects(readFile(join(target, "lib", "stale-runtime.js"), "utf8"), { code: "ENOENT" });
+	assert.match(run("--check"), /Verified dsh-hub-oauth-gateway@/);
 	let patch = await readFile(patchPath, "utf8");
 	assert.equal([...patch.matchAll(pluginEntry)].length, 1, "installer must be idempotent");
 
@@ -44,7 +73,11 @@ try {
 	assert.doesNotMatch(patch, /^\s*\[\]\s*$/m, "empty YAML sequence must be replaced, not appended to");
 	assert.equal([...patch.matchAll(pluginEntry)].length, 1);
 	run();
-	assert.equal([...((await readFile(patchPath, "utf8")).matchAll(pluginEntry))].length, 1, "normalized empty patch must remain idempotent");
+	assert.equal(
+		[...(await readFile(patchPath, "utf8")).matchAll(pluginEntry)].length,
+		1,
+		"normalized empty patch must remain idempotent",
+	);
 
 	await writeFile(patchPath, "# Harness patch entries\n\n[]\n", "utf8");
 	run();
@@ -60,14 +93,18 @@ try {
 	assert.doesNotMatch(patch, /^\s*\[\](?:\s+#.*)?$/m);
 	assert.equal([...patch.matchAll(pluginEntry)].length, 1);
 	run();
-	assert.equal([...((await readFile(patchPath, "utf8")).matchAll(pluginEntry))].length, 1, "inline-comment normalization must remain idempotent");
+	assert.equal(
+		[...(await readFile(patchPath, "utf8")).matchAll(pluginEntry)].length,
+		1,
+		"inline-comment normalization must remain idempotent",
+	);
 
 	const brokenLegacyPatch = `[]
 
-# dsh-usage-stats: token usage heatmap + DeepSeek balance
+# dsh-hub-oauth-gateway: token usage heatmap + DeepSeek balance
 - insert:
     - id: usage-stats
-      name: dsh-usage-stats
+      name: dsh-hub-oauth-gateway
 `;
 	await writeFile(patchPath, brokenLegacyPatch, "utf8");
 	assert.match(runFailure("--check"), /invalid YAML/, "check mode must reject the legacy broken shape");
@@ -90,14 +127,56 @@ try {
 	patch = await readFile(patchPath, "utf8");
 	assert.match(patch, /name: existing-plugin/, "existing patch entries must be preserved");
 	assert.equal([...patch.matchAll(pluginEntry)].length, 1);
-	const installed = JSON.parse(await readFile(join(home, "profiles", "node_modules", "dsh-usage-stats", "package.json"), "utf8"));
-	assert.equal(installed.name, "dsh-usage-stats");
+	const installed = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
+	assert.equal(installed.name, "dsh-hub-oauth-gateway");
 	assert.equal(installed.dsh?.bundle?.patch, "./cordis.patch.yml");
-	assert.match(
-		await readFile(join(home, "profiles", "node_modules", "dsh-usage-stats", "cordis.patch.yml"), "utf8"),
-		/^\s+name:\s*dsh-usage-stats\s*$/m
-	);
-	assert.equal(await readFile(join(home, "profiles", "node_modules", "dsh-usage-stats", "lib", "index.js"), "utf8").then((text) => text.length > 1000), true);
+	assert.match(await readFile(join(target, "cordis.patch.yml"), "utf8"), /^\s+name:\s*dsh-hub-oauth-gateway\s*$/m);
+	assert.equal(await readFile(join(target, "lib", "index.js"), "utf8").then((text) => text.length > 1000), true);
+	const plugin = await import(`${pathToFileURL(join(target, "lib", "index.js")).href}?isolated=${Date.now()}`);
+	assert.equal(plugin.name, "usage-stats");
+	assert.equal(typeof plugin.apply, "function");
+	const client = await readFile(join(target, "lib", "client.js"), "utf8");
+	assert.equal((client.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length, 1);
+
+	const webManifest = join(home, "profiles", "web", "package.json");
+	await writeFile(webManifest, "{not-json", "utf8");
+	assert.match(runFailure("--dry-run"), /invalid JSON/, "unreadable web profile manifest must fail closed");
+	await writeFile(webManifest, "[]", "utf8");
+	assert.match(runFailure(), /invalid web profile manifest/, "non-object web profile manifest must fail closed");
+	await writeFile(webManifest, JSON.stringify({ dsh: { profile: { bundles: "dsh-hub-oauth-gateway" } } }), "utf8");
+	assert.match(runFailure("--check"), /invalid dsh\.profile\.bundles/, "string bundles field must fail closed");
+	await writeFile(webManifest, JSON.stringify({ dsh: { profile: { bundles: ["dsh-hub-oauth-gateway", 42] } } }), "utf8");
+	assert.match(runFailure("--dry-run"), /invalid dsh\.profile\.bundles/, "non-string bundle entries must fail closed");
+	await writeFile(webManifest, JSON.stringify({ dsh: "usage-stats" }), "utf8");
+	assert.match(runFailure("--dry-run"), /invalid dsh field/, "non-object dsh field must fail closed");
+	await rm(webManifest);
+
+	await rm(target, { recursive: true, force: true });
+	await rm(patchPath, { force: true });
+	for (const fault of ["package", "patch", "verify"]) {
+		assert.match(runFault(fault), new RegExp(`injected ${fault} failure`));
+		await assert.rejects(readFile(join(target, "package.json"), "utf8"), { code: "ENOENT" });
+		await assert.rejects(readFile(patchPath, "utf8"), { code: "ENOENT" });
+		assert.deepEqual(await leftoverBackups(), [], `${fault} rollback must restore an absent package and patch`);
+	}
+	await rm(patchPath, { force: true });
+	run();
+
+	const marker = join(target, "lib", "pre-fault-marker.txt");
+	await writeFile(marker, "keep-me", "utf8");
+	const originalPatch = await readFile(patchPath, "utf8");
+	for (const fault of ["package", "patch", "verify"]) {
+		assert.match(runFault(fault), new RegExp(`injected ${fault} failure`));
+		assert.equal(await readFile(marker, "utf8"), "keep-me", `${fault} failure must restore the previous package`);
+		assert.equal(await readFile(patchPath, "utf8"), originalPatch, `${fault} failure must restore the previous patch`);
+		assert.deepEqual(await leftoverBackups(), [], `${fault} rollback must not leave backup or staging files`);
+	}
+	run();
+	await assert.rejects(readFile(marker, "utf8"), { code: "ENOENT" });
+	assert.deepEqual(await leftoverBackups(), []);
+
+	await writeFile(webManifest, JSON.stringify({ dsh: { profile: { bundles: ["dsh-hub-oauth-gateway"] } } }), "utf8");
+	assert.match(runFailure("--dry-run"), /dsh\.profile\.bundles/);
 	console.log("INSTALLER REGRESSION TESTS PASSED");
 } finally {
 	await rm(home, { recursive: true, force: true });
