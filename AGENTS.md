@@ -89,3 +89,16 @@
 - Agent 应明确提示“尚未重启，当前运行实例仍使用旧代码”，不得以验证为由代替用户执行重启。
 - 用户完成重启并明确要求检查后，Agent 可以执行只读状态、HTTP、bundle 和 API 健康检查。
 - 原因：当前开发/对话工作本身可能运行在 `dsh-web.service` 中，主动重启会中断正在进行的工作与会话。
+
+## Cursor Cloud specific instructions
+
+> 本段面向 Cursor Cloud Agent 环境。update script 已在开机时把 Docker 守护进程幂等拉起，这里只记录非显而易见的启动/运行注意事项。
+
+- **没有可独立运行的「应用」**：本仓库是 DSH（DeepSeek Harness Web）的一个 Cordis 服务端插件 + 一个 classic-script 客户端注册，Cloud VM 内没有 DSH Web 可供启动/登录。这里的「运行环境」就是第 3 节的 Docker sandbox 验证流水线；「跑通」的标准是 `check` / `verify` 门禁通过。Cloud 环境同样遵守第 7 节：不得主动重启 DSH Web。
+- **所有 lint / 类型检查 / 构建 / 测试仍只在 Docker sandbox 内运行**（见第 3 节与 `CONTRIBUTING.md`）。宿主机虽然预装了 Node/pnpm，但按项目规则禁止用它们验证项目代码。命令不要重复抄写，直接用仓库已文档化的：
+  - 快速门禁：`sudo docker build --target check --build-arg NODE_VERSION=22.19.0 --tag dsh-hub-oauth-gateway-sandbox:check .`（biome + tsc + next 构建 + vitest）。
+  - 完整交付门禁（等价 CI，含 `lib/` 逐文件可复现性比较）：`sudo docker build --target verify --build-arg NODE_VERSION=22.19.0 .`；受支持的第二条 Node 线用 `--build-arg NODE_VERSION=24`。
+- **Docker 命令需要 `sudo`**：当前 Cloud VM 未把 `ubuntu` 用户加入 `docker` 组，直接 `docker ...` 会因权限失败；用 `sudo docker ...`。
+- **Docker 29 + fuse-overlayfs 的坑**：`/etc/docker/daemon.json` 必须同时设 `"storage-driver": "fuse-overlayfs"` 且 `"features": { "containerd-snapshotter": false }`，否则 Firecracker 内核下 overlay2/containerd-snapshotter 无法工作、`docker build` 会失败。该文件已随快照保留。
+- **守护进程不随快照持久**：Docker 引擎（apt 包）会保留在快照里，但 `dockerd` 是进程、每次开机需要重新拉起。若 `sudo docker info` 报连接失败，说明守护进程没起来；update script 会自动拉起，手动补救可执行 `sudo sh -c 'nohup dockerd >/var/log/dockerd.log 2>&1 &'` 并等待 `sudo docker info` 就绪。
+- **改依赖后不要在宿主机装包**：按第 4 节，锁文件通过 Docker `lockfile` target 重新导出；`lib/` 通过 `artifacts` target 重建并审阅后替换，绝不手改。
