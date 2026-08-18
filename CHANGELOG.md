@@ -7,6 +7,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Verification policy: Docker sandbox is no longer required. Agents and
+  contributors verify in the Cursor Cloud environment with `pnpm` gates and an
+  isolated DeepSeek Harness (`DSH_HOME`) install for plugin smoke tests.
+  Documented in `AGENTS.md`, `docs/00-project-rules.md`, and `CONTRIBUTING.md`.
+
 ### Added
 
 - Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),

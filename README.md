@@ -195,23 +195,30 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 
 ## 开发与贡献 / Development and contributing
 
-本项目禁止在宿主机执行 Node/pnpm、构建、测试、安装器或打包命令；所有项目代码只在无 bind mount 的 Docker sandbox 中运行。宿主机只需 Docker Engine + BuildKit。
+在 Cursor Cloud / 开发工作区直接用仓库声明的 Node.js 与 pnpm 验证即可；**不再强制 Docker sandbox**。插件冒烟请使用隔离的 `DSH_HOME` 安装 DeepSeek Harness，勿读写个人真实 profile 或凭据。
 
-快速开发门禁：
-
-```bash
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
-```
-
-完整交付门禁（CI 同样使用该 target）：
+快速门禁：
 
 ```bash
-docker build --target verify --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:verify .
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-`verify` 会在容器内、项目代码阶段禁网运行 lint、类型检查、测试、独立 server/client 构建、安装器验证和 npm 包检查，并逐文件比较重建后的 `lib/` 与提交产物。不要用 `docker run -v "$PWD:/workspace" ...`、host network、宿主 DSH profile 或真实凭据替代该流程。生成产物通过 `artifacts` target 显式导出到被忽略的 `output/docker-artifacts/`。
+交付门禁：
+
+```bash
+pnpm run check
+npm pack --dry-run --json --ignore-scripts
+```
+
+可选 DSH 冒烟（隔离目录）：
+
+```bash
+export DSH_HOME=/tmp/dsh-verify-$USER
+# install @deepseek-ai/dsh, then add this plugin and start web
+dsh plugin --profile web add "$PWD"
+dsh web --host 127.0.0.1 --port 3080
+```
 
 测试覆盖 SQLite、投影、迁移、时区/DST、价格、预测、账户 transport、SSRF/DNS pinning、API/CSRF、凭据、导出、安装器、server bundle、client bundle 和 React 组件。
 

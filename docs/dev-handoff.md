@@ -43,24 +43,21 @@ Research / roadmap docs (also on this tree after stabilize):
 | Token Monitor research | `cursor/token-monitor-research-1be7` / PR #4 | Docs; cherry-picked into Wave branches as needed |
 | Coding OAuth / gateway | `main` WIP / PR #2 style | Lockfile, CLI, `llm` fiber; **rebase separately** from Wave 2 |
 
-When rebasing across tracks: regenerate `lib/` once in Docker after resolving `src/`; never dual-hand-edit `lib/`.
+When rebasing across tracks: regenerate `lib/` once from `src/` after resolving conflicts; never dual-hand-edit `lib/`.
 
-## 4. Docker-only verification
+## 4. Cloud verification (primary)
 
-Host is an editing surface. Do **not** run `pnpm` / `tsc` / `vitest` / `npm pack` on the host.
+Run checks in the Cursor Cloud / workspace environment. Docker is optional.
 
 ```bash
-docker build --target check-next --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check-next .
-
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
-
-rm -rf output/docker-artifacts
-docker build --target artifacts --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-artifacts .
-# review output/docker-artifacts/lib, then replace committed lib/
+pnpm install --frozen-lockfile
+pnpm run check:next
+pnpm run check
 ```
+
+Plugin smoke: isolated `DSH_HOME` → install `@deepseek-ai/dsh` →
+`dsh plugin --profile web add <repo>` → `dsh web` → confirm Usage Center on
+`http://127.0.0.1:3080`.
 
 `pnpm.overrides` for `@earendil-works/pi-ai` live in `pnpm-workspace.yaml` (pnpm 11). Do not reintroduce ignored `package.json#pnpm.overrides`.
 
@@ -77,13 +74,14 @@ Branch naming: `cursor/wave2-account-coverage-1be7` (or later Wave 3 on a separa
 
 ## 6. Runtime reload
 
-After install / code change, the operator restarts DSH Web themselves:
+- **Cloud isolated DSH**: agents may start/restart the smoke instance under the dedicated `DSH_HOME`.
+- **Operator personal machine**: after install / code change, the operator restarts DSH Web themselves unless they explicitly ask the agent to do so:
 
 ```bash
 dsh-web restart
 ```
 
-Agents must not restart it. Until restart, the running instance still uses old code.
+Until restart, a personal running instance still uses old code.
 
 ## 7. Privacy / security invariants (unchanged)
 
@@ -99,6 +97,6 @@ Agents must not restart it. Until restart, the running instance still uses old c
 - 本分支为 **Wave 1 / `1.2.0`**：热力图+streak、模块编排、费用账本+回本、导出 layout。  
 - **不含**新 adapter、自适应刷新、自动写盘。  
 - 调研建议书已对齐进树；OAuth 车次与用量 Wave **分 PR**。  
-- 验证只在 Docker sandbox；`pnpm` overrides 放在 `pnpm-workspace.yaml`。  
-- 合并安装后由用户自行 `dsh-web restart`。  
+- 验证以云环境 `pnpm` 门禁 + 隔离 `DSH_HOME` 安装 DSH 冒烟为主；Docker 可选。  
+- 本机个人实例合并安装后由用户自行 `dsh-web restart`（除非明确要求代为重启）。  
 - 下一刀：Wave 2 账户覆盖（lastGood → Volcengine → Z.ai Team → 多 profile）。
