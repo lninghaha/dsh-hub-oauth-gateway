@@ -100,13 +100,15 @@ Hard rules:
 - `src/` is the source of truth for runtime behavior.
 - `lib/` is a committed release artifact because Git-host installation must
   work without compiling TypeScript. Never edit it by hand.
-- Build and verify `lib/` only in the Docker `artifacts` target. Export it to
-  ignored `output/docker-artifacts/`, review it, and then replace the generated
-  tree with file operations; never run the release build on the host.
-- A runtime change is incomplete until the corresponding container-generated
-  `lib/` diff is committed and the Docker `verify` target confirms exact
-  reproducibility. A documentation-only change must not create an unrelated
-  `lib/` diff.
+- Rebuild `lib/` with the repository build commands in the current workspace
+  (cloud agent, dedicated VM, or other isolated checkout), review the diff, and
+  commit it with the matching `src/` change. Optionally use the Docker
+  `artifacts` export under ignored `output/docker-artifacts/` as a
+  reproducibility cross-check.
+- A runtime change is incomplete until the rebuilt `lib/` diff is committed and
+  the full gate (`pnpm run check` plus release inspection, or optional Docker
+  `verify`) confirms the tree. A documentation-only change must not create an
+  unrelated `lib/` diff.
 
 ### 2.2 Toolchain and lockfile
 
@@ -119,33 +121,34 @@ Hard rules:
 - Dependency upgrades require the normal test/release gates and a review of
   relevant security, license, and bundle-size impact.
 
-### 2.3 Docker sandbox boundary
+### 2.3 Development and verification environment
 
-The host checkout is an editing surface, not an execution environment. All
-project code and tooling run in the repository `Dockerfile`:
+The default execution surface is the current isolated workspace (including
+Cursor Cloud Agents and dedicated cloud VMs). Contributors and agents may
+install dependencies and run project tooling directly in the checkout:
 
-- Do not execute Node.js, npm/npx/pnpm, Biome, TypeScript, Vitest, installers,
-  build scripts, lifecycle scripts, or package inspection directly on the
-  host.
-- The only supported test entry points are Docker build targets (`check`,
-  `inspect`, `artifacts`, `verify`, `package`, and `lockfile`). CI uses the same
-  `verify` target rather than installing Node dependencies on the runner.
-- Never bind mount the checkout, `$HOME`, a DSH profile, credentials, Docker
-  socket, or another project into a test container. Never use host networking,
-  privileged mode, host port publication, or access to a running DSH Web
-  service.
-- `.dockerignore` is an explicit public-file allowlist. New build inputs must
-  be deliberately added and reviewed; unknown/untracked local files stay out
-  of the Docker context.
-- Dependency resolution may use the network only in toolchain/dependency or
-  lockfile stages, before source is copied. Every stage that executes project
-  code uses `RUN --network=none` and a container-only `DSH_HOME`.
-- Docker output reaches the checkout only through an explicit BuildKit local
-  export under ignored `output/`. Review exported files before replacing a
+- Use the Node.js range and pnpm version declared in `package.json`.
+- Preferred day-to-day gates: `pnpm install --frozen-lockfile`, then
+  `pnpm run check:next` (fast) or `pnpm run check` (full).
+- Rebuild and review `lib/` from `src/` in the same workspace before commit.
+- Tests must use mocks, sanitized fixtures, and temporary directories. Do not
+  read a developer's real DSH profile credentials, production SQLite, live
+  provider accounts, or other projects' data. Prefer a temporary `DSH_HOME`
+  for installer checks.
+- When reporting verification, state the Node/pnpm versions, commands, and
+  outcomes. Do not claim a gate passed if it was not run.
+
+The repository `Dockerfile` remains an **optional** reproducible/CI/release
+cross-check (`check`, `inspect`, `artifacts`, `verify`, `package`,
+`lockfile`). It is not required for ordinary development iterations in an
+already-isolated cloud environment. If Docker is used:
+
+- Prefer the BuildKit targets over ad-hoc bind mounts of `$HOME`, real
+  credentials, Docker sockets, or other projects.
+- Avoid `--network=host`, `--privileged`, and host port publication for test
+  containers.
+- Review any BuildKit local export under ignored `output/` before replacing a
   committed generated tree.
-
-These constraints protect other local projects and user data. A successful
-host-side command is not valid verification and must not be reported as such.
 
 ### 2.4 Runtime invariants
 
@@ -220,23 +223,28 @@ be documented.
 - Do not merge a behavior change while required docs/changelog/tests or the
   generated `lib/` update are missing.
 
-The sandbox gates are:
+The primary gates are:
 
 ```bash
-# Fast source-development loop
+pnpm install --frozen-lockfile
+pnpm run check:next   # fast source-development loop
+pnpm run check        # full lint / typecheck / build / test gate
+```
+
+Optional Docker cross-check (same semantics as historical CI sandbox):
+
+```bash
 docker build --target check --build-arg NODE_VERSION=22.19.0 \
   --tag dsh-hub-oauth-gateway-sandbox:check .
 
-# Full build/test/reproducibility/package gate
 docker build --target verify --build-arg NODE_VERSION=22.19.0 \
   --tag dsh-hub-oauth-gateway-sandbox:verify .
 ```
 
-The `check` target does not promote artifacts into the checkout and is not the
-final release gate. The `verify` target runs the repository `check` and
-`release:inspect` commands inside the container, and compares the rebuilt
-`lib/` tree with the committed copy. Host-side pnpm/npm commands are forbidden,
-not an alternative shortcut.
+`pnpm run check` is the day-to-day full gate in an isolated workspace. Docker
+`verify` remains useful for bit-for-bit `lib/` comparison and offline package
+inspection when preparing a release, but is not mandatory for every PR
+iteration in a cloud development environment.
 
 ## 6. Release process
 
@@ -248,27 +256,34 @@ separate from external writes.
    version and update user-facing docs.
 3. Update `package.json` (and any generated version metadata) without weakening
    the Node/pnpm or peer-dependency contract.
-4. From a reviewed working tree, run the complete sandbox gate on every
-   supported Node line:
+4. From a reviewed working tree, run the complete gate on every supported Node
+   line (workspace commands or optional Docker `verify`):
 
    ```bash
-   docker build --target verify --build-arg NODE_VERSION=22.19.0 \
-     --tag dsh-hub-oauth-gateway-sandbox:release-22 .
-   docker build --target verify --build-arg NODE_VERSION=24 \
-     --tag dsh-hub-oauth-gateway-sandbox:release-24 .
+   pnpm install --frozen-lockfile
+   pnpm run check
+   pnpm run release:inspect
+   # optional cross-check:
+   # docker build --target verify --build-arg NODE_VERSION=22.19.0 \
+   #   --tag dsh-hub-oauth-gateway-sandbox:release-22 .
+   # docker build --target verify --build-arg NODE_VERSION=24 \
+   #   --tag dsh-hub-oauth-gateway-sandbox:release-24 .
    ```
 
-5. Inspect the complete file list and metadata printed by the container. To
-   create a local tarball, export the `package` target to an ignored directory:
+5. Inspect the complete npm pack file list and metadata. To create a local
+   tarball without publishing:
 
    ```bash
-   rm -rf output/docker-package
-   docker build --target package --build-arg NODE_VERSION=22.19.0 \
-     --output type=local,dest=output/docker-package .
+   mkdir -p output
+   npm pack --dry-run --json --ignore-scripts > output/npm-pack-dry-run.json
+   # or optional Docker export:
+   # rm -rf output/docker-package
+   # docker build --target package --build-arg NODE_VERSION=22.19.0 \
+   #   --output type=local,dest=output/docker-package .
    ```
 
-   Test any tarball in another no-mount Docker sandbox, never in the host DSH
-   profile.
+   Test any tarball in a temporary profile / temporary `DSH_HOME`, never against
+   a production DSH profile with real credentials.
 6. Confirm the changelog version, package version, bundle banner, and tag will
    all be identical.
 7. Only after explicit human approval, commit, create annotated tag
@@ -276,9 +291,9 @@ separate from external writes.
    notes from the changelog.
 8. Verify the registry/release metadata and installation path after publishing.
 
-The release helper runs only inside the Docker targets. It may build, inspect,
-and export a local tarball under `output/`; it must never bump a version,
-commit, tag, push, publish, restart DSH Web, or read user credentials.
+Release helpers may build, inspect, and export a local tarball under `output/`;
+they must never bump a version, commit, tag, push, publish, restart DSH Web, or
+read user credentials.
 
 ## 7. Pre-release privacy and security checklist
 
@@ -286,11 +301,13 @@ Before an external release, verify all of the following:
 
 - [ ] `git diff --cached` contains no secret, personal path, account/session
       data, raw provider response, or private investigation note.
-- [ ] Docker `verify` passes on every supported Node.js line; no project
-      command was executed on the host.
-- [ ] The intended container-generated `lib/` output is reproducible and no
-      stale legacy runtime is present.
-- [ ] The Docker release inspection reports only explicitly allowed files.
+- [ ] Full gate passes on every supported Node.js line (`pnpm run check` and
+      release inspection in an isolated workspace, and/or optional Docker
+      `verify`).
+- [ ] The intended generated `lib/` output is reproducible and no stale legacy
+      runtime is present.
+- [ ] Release inspection / `npm pack --dry-run` reports only explicitly allowed
+      files.
 - [ ] No `docs/local/`, `reference/`, source tree, tests, database, export,
       environment file, package-manager cache, or lockfile is in the tarball.
 - [ ] README, configuration, migration, security, and changelog statements

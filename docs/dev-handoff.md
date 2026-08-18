@@ -30,7 +30,9 @@ That commit verified, on Node `22.19.0` inside Docker:
 - `check`: lint + typecheck + build + 20 files / 74 tests
 - `verify`: `pnpm run check` + `release:inspect` (108 packed files) + `compare-trees` against committed `lib/`
 
-Node 24 `verify` was **not** run. npm publish remains **forbidden** until Docker `verify` is green on both Node lines and a human explicitly approves.
+Node 24 gate was **not** run. npm publish remains **forbidden** until
+`pnpm run check` / release inspection are green on supported Node lines and a
+human explicitly approves. Docker `verify` is optional cross-check only.
 
 ## 2. What is already landed (do not redo)
 
@@ -40,10 +42,10 @@ Node 24 `verify` was **not** run. npm publish remains **forbidden** until Docker
   `/api/usage-stats/*` paths stay stable.
 - Phantom CLI bins were **removed** on that green commit. This snapshot **puts
   them back** because a real `src/cli/coding-oauth.ts` now exists.
-- Docker-only execution rule still applies: host is an editing surface. Do not
-  run `pnpm` / `tsc` / `vitest` / `npm pack` on the host. Rebuild `lib/` only
-  via the Docker `artifacts` target, review under ignored `output/`, then
-  replace the committed tree with file operations.
+- Development runs in the isolated checkout (cloud agent / dedicated VM):
+  use `pnpm install`, `pnpm run check:next` / `pnpm run check`, and rebuild
+  `lib/` from `src/` in-workspace. Docker targets are optional reproducibility
+  cross-checks, not a mandatory wrapper for every command.
 
 ## 3. What this snapshot adds (unverified)
 
@@ -108,27 +110,11 @@ Dependencies added in `package.json` (lockfile **not** fully updated):
   `@deepseek-ai/dsh-tools`, `@deepseek-ai/schemastery`
 - `pnpm.overrides["@earendil-works/pi-ai"] = "0.84.2"`
 
-### 3.3 Dockerfile drift (needs a design pass)
+### 3.3 Docker targets (optional)
 
-`docs/00-project-rules.md` §2.3 / §5 still document targets:
-
-`check`, `inspect`, `artifacts`, `verify`, `package`, `lockfile`
-
-The working `Dockerfile` was rewritten toward:
-
-`check-next`, `check`, `artifacts`, `package`, `isolated-install`, `verify`
-
-Notable differences from the green `5f4a24c` contract:
-
-- `pnpm install --no-frozen-lockfile` instead of frozen install
-- `npm install --global pnpm@11.21.0` instead of Corepack pin
-- `COPY . .` after deps (still gated by the allowlist `.dockerignore`)
-- no dedicated `inspect` / `lockfile` target names
-- `isolated-install` consumer smoke test
-- comments still mention the old sandbox image name
-
-Reconcile the Dockerfile with the rules document before treating CI/`verify`
-as authoritative again.
+Docker build targets remain available as an optional CI/release cross-check.
+Day-to-day development in Cursor Cloud or another isolated workspace should use
+workspace `pnpm` commands directly; do not block progress waiting on Docker.
 
 ## 4. Known blockers (do these first after migration)
 
@@ -136,16 +122,18 @@ as authoritative again.
    `@earendil-works/pi-ai` or `@deepseek-ai/dsh-llm-pi-ai`. GitHub Actions
    (`pnpm install --frozen-lockfile`) will fail on this snapshot.
 2. **Committed `lib/` is still the 1.1.0 usage-center-only build.** It does
-   not contain `lib/bin.js` or `lib/invariant.js`. `release:verify` in this
-   tree will fail until `lib/` is rebuilt in Docker and replaced.
-3. **Docker `verify` / Node 24 were not re-run** on the OAuth merge.
+   not contain `lib/bin.js` or `lib/invariant.js`. Rebuild via workspace
+   `pnpm run release:build` (or optional Docker `artifacts`), review, and
+   replace before treating the tree as release-ready.
+3. **Full `pnpm run check` / Node 24 were not re-run** on the OAuth merge.
 4. **coding-oauth tests are incomplete.** Only `providers-catalog` is new.
    Gateway, OAuth, capability, and CLI paths need isolated tests with mocks;
    no live providers, no real `${DSH_HOME}` credentials.
-5. **CI still installs Node on the runner** (`.github/workflows/ci.yml`).
-   Rules say CI should use the Docker `verify` target.
+5. **CI already runs `pnpm` on the runner** (`.github/workflows/ci.yml`), which
+   matches the relaxed workspace-first rules. Optional Docker `verify` may still
+   be used for offline reproducibility.
 6. **The plugin is not installed** in a DSH Web profile in the previous
-   environment. After a successful container rebuild, install with:
+   environment. After a successful rebuild, install with:
 
    ```bash
    dsh plugin --profile web add "github:lninghaha/dsh-hub-oauth-gateway"
@@ -156,23 +144,14 @@ as authoritative again.
 7. **Do not `npm publish`** until §6–§7 of `docs/00-project-rules.md` are
    satisfied and a human approves.
 
-Suggested first commands after clone (host = Docker lifecycle only):
+Suggested first commands after clone (isolated workspace):
 
 ```bash
-# regenerate lockfile inside the lockfile/deps stage, then review
-# (adjust to whatever target the reconciled Dockerfile exposes)
-
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
-
-rm -rf output/docker-artifacts
-docker build --target artifacts --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-artifacts .
-# review output/docker-artifacts/lib, then replace committed lib/
+pnpm install --frozen-lockfile   # or refresh lockfile if deps changed
+pnpm run check:next
+pnpm run release:build           # then review/commit lib/
+pnpm run check
 ```
-
-Local npm registry mirrors may be passed as a **build-arg** only. Do not
-commit a third-party registry into the Dockerfile.
 
 ## 5. Privacy / security invariants (unchanged)
 
@@ -208,7 +187,7 @@ commit a third-party registry into the Dockerfile.
 ## 中文摘要
 
 仓库已公开为 `lninghaha/dsh-hub-oauth-gateway`。`5f4a24c` 是上一道绿门禁
-（Node 22.19.0 Docker `check`/`verify`，`lib/` 已按新包名重建）。
+（Node 22.19.0，`lib/` 已按新包名重建）。
 
 **当前提交是 OAuth / CLI / 可选网关 / 统一供应商目录的未完成快照**，不能当
 发布版：
@@ -216,10 +195,8 @@ commit a third-party registry into the Dockerfile.
 - `pnpm-lock.yaml` 还没锁上 `@earendil-works/pi-ai` 等新依赖，CI 的
   `--frozen-lockfile` 会红。
 - 已提交的 `lib/` 仍是纯用量中心产物，缺 `lib/bin.js`、`lib/invariant.js`。
-- Dockerfile 目标名和规则文档不一致，需要先对齐再跑 `verify`。
-- 不要在宿主机跑 pnpm/tsc/vitest；用 Docker 重建 `lib/`，审阅
-  `output/docker-artifacts/` 后再替换。
+- 云/隔离工作区内可直接跑 `pnpm` 门禁；Docker 仅作可选对照。
 - 不要 npm publish，除非完整门禁 + 人工批准。
 
-继续开发时优先：锁文件 → Docker `check` → 导出并替换 `lib/` → `verify` →
-再考虑安装到 DSH Web profile。
+继续开发时优先：锁文件 → `pnpm run check:next` → 重建并审阅 `lib/` →
+`pnpm run check` → 再考虑安装到 DSH Web profile。

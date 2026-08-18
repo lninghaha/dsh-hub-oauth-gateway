@@ -7,6 +7,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Allow day-to-day development and verification directly in an isolated
+  workspace (including Cursor Cloud Agents): `pnpm` install, lint, typecheck,
+  build, test, and release inspection no longer require wrapping every command
+  in the Docker sandbox. Docker targets remain optional for reproducible
+  CI/release cross-checks. Privacy and mock-only test rules are unchanged.
+
 ### Added
 
 - Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),

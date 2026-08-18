@@ -23,29 +23,21 @@
 - 本项目是独立社区插件，不得暗示供应商背书；用量和成本只能描述为统计或估算，缺失价格不得当作免费。
 - 只支持监测操作者拥有或获授权使用的账户与 endpoint；不得扩展为凭据共享、批量账号运营、额度转售、付费限制绕过、客户端冒充或未授权监测工具。
 
-## 3. Docker sandbox 强制规则
+## 3. 开发与验证环境
 
-- **插件开发过程中禁止本机测试。** 宿主机不得直接执行任何项目代码、依赖安装、lint、类型检查、构建、测试、安装器或打包检查，包括但不限于：
+- **云开发环境 / 隔离工作区是默认执行面。** Cursor Cloud Agent、专用云 VM 或同等隔离 checkout 中，可以直接安装依赖并运行项目命令，无需再额外套一层 Docker sandbox。允许执行：
   - `node` / `npm` / `npx` / `pnpm`；
   - `tsc` / `vitest` / `biome`；
-  - `scripts/*.mjs`、`build/*.mjs`、`npm pack` 或插件安装命令。
-- 宿主机只允许进行文件查看/编辑、只读 Git 检查以及 Docker 生命周期操作。不得把宿主机已有的 `node_modules`、`.next` 或其他项目产物当作验证依据。
-- 所有 lint、类型检查、构建、测试、安装器回归和打包检查只能在一次性 Docker sandbox 中运行。仓库没有现成 sandbox 配置时，不得回退到本机执行；应先向用户说明“尚未验证”，并在获得同意后再补充临时或项目级 Docker 方案。
-- Docker sandbox 必须满足：
-  - 使用仓库声明的 Node.js 与包管理器版本；
-  - 源码通过隔离的 build context / `COPY` 进入容器，测试不得回写宿主仓库；
-  - 不挂载 `$HOME`、真实 DSH profile、credential 文件、其他项目目录或 Docker socket；
-  - 不使用 `--network=host`、`--privileged`、宿主端口映射或宿主 PID/IPC namespace；
-  - `DSH_HOME`、数据库、缓存和临时文件全部位于容器临时目录；
-  - 仅依赖安装阶段可按需联网；执行项目代码和测试时应禁网，且不得访问真实 provider；
-  - 测试数据使用 mock、脱敏 fixture 和临时目录，不读取任何本地 CLI 登录状态或真实凭据。
-- 容器内的标准验证顺序：
+  - `scripts/*.mjs`、`build/*.mjs`、`npm pack`、本地插件安装与只读健康检查。
+- 标准验证顺序（在当前工作区内）：
   1. 锁文件安装（例如 `pnpm install --frozen-lockfile`）；
   2. 快速开发门禁 `pnpm run check:next`；
   3. 交付前完整门禁 `pnpm run check`；
-  4. 发布前在容器内检查 `npm pack --dry-run --json --ignore-scripts` 的完整清单。
-- 生成的 `lib/` 必须在容器内由 `src/` 重建，再显式导出到宿主机的已忽略临时目录，经审阅后替换；不得手改 `lib/`，也不得让测试容器直接写宿主 `lib/`。
-- 反馈验证结果时必须说明所用镜像/Node 版本、容器内命令和结果。没有在 Docker sandbox 中执行的检查一律不得声称“已通过”。
+  4. 发布前检查 `npm pack --dry-run --json --ignore-scripts` 的完整清单。
+- `lib/` 必须由 `src/` 经仓库构建命令重生后审阅再提交；不得手改 `lib/`。
+- 反馈验证结果时必须说明所用 Node / pnpm 版本、实际命令和结果；未执行的检查不得声称“已通过”。
+- 测试与本地验证仍须使用 mock、脱敏 fixture 和临时目录；不得读取真实 DSH profile 凭据、生产数据库或访问真实 provider。可用临时 `DSH_HOME` 做安装器回归。
+- 仓库内的 `Dockerfile` 与 Docker build target 仅作**可选**的可复现/CI/发布对照门禁，不是日常开发的前置条件。若使用 Docker，仍应避免挂载 `$HOME`、真实凭据、Docker socket，以及 `--network=host` / `--privileged` 等削弱隔离的选项。
 
 ## 4. 源码、依赖与产物
 
@@ -61,7 +53,7 @@
 - 可观察行为、配置、API、安装方式、数据迁移或安全边界变化时，同步更新相关 README、公开文档与迁移说明。
 - 用户可见文案同时维护中文和英文；避免文档宣称尚未实现或无法验证的能力。
 - 版本遵循 SemVer：兼容修复为 patch，兼容新能力为 minor，破坏公开 export、配置、API、存储或安装契约为 major。
-- `lib/` 可复现、文档同步、完整 Docker 门禁和 npm 打包清单审阅是发布前置条件。
+- `lib/` 可复现、文档同步、完整门禁（工作区内 `pnpm run check` / `release:inspect`，或可选 Docker `verify`）和 npm 打包清单审阅是发布前置条件。
 
 ## 6. 安全不变量
 

@@ -32,45 +32,38 @@ proposed UI.
 
 ## Development setup
 
-Project commands run **only inside the repository Docker sandbox**. The host
-needs Docker Engine with BuildKit; it does not need project Node.js, pnpm, or
-`node_modules`.
+Use the current isolated checkout (local dedicated VM, Cursor Cloud Agent, or
+equivalent). Install the Node.js range and pnpm version declared in
+`package.json`, then:
 
 ```bash
-docker version
-docker build \
-  --target check \
-  --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check \
-  .
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-Do not run `node`, `npm`, `npx`, `pnpm`, `tsc`, `vitest`, `biome`, installers,
-or package scripts on the host. Do not replace the image build with a bind
-mount such as `docker run -v "$PWD:/workspace" ...`; the Docker build receives
-only the explicit `.dockerignore` allowlist and cannot write the checkout.
+Tests use mocks, sanitized fixtures, and temporary directories. They must not
+read a developer's real DSH profile, local CLI login, credential store,
+production SQLite database, or another project directory, and must not require
+live provider access. Prefer a temporary `DSH_HOME` for installer checks.
 
-Dependency download is isolated in the Docker `dependencies` stage. Project
-code executes in later stages with `RUN --network=none`. Tests use mocks,
-sanitized fixtures, and container-only temporary directories; they must not
-read a developer's DSH profile, local CLI login, credential store, production
-SQLite database, Docker socket, or another project directory, and must not
-require live provider access.
+The repository Docker targets remain optional for reproducible CI/release
+cross-checks. Ordinary development does **not** require wrapping every command
+in `docker build`.
 
 ## Repository model
 
 - Edit runtime behavior under `src/`.
 - Add or update tests under `tests/v1/`.
 - Do not edit `lib/` manually. It is a committed installation artifact rebuilt
-  by the Docker `artifacts` target and exported to ignored
-  `output/docker-artifacts/` for review before replacement.
+  from `src/` via the repository build commands; review the diff before commit.
+  Optional Docker `artifacts` export to ignored `output/docker-artifacts/` can
+  be used as a cross-check.
 - `.next/`, `output/`, coverage, Docker exports, images, and TypeScript build
   info are local/rebuildable outputs.
 - Put private machine-specific research in ignored `docs/local/`, never in a
   pull request. Public reusable research belongs in a reviewed public doc.
-- The container uses pnpm only. Dependency changes include `pnpm-lock.yaml`
-  and must not add `package-lock.json`; regenerate the lockfile with the Docker
-  `lockfile` export target, never by installing dependencies on the host.
+- Use pnpm only. Dependency changes include `pnpm-lock.yaml` and must not add
+  `package-lock.json`.
 
 Architecture and configuration contracts are documented in
 [`docs/architecture.md`](docs/architecture.md) and
@@ -93,9 +86,9 @@ Architecture and configuration contracts are documented in
    migration, compatibility, or trust assumptions change.
 6. Add a concise user/operator-facing entry under `Unreleased` in
    `CHANGELOG.md`.
-7. For runtime changes, export `lib/` through the Docker `artifacts` target,
-   review the generated tree, replace the committed artifact, and then run the
-   Docker `verify` target.
+7. For runtime changes, rebuild `lib/` from `src/`, review the generated tree,
+   commit it with the source change, and run `pnpm run check` (optional Docker
+   `verify` for release cross-check).
 
 User-visible copy must remain available in Simplified Chinese and English.
 Usage and costs must stay clearly identified as analytics/estimates; an
@@ -106,20 +99,19 @@ unpriced token category is unknown, not free.
 Fast source gate:
 
 ```bash
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-Export generated runtime artifacts after a source change:
+After a source change, rebuild and review committed `lib/`, then run the full
+gate:
 
 ```bash
-rm -rf output/docker-artifacts
-docker build --target artifacts --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-artifacts .
+pnpm run check
+pnpm run release:inspect
 ```
 
-Review `output/docker-artifacts/lib/`, replace the generated `lib/` tree, then
-run the full submission gate on both supported Node lines:
+Optional Docker cross-check on supported Node lines:
 
 ```bash
 docker build --target verify --build-arg NODE_VERSION=22.19.0 \
@@ -128,22 +120,9 @@ docker build --target verify --build-arg NODE_VERSION=24 \
   --tag dsh-hub-oauth-gateway-sandbox:verify-24 .
 ```
 
-The `verify` target lints, type-checks, tests, rebuilds, compares the rebuilt
-`lib/` to the committed tree, and inspects the npm manifest without publishing.
-A documentation/package-only change may use `--target inspect`; a documentation-
-only change does not need an unrelated `lib/` rebuild.
-
-For dependency changes, export a reviewed lockfile without running project
-source on the host:
-
-```bash
-rm -rf output/docker-lockfile
-docker build --target lockfile --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-lockfile .
-```
-
+A documentation/package-only change may skip an unrelated `lib/` rebuild.
 Never use a live credential or provider call as evidence that replaces an
-automated sandbox regression test.
+automated regression test.
 
 ## Pull requests
 

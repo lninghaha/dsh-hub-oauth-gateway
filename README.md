@@ -190,23 +190,33 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 
 ## 开发与贡献 / Development and contributing
 
-本项目禁止在宿主机执行 Node/pnpm、构建、测试、安装器或打包命令；所有项目代码只在无 bind mount 的 Docker sandbox 中运行。宿主机只需 Docker Engine + BuildKit。
+在云开发环境或隔离工作区内，可直接使用仓库声明的 Node.js / pnpm 安装依赖并运行门禁；不必再额外套一层 Docker。Docker build target 仍可作为可选的可复现/CI 对照。
 
 快速开发门禁：
 
 ```bash
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-完整交付门禁（CI 同样使用该 target）：
+完整交付门禁：
+
+```bash
+pnpm run check
+pnpm run release:inspect
+```
+
+可选 Docker 对照（非日常开发前置条件）：
 
 ```bash
 docker build --target verify --build-arg NODE_VERSION=22.19.0 \
   --tag dsh-hub-oauth-gateway-sandbox:verify .
 ```
 
-`verify` 会在容器内、项目代码阶段禁网运行 lint、类型检查、测试、独立 server/client 构建、安装器验证和 npm 包检查，并逐文件比较重建后的 `lib/` 与提交产物。不要用 `docker run -v "$PWD:/workspace" ...`、host network、宿主 DSH profile 或真实凭据替代该流程。生成产物通过 `artifacts` target 显式导出到被忽略的 `output/docker-artifacts/`。
+In an isolated checkout (including Cursor Cloud), run the declared Node.js /
+pnpm toolchain directly. Docker remains optional for reproducible CI/release
+cross-checks. Rebuild `lib/` from `src/` before committing runtime changes;
+tests must stay mock-based and must not use real provider credentials.
 
 测试覆盖 SQLite、投影、迁移、时区/DST、价格、预测、账户 transport、SSRF/DNS pinning、API/CSRF、凭据、导出、安装器、server bundle、client bundle 和 React 组件。
 
