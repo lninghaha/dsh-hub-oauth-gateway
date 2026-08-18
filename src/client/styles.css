@@ -119,23 +119,84 @@
 
 .dus-modal.is-dashboard {
   width: min(1360px, calc(100vw - 28px));
-  height: min(900px, calc(100vh - 28px));
+  height: auto;
+  max-height: min(860px, calc(100vh - 28px));
 }
 
 .dus-modal.is-peek {
   width: min(650px, calc(100vw - 28px));
-  height: min(760px, calc(100vh - 28px));
+  height: auto;
+  max-height: min(560px, calc(100vh - 28px));
 }
 
 .dus-dashboard {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   height: 100%;
+  max-height: inherit;
   color: var(--dsw-fg, #e8e8ee);
   background:
     radial-gradient(circle at 18% -18%, color-mix(in srgb, var(--dus-accent) 18%, transparent), transparent 35%),
     radial-gradient(circle at 93% 4%, color-mix(in srgb, var(--dus-accent-2) 8%, transparent), transparent 30%),
     var(--dus-surface);
+}
+
+.dus-dashboard.is-peek-layout {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.dus-dashboard-chrome {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-bottom: 1px solid var(--dus-border);
+  background: color-mix(in srgb, var(--dus-surface) 92%, transparent);
+}
+
+.dus-dashboard-chrome .dus-toolbar {
+  border-bottom: 0;
+  background: transparent;
+}
+
+.dus-tabs,
+.dus-settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 22px 11px;
+}
+
+.dus-settings-tabs {
+  padding: 0 0 12px;
+}
+
+.dus-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+  color: inherit;
+  background: color-mix(in srgb, var(--dsw-bg, #181920) 84%, transparent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.dus-tab:hover,
+.dus-tab:focus-visible {
+  border-color: color-mix(in srgb, var(--dus-accent) 48%, var(--dus-border));
+  outline: none;
+}
+
+.dus-tab.is-active {
+  border-color: color-mix(in srgb, var(--dus-accent) 54%, transparent);
+  background: color-mix(in srgb, var(--dus-accent) 23%, var(--dsw-bg, #181920));
 }
 
 .dus-dashboard-header {
@@ -459,7 +520,7 @@
 }
 
 .dus-account-grid.is-compact {
-  max-height: none;
+  max-height: 240px;
 }
 
 .dus-account-card {
@@ -592,6 +653,153 @@
 .dus-quota-fill.is-unknown {
   width: 100% !important;
   opacity: 0.22;
+}
+
+.dus-account-fee-tip {
+  margin: 4px 0 0;
+  color: var(--dus-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.dus-module-stack {
+  display: grid;
+  gap: 13px;
+}
+
+.dus-activity-caption {
+  margin: 0 0 8px;
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dus-heatmap {
+  display: block;
+  min-width: 100%;
+}
+
+.dus-heatmap-cell {
+  fill: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 8%, transparent);
+}
+
+.dus-heatmap-cell.is-pad {
+  fill: transparent;
+}
+
+.dus-heatmap-cell.is-empty {
+  fill: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 6%, transparent);
+}
+
+.dus-heatmap-cell.is-level-1 {
+  fill: color-mix(in srgb, var(--dus-accent-2) 28%, transparent);
+}
+
+.dus-heatmap-cell.is-level-2 {
+  fill: color-mix(in srgb, var(--dus-accent-2) 48%, transparent);
+}
+
+.dus-heatmap-cell.is-level-3 {
+  fill: color-mix(in srgb, var(--dus-accent) 62%, transparent);
+}
+
+.dus-heatmap-cell.is-level-4 {
+  fill: color-mix(in srgb, var(--dus-accent) 88%, transparent);
+}
+
+.dus-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  color: var(--dus-muted);
+  font-size: 10px;
+}
+
+.dus-heatmap-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 8%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-1 {
+  background: color-mix(in srgb, var(--dus-accent-2) 28%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-2 {
+  background: color-mix(in srgb, var(--dus-accent-2) 48%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-3 {
+  background: color-mix(in srgb, var(--dus-accent) 62%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-4 {
+  background: color-mix(in srgb, var(--dus-accent) 88%, transparent);
+}
+
+.dus-export-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dus-module-editor {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.dus-module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--dus-border);
+  border-radius: 8px;
+}
+
+.dus-module-move {
+  display: flex;
+  gap: 4px;
+}
+
+.dus-settings-hint {
+  margin: 0 0 8px;
+  color: var(--dus-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dus-fee-table {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.dus-fee-row {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(6rem, 1fr) minmax(6rem, 1fr) 4.5rem 4rem 4.5rem 7rem minmax(5rem, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.dus-fee-row input,
+.dus-fee-row select {
+  min-width: 0;
+}
+
+.dus-fee-placeholder {
+  color: var(--dus-muted);
+  text-align: center;
 }
 
 .dus-quota-reset,
@@ -748,6 +956,7 @@
 .dus-settings {
   display: grid;
   gap: 14px;
+  max-width: 780px;
   padding: 4px 0 30px;
 }
 
@@ -965,7 +1174,13 @@
   .dus-modal.is-dashboard,
   .dus-modal.is-peek {
     width: calc(100vw - 12px);
-    height: calc(100vh - 12px);
+    height: auto;
+    max-height: calc(100vh - 12px);
+  }
+
+  .dus-tabs {
+    padding-left: 13px;
+    padding-right: 13px;
   }
 
   .dus-dashboard-header,

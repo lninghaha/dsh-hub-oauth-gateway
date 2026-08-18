@@ -17,6 +17,79 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   Settings provider-management view with independent connection, auth, model, and
   quota states.
 
+## 1.5.1
+
+### Changed
+
+- Verification policy: Docker sandbox is no longer required. Agents and
+  contributors verify in the Cursor Cloud environment with `pnpm` gates and an
+  isolated DeepSeek Harness (`DSH_HOME`) install for plugin smoke tests.
+  Documented in `AGENTS.md`, `docs/00-project-rules.md`, and `CONTRIBUTING.md`.
+- Pin cloud/dev Node via `.nvmrc` / `.cursor/environment.json` and
+  `pnpm run assert:node` so Cursor’s `/exec-daemon/node` 22.14 no longer drives
+  `Unsupported engine` warnings during builds.
+- Public install docs prefer the npm package name
+  (`dsh plugin add dsh-hub-oauth-gateway` /
+  `npx dsh-hub-oauth-gateway-install`); GitHub refs and local paths remain for
+  unreleased or development smoke installs.
+
+## 1.5.0
+
+### Changed
+
+- Full dashboard and Settings → Usage Center use top tabs (one panel at a time),
+  following the coding-subscription OAuth settings pattern, so modules and
+  settings no longer stack as a long waterfall.
+- Quick Peek and the full dashboard use content height with `max-height` instead
+  of fixed 760px / 900px frames; Peek account cards keep a compact scroll cap.
+
+## 1.4.0
+
+### Added
+
+#### Wave 2 — account coverage
+
+- `volcengine-coding-plan` adapter via signed OpenAPI `GetCodingPlanUsage`
+  (no chat-completion probe).
+- `zai-team-plan` adapter (`open.bigmodel.cn` quota `type=2`) isolated from
+  personal `zai-token-plan`.
+- lastGood hardening: consecutive transient failures keep stale last-good data
+  until a configurable limit, then clear; Account UI shows last-good time.
+- Multi-profile monitors (`accounts.monitors.*.profiles[]`) with snapshot key
+  `(providerId, profileId)` (schema v3) and fee `profileId` attachment.
+
+#### Wave 3 — ops / optional
+
+- Adaptive account refresh (`refresh.accountMode: fixed | adaptive`, default
+  `fixed`); ordinary GET still does not credential-refresh.
+- Breakdown table expands input/output/cacheRead/cacheWrite columns (local data
+  only).
+- Opt-in local-directory auto export (absolute path; refused in CI/sandbox;
+  never writes credentials/sessions).
+- Opt-in `antigravity-quota` (external credential + usage URL only) and
+  `ollama-cloud` (requires `allowCookieSession: true`, host pinned to
+  `ollama.com`).
+
+## 1.2.0
+
+### Added
+
+- Activity heatmap and streak over a rolling 370-day window in the configured
+  time zone (`GET /api/usage-stats/v1/activity`), independent of the dashboard
+  range filter.
+- Dashboard module composition: preference-backed order/hidden list, preset
+  templates, and a Settings reset that clears customization.
+- Local subscription/top-up fee ledger (`account_fees`, schema v2) with
+  `GET`/`PUT /api/usage-stats/v1/fees`, Settings editing, and payback tooltips on
+  account cards when currency and monthly cost coverage match.
+- Export layouts: `layout=filtered` (default), `daily` CSV (date × provider), and
+  `bundle` JSON; fee rows remain excluded from exports.
+
+### Changed
+
+- User preferences keep `version: 1` while defaulting new Wave 1 fields
+  (`modules`, `modulesCustomized`, `streakMinTokens`) for older saved payloads.
+
 ## 1.1.0
 
 ### Added

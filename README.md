@@ -12,18 +12,25 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 > **更名说明 / Renamed**：本项目前身为 `dsh-usage-stats`（原仓库 `Ychris12138/dsh-usage-stats`）。包名与仓库已更名为 `dsh-hub-oauth-gateway`，旧包名不再收到更新；已安装旧版本的用户请先移除旧 entry，再按下方说明重新安装。本地数据文件与内部插件 id 保持不变，历史统计数据不受影响。本次更名随 1.1.0 版本发布生效。
 >
+> **1.5.0**：完整仪表盘与 Settings → 用量中心改为顶部页签（一次只展示一块），Peek/仪表盘改为内容高度 + `max-height`，缩短瀑布流。
+>
+> **1.5.1**：公开安装说明改为优先推荐 npm 包名与 `npx dsh-hub-oauth-gateway-install`；验证改为云环境 `pnpm` + 隔离 DSH 冒烟（不再强制 Docker sandbox）。
+>
 > **路线图 / Roadmap**：在用量中心之外，本仓库计划整合编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与 API 网关能力；这些功能尚未发布。
 
 ## 功能 / Highlights
 
-- **Quick Peek + Full Dashboard**：侧栏快速查看，完整仪表盘支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
-- **四种展示预设**：Minimal、Quota、Cost、Analyst；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
+- **Quick Peek + Full Dashboard**：侧栏快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
+- **设置页签**：Settings → 用量中心拆成显示 / 供应商 / 费用 / 凭据四个顶部标签，缩短瀑布流滚动。
+- **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
+- **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
 - **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
 - **成本分析**：用户维护每百万 Token 价格；分别计算 input、output、cache read、cache write，并显示价格覆盖率。插件不会猜测未配置价格。
+- **订阅费用账本**：本地记录订阅/充值费用；账户卡片可显示月均与回本倍数（仅货币一致且本月成本可估算时）。
 - **趋势与预测**：按时区生成小时/日/周/月桶；预测为有界线性外推，并以虚线和历史数据区分。
-- **账户与配额**：内置 21 个余额/订阅适配器，统一显示余额、额度窗口、重置时间、陈旧状态和健康提醒。
+- **账户与配额**：内置余额/订阅适配器（含 Volcengine Coding Plan、Z.ai Team、多 profile），统一显示余额、额度窗口、重置时间、陈旧/上次成功状态和健康提醒。
 - **本地软提醒**：低配额、每日估算成本、账户异常；提醒不向外发送，也不实施硬阻断。
-- **CSV / JSON 导出**：遵循当前过滤条件；可隐藏会话标识，CSV 自动防御电子表格公式注入。
+- **CSV / JSON 导出**：过滤结果、日序列 CSV、打包 JSON；可隐藏会话标识，CSV 自动防御电子表格公式注入；费用账本不进入默认导出。
 - **中英文界面**：复用 DSH UI、locale、layout、settings、sidebar 和 slots 服务。
 
 产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。
@@ -36,10 +43,10 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 ## 安装 / Installation
 
-优先使用 DSH 插件管理器：
+优先从 **npm** 用 DSH 插件管理器安装已发布版本：
 
 ```bash
-dsh plugin --profile web add "github:lninghaha/dsh-hub-oauth-gateway"
+dsh plugin --profile web add dsh-hub-oauth-gateway
 ```
 
 升级和移除：
@@ -49,12 +56,14 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-如果当前 DSH 版本没有插件管理器，可使用兼容安装器：
+如果当前 DSH 版本没有插件管理器，可使用兼容安装器（同样从 npm 拉取）：
 
 ```bash
-npx --yes github:lninghaha/dsh-hub-oauth-gateway
-npx --yes github:lninghaha/dsh-hub-oauth-gateway --check
+npx --yes dsh-hub-oauth-gateway-install
+npx --yes dsh-hub-oauth-gateway-install --check
 ```
+
+未发布改动、需要跟 GitHub `main`、或本仓库开发冒烟时，再使用 Git 引用或本地路径，例如 `github:lninghaha/dsh-hub-oauth-gateway` 或 `"$PWD"`（见下文验证节）。
 
 兼容安装器会原子替换 `~/.dsh/profiles/node_modules/dsh-hub-oauth-gateway`，并幂等维护 `profiles/web/cordis.patch.yml`。包目录和 Cordis patch 会一起备份到最终校验完成；任一步失败都会完整回滚。如果检测到 `dsh.profile.bundles` 已注册本插件，或 web profile 清单无法严格解析，它会拒绝修改并要求改用插件管理器，避免 bundle 与手工 Cordis entry 重复挂载。
 
@@ -75,9 +84,9 @@ systemctl --user restart dsh-web.service
 ## 使用 / Usage
 
 1. 点击侧栏底部的 Usage Center，打开 Quick Peek。
-2. 进入 Full Dashboard 后选择时间范围、指标和 provider/model 维度。
+2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细，并选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
-4. 在 **Settings → Usage Center** 调整预设、密度、时区、货币、供应商显示、提醒、价格、凭据和导出隐私。
+4. 在 **Settings → Usage Center** 用顶部页签调整显示、供应商、费用与凭据/价格。
 5. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
 
 ## 运行配置 / Runtime configuration
@@ -190,23 +199,30 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 
 ## 开发与贡献 / Development and contributing
 
-本项目禁止在宿主机执行 Node/pnpm、构建、测试、安装器或打包命令；所有项目代码只在无 bind mount 的 Docker sandbox 中运行。宿主机只需 Docker Engine + BuildKit。
+在 Cursor Cloud / 开发工作区直接用仓库声明的 Node.js 与 pnpm 验证即可；**不再强制 Docker sandbox**。插件冒烟请使用隔离的 `DSH_HOME` 安装 DeepSeek Harness，勿读写个人真实 profile 或凭据。
 
-快速开发门禁：
-
-```bash
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
-```
-
-完整交付门禁（CI 同样使用该 target）：
+快速门禁：
 
 ```bash
-docker build --target verify --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:verify .
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-`verify` 会在容器内、项目代码阶段禁网运行 lint、类型检查、测试、独立 server/client 构建、安装器验证和 npm 包检查，并逐文件比较重建后的 `lib/` 与提交产物。不要用 `docker run -v "$PWD:/workspace" ...`、host network、宿主 DSH profile 或真实凭据替代该流程。生成产物通过 `artifacts` target 显式导出到被忽略的 `output/docker-artifacts/`。
+交付门禁：
+
+```bash
+pnpm run check
+npm pack --dry-run --json --ignore-scripts
+```
+
+可选 DSH 冒烟（隔离目录）：
+
+```bash
+export DSH_HOME=/tmp/dsh-verify-$USER
+# install @deepseek-ai/dsh, then add this plugin and start web
+dsh plugin --profile web add "$PWD"
+dsh web --host 127.0.0.1 --port 3080
+```
 
 测试覆盖 SQLite、投影、迁移、时区/DST、价格、预测、账户 transport、SSRF/DNS pinning、API/CSRF、凭据、导出、安装器、server bundle、client bundle 和 React 组件。
 

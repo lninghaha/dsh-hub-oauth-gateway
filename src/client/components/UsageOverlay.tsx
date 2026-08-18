@@ -1,19 +1,27 @@
 import { Modal } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { OverviewData, UsageAlert } from "../../shared/contracts.js";
 import type { UsageMetric } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
-import { defaultUserPreferences } from "../../shared/preferences.js";
+import { type DashboardModuleId, defaultUserPreferences, effectiveModules } from "../../shared/preferences.js";
 import { UsageStatsApiError } from "../api.js";
 import { usageUiController, useUsageUi } from "../controller.js";
+import {
+	type DashboardTabId,
+	dashboardTabsForModules,
+	modulesForDashboardTab,
+	resolveDashboardTab,
+} from "../dashboard-tabs.js";
 import { deltaRatio, formatCompact, formatCurrency, formatPercent, formatRelativeTime } from "../format.js";
 import { type Translate, translator } from "../locales.js";
 import {
 	exportUrl,
 	useAccountsQuery,
+	useActivityQuery,
 	useAlertsQuery,
 	useBreakdownQuery,
+	useFeesQuery,
 	useOverviewQuery,
 	usePreferencesQuery,
 	useRefreshMutation,
@@ -26,6 +34,7 @@ import {
 	resolveUsageQuery,
 } from "../range.js";
 import { AccountGrid } from "./AccountGrid.js";
+import { ActivityHeatmap } from "./ActivityHeatmap.js";
 import { BreakdownTable } from "./BreakdownTable.js";
 import { UsageChart } from "./UsageChart.js";
 
@@ -137,16 +146,18 @@ function Toolbar({
 	onChange,
 	refreshing,
 	onRefresh,
-	exportCsv,
-	exportJson,
+	exportFilteredCsv,
+	exportDailyCsv,
+	exportBundleJson,
 	t,
 }: {
 	readonly filters: DashboardFilters;
 	readonly onChange: (value: DashboardFilters) => void;
 	readonly refreshing: boolean;
 	readonly onRefresh: () => void;
-	readonly exportCsv: string;
-	readonly exportJson: string;
+	readonly exportFilteredCsv: string;
+	readonly exportDailyCsv: string;
+	readonly exportBundleJson: string;
 	readonly t: Translate;
 }) {
 	const ranges: readonly DashboardRangePreset[] = ["today", "7d", "30d", "month"];
@@ -201,11 +212,14 @@ function Toolbar({
 				{refreshing ? t("toolbar.refreshing") : t("toolbar.refresh")}
 			</button>
 			<div className="dus-export-menu">
-				<a className="dus-secondary-button" href={exportCsv} download>
+				<a className="dus-secondary-button" href={exportFilteredCsv} download>
 					{t("toolbar.exportCsv")}
 				</a>
-				<a className="dus-secondary-button" href={exportJson} download>
-					{t("toolbar.exportJson")}
+				<a className="dus-secondary-button" href={exportDailyCsv} download>
+					{t("toolbar.exportDaily")}
+				</a>
+				<a className="dus-secondary-button" href={exportBundleJson} download>
+					{t("toolbar.exportBundle")}
 				</a>
 			</div>
 		</div>
@@ -233,6 +247,19 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 		setFilters((current) => ({ ...current, providerIds: [ui.selectedProviderId as string] }));
 	}, [ui.selectedProviderId]);
 
+	const modules = useMemo(() => effectiveModules(preferences), [preferences]);
+	const dashboardTabs = useMemo(() => dashboardTabsForModules(modules), [modules]);
+	const [activeDashboardTab, setActiveDashboardTab] = useState<DashboardTabId | null>(null);
+	const resolvedDashboardTab = useMemo(
+		() => resolveDashboardTab(activeDashboardTab, dashboardTabs),
+		[activeDashboardTab, dashboardTabs],
+	);
+	const showHeatmap = modules.includes("heatmap");
+	const showTrend = modules.includes("trend");
+	const showAccounts = modules.includes("accounts");
+	const showAlerts = modules.includes("alerts");
+	const showBreakdown = modules.includes("breakdown");
+
 	const effectiveFilters = useMemo<DashboardFilters>(
 		() => (ui.surface === "peek" ? { ...filters, range: "today", groupBy: "provider", compare: true } : filters),
 		[filters, ui.surface],
@@ -242,17 +269,26 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 		[effectiveFilters, preferences.display.timeZone],
 	);
 	const overview = useOverviewQuery(query, open);
-	const accounts = useAccountsQuery(open);
-	const alerts = useAlertsQuery(open);
-	const series = useSeriesQuery(query, ui.surface === "dashboard" && preferences.display.preset !== "quota");
-	const dimension = filters.groupBy === "model" ? "model" : "provider";
-	const breakdown = useBreakdownQuery(
-		query,
-		dimension,
-		ui.surface === "dashboard" && (preferences.display.preset === "analyst" || preferences.display.preset === "cost"),
+	const monthQuery = useMemo(
+		() => resolveUsageQuery({ ...effectiveFilters, range: "month", compare: false }, preferences.display.timeZone),
+		[effectiveFilters, preferences.display.timeZone],
 	);
+	const monthOverview = useOverviewQuery(monthQuery, open && (ui.surface === "peek" || showAccounts));
+	const accounts = useAccountsQuery(open);
+	const alerts = useAlertsQuery(open && (ui.surface === "peek" || showAlerts));
+	const series = useSeriesQuery(query, ui.surface === "dashboard" && showTrend);
+	const activity = useActivityQuery(
+		filters.metric === "estimatedCost" || filters.metric === "requests" ? filters.metric : "tokens",
+		ui.surface === "dashboard" && showHeatmap,
+		filters.providerIds,
+	);
+	const fees = useFeesQuery(open && (ui.surface === "peek" || showAccounts));
+	const dimension = filters.groupBy === "model" ? "model" : "provider";
+	const breakdown = useBreakdownQuery(query, dimension, ui.surface === "dashboard" && showBreakdown);
 	const refresh = useRefreshMutation();
 	const overviewData = overview.data?.ok === true ? overview.data.data : null;
+	const monthCostAmount =
+		monthOverview.data?.ok === true ? monthOverview.data.data.cost.amount : (overviewData?.cost.amount ?? null);
 	const hiddenProviders = useMemo(() => new Set(preferences.providers.hidden), [preferences.providers.hidden]);
 	const accountData = useMemo(() => {
 		const order = new Map(preferences.providers.order.map((providerId, index) => [providerId, index]));
@@ -269,6 +305,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 					left.displayName.localeCompare(right.displayName),
 			);
 	}, [accounts.data, hiddenProviders, preferences.providers.aliases, preferences.providers.order]);
+	const feeRecords = fees.data?.ok === true ? fees.data.data.fees : [];
 	const alertData = useMemo(
 		() =>
 			(alerts.data?.ok === true ? alerts.data.data.alerts : [])
@@ -317,18 +354,119 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 				})),
 		};
 	}, [hiddenProviders, preferences.providers.aliases, rawBreakdownData]);
+	const activityData = activity.data?.ok === true ? activity.data.data : null;
 	const error = errorMessage(t, overview.error);
 	const selectedProvider = filters.providerIds[0] ?? null;
-	const showTrend = preferences.display.preset !== "quota";
-	const showAccounts = preferences.display.preset !== "minimal";
-	const showBreakdown = preferences.display.preset === "analyst" || preferences.display.preset === "cost";
 	const setProvider = (providerId: string): void => {
 		const next = selectedProvider === providerId ? null : providerId;
 		usageUiController.selectProvider(next);
 		setFilters((current) => ({ ...current, providerIds: next === null ? [] : [next] }));
 	};
-	const exportCsv = exportUrl(query, "csv", dimension);
-	const exportJson = exportUrl(query, "json", dimension);
+	const exportFilteredCsv = exportUrl(query, "csv", dimension, "filtered");
+	const exportDailyCsv = exportUrl(query, "csv", dimension, "daily");
+	const exportBundleJson = exportUrl(query, "json", dimension, "bundle");
+
+	const renderModule = (moduleId: DashboardModuleId): ReactNode => {
+		if (overviewData === null) return null;
+		switch (moduleId) {
+			case "kpi":
+				return <OverviewCards data={overviewData} t={t} key="kpi" />;
+			case "alerts":
+				return <AlertList alerts={alertData} title={t("metric.alerts")} key="alerts" />;
+			case "heatmap":
+				return activityData === null ? (
+					<section className="dus-section" key="heatmap">
+						<div className="dus-chart-empty">{t("dashboard.loading")}</div>
+					</section>
+				) : (
+					<ActivityHeatmap
+						data={activityData}
+						metric={filters.metric}
+						currency={overviewData.cost.currency}
+						t={t}
+						key="heatmap"
+					/>
+				);
+			case "trend":
+				return (
+					<section className="dus-section dus-trend-section" key="trend">
+						<div className="dus-section-head">
+							<h3 className="dus-section-title">{t("trend.title")}</h3>
+							<span className="dus-section-note">
+								{t(
+									`metric.${filters.metric === "estimatedCost" ? "cost" : filters.metric === "cacheHitRate" ? "cacheHit" : filters.metric}`,
+								)}
+							</span>
+						</div>
+						{series.error !== null ? (
+							<div className="dus-error">{t("dashboard.error", { message: errorMessage(t, series.error) ?? "" })}</div>
+						) : seriesData === null ? (
+							<div className="dus-chart-empty">{t("dashboard.loading")}</div>
+						) : (
+							<UsageChart
+								data={seriesData}
+								metric={filters.metric}
+								currency={overviewData.cost.currency}
+								colors={preferences.providers.colors}
+							/>
+						)}
+					</section>
+				);
+			case "accounts":
+				return (
+					<section className="dus-section dus-accounts-section" key="accounts">
+						<h3 className="dus-section-title">{t("accounts.title")}</h3>
+						<AccountGrid
+							accounts={accountData}
+							emptyLabel={t("accounts.empty")}
+							selectedProviderId={selectedProvider}
+							onSelect={setProvider}
+							fees={feeRecords}
+							monthEstimatedCost={monthCostAmount}
+							baseCurrency={preferences.display.baseCurrency}
+							t={t}
+						/>
+					</section>
+				);
+			case "breakdown":
+				return (
+					<section className="dus-section dus-breakdown-section" key="breakdown">
+						<h3 className="dus-section-title">{t("breakdown.title")}</h3>
+						{breakdown.error !== null ? (
+							<div className="dus-error">
+								{t("dashboard.error", { message: errorMessage(t, breakdown.error) ?? "" })}
+							</div>
+						) : breakdownData === null ? (
+							<div className="dus-chart-empty">{t("dashboard.loading")}</div>
+						) : (
+							<BreakdownTable
+								data={breakdownData}
+								onSelect={breakdownData.dimension === "provider" ? setProvider : undefined}
+								labels={{
+									dimension: t("breakdown.dimension"),
+									tokens: t("breakdown.tokens"),
+									share: t("breakdown.share"),
+									requests: t("breakdown.requests"),
+									cache: t("breakdown.cache"),
+									input: t("breakdown.input"),
+									output: t("breakdown.output"),
+									cacheRead: t("breakdown.cacheRead"),
+									cacheWrite: t("breakdown.cacheWrite"),
+									cost: t("breakdown.cost"),
+								}}
+							/>
+						)}
+					</section>
+				);
+			default:
+				return null;
+		}
+	};
+
+	const activeTabModules =
+		resolvedDashboardTab === null
+			? []
+			: modulesForDashboardTab(resolvedDashboardTab).filter((id) => modules.includes(id));
 
 	return (
 		<div className="dus-overlay-root">
@@ -341,7 +479,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 				className={`dus-modal${ui.surface === "peek" ? " is-peek" : " is-dashboard"}`}
 			>
 				<div
-					className={`dus-dashboard${preferences.display.density === "compact" ? " is-density-compact" : ""}${preferences.display.reducedMotion === "always" ? " is-reduced-motion" : preferences.display.reducedMotion === "never" ? " allows-motion" : ""}`}
+					className={`dus-dashboard${ui.surface === "peek" ? " is-peek-layout" : ""}${preferences.display.density === "compact" ? " is-density-compact" : ""}${preferences.display.reducedMotion === "always" ? " is-reduced-motion" : preferences.display.reducedMotion === "never" ? " allows-motion" : ""}`}
 				>
 					<header className="dus-dashboard-header">
 						<div>
@@ -370,15 +508,33 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						</div>
 					</header>
 					{ui.surface === "dashboard" ? (
-						<Toolbar
-							filters={filters}
-							onChange={setFilters}
-							refreshing={refresh.isPending}
-							onRefresh={() => refresh.mutate("all")}
-							exportCsv={exportCsv}
-							exportJson={exportJson}
-							t={t}
-						/>
+						<div className="dus-dashboard-chrome">
+							<Toolbar
+								filters={filters}
+								onChange={setFilters}
+								refreshing={refresh.isPending}
+								onRefresh={() => refresh.mutate("all")}
+								exportFilteredCsv={exportFilteredCsv}
+								exportDailyCsv={exportDailyCsv}
+								exportBundleJson={exportBundleJson}
+								t={t}
+							/>
+							{dashboardTabs.length > 0 ? (
+								<nav className="dus-tabs" aria-label={t("dashboard.title")}>
+									{dashboardTabs.map((tab) => (
+										<button
+											key={tab}
+											type="button"
+											className={`dus-tab${resolvedDashboardTab === tab ? " is-active" : ""}`}
+											aria-current={resolvedDashboardTab === tab ? "page" : undefined}
+											onClick={() => setActiveDashboardTab(tab)}
+										>
+											{t(`dashboard.tab.${tab}`)}
+										</button>
+									))}
+								</nav>
+							) : null}
+						</div>
 					) : null}
 					<main className="dus-dashboard-body">
 						{error !== null ? (
@@ -396,7 +552,15 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 										<h3 className="dus-section-title">{t("accounts.title")}</h3>
 										<span>{formatCompact(overviewData.activeProviders)}</span>
 									</div>
-									<AccountGrid accounts={accountData} emptyLabel={t("accounts.empty")} compact />
+									<AccountGrid
+										accounts={accountData}
+										emptyLabel={t("accounts.empty")}
+										compact
+										fees={feeRecords}
+										monthEstimatedCost={monthCostAmount}
+										baseCurrency={preferences.display.baseCurrency}
+										t={t}
+									/>
 								</section>
 							</div>
 						) : (
@@ -412,72 +576,9 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 										</button>
 									</div>
 								)}
-								<OverviewCards data={overviewData} t={t} />
-								<AlertList alerts={alertData} title={t("metric.alerts")} />
-								<div className="dus-grid-main">
-									{showTrend ? (
-										<section className="dus-section dus-trend-section">
-											<div className="dus-section-head">
-												<h3 className="dus-section-title">{t("trend.title")}</h3>
-												<span className="dus-section-note">
-													{t(
-														`metric.${filters.metric === "estimatedCost" ? "cost" : filters.metric === "cacheHitRate" ? "cacheHit" : filters.metric}`,
-													)}
-												</span>
-											</div>
-											{series.error !== null ? (
-												<div className="dus-error">
-													{t("dashboard.error", { message: errorMessage(t, series.error) ?? "" })}
-												</div>
-											) : seriesData === null ? (
-												<div className="dus-chart-empty">{t("dashboard.loading")}</div>
-											) : (
-												<UsageChart
-													data={seriesData}
-													metric={filters.metric}
-													currency={overviewData.cost.currency}
-													colors={preferences.providers.colors}
-												/>
-											)}
-										</section>
-									) : null}
-									{showAccounts ? (
-										<section className="dus-section dus-accounts-section">
-											<h3 className="dus-section-title">{t("accounts.title")}</h3>
-											<AccountGrid
-												accounts={accountData}
-												emptyLabel={t("accounts.empty")}
-												selectedProviderId={selectedProvider}
-												onSelect={setProvider}
-											/>
-										</section>
-									) : null}
+								<div className="dus-module-stack" data-active-tab={resolvedDashboardTab ?? ""}>
+									{activeTabModules.map((moduleId) => renderModule(moduleId))}
 								</div>
-								{showBreakdown ? (
-									<section className="dus-section dus-breakdown-section">
-										<h3 className="dus-section-title">{t("breakdown.title")}</h3>
-										{breakdown.error !== null ? (
-											<div className="dus-error">
-												{t("dashboard.error", { message: errorMessage(t, breakdown.error) ?? "" })}
-											</div>
-										) : breakdownData === null ? (
-											<div className="dus-chart-empty">{t("dashboard.loading")}</div>
-										) : (
-											<BreakdownTable
-												data={breakdownData}
-												onSelect={breakdownData.dimension === "provider" ? setProvider : undefined}
-												labels={{
-													dimension: t("breakdown.dimension"),
-													tokens: t("breakdown.tokens"),
-													share: t("breakdown.share"),
-													requests: t("breakdown.requests"),
-													cache: t("breakdown.cache"),
-													cost: t("breakdown.cost"),
-												}}
-											/>
-										)}
-									</section>
-								) : null}
 							</>
 						)}
 					</main>

@@ -6,6 +6,7 @@ import type { AccountSnapshot } from "../../../src/shared/domain.js";
 
 const account: AccountSnapshot = {
 	providerId: "provider-a",
+	profileId: "",
 	displayName: "Provider A",
 	adapterId: "fixture",
 	mode: "subscription",

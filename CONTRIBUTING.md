@@ -32,29 +32,27 @@ proposed UI.
 
 ## Development setup
 
-Project commands run **only inside the repository Docker sandbox**. The host
-needs Docker Engine with BuildKit; it does not need project Node.js, pnpm, or
-`node_modules`.
+Verify in the **Cursor Cloud / local cloud workspace** with the declared Node.js
+and pnpm versions. Docker is optional, not required.
 
 ```bash
-docker version
-docker build \
-  --target check \
-  --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check \
-  .
+node -v   # must satisfy ^22.19 || >=24 — see .nvmrc; avoid /exec-daemon/node 22.14
+pnpm -v   # packageManager in package.json
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-Do not run `node`, `npm`, `npx`, `pnpm`, `tsc`, `vitest`, `biome`, installers,
-or package scripts on the host. Do not replace the image build with a bind
-mount such as `docker run -v "$PWD:/workspace" ...`; the Docker build receives
-only the explicit `.dockerignore` allowlist and cannot write the checkout.
+If you see `Unsupported engine ... current: {"node":"v22.14.0"...}`, switch to the
+nvm Node from `.nvmrc` (or any `22.19+` / `24+`) so that `node` and `pnpm` share
+that runtime before re-running.
+For plugin smoke tests, use an **isolated** `DSH_HOME` (never the operator’s
+personal profile), install `@deepseek-ai/dsh`, add this package to the web
+profile via a **local path** (`dsh plugin --profile web add "$PWD"`), and start
+`dsh web` on loopback. End-user installs prefer the published npm package name;
+see [`README.md`](README.md).
 
-Dependency download is isolated in the Docker `dependencies` stage. Project
-code executes in later stages with `RUN --network=none`. Tests use mocks,
-sanitized fixtures, and container-only temporary directories; they must not
-read a developer's DSH profile, local CLI login, credential store, production
-SQLite database, Docker socket, or another project directory, and must not
+Automated tests use mocks and sanitized fixtures. They must not read a
+personal DSH profile, local CLI login, credential store, production SQLite, or
 require live provider access.
 
 ## Repository model
@@ -62,15 +60,13 @@ require live provider access.
 - Edit runtime behavior under `src/`.
 - Add or update tests under `tests/v1/`.
 - Do not edit `lib/` manually. It is a committed installation artifact rebuilt
-  by the Docker `artifacts` target and exported to ignored
-  `output/docker-artifacts/` for review before replacement.
-- `.next/`, `output/`, coverage, Docker exports, images, and TypeScript build
-  info are local/rebuildable outputs.
+  from `src/` in the cloud/dev environment, reviewed, then committed.
+- `.next/`, `output/`, coverage, optional Docker exports, images, and TypeScript
+  build info are local/rebuildable outputs.
 - Put private machine-specific research in ignored `docs/local/`, never in a
   pull request. Public reusable research belongs in a reviewed public doc.
-- The container uses pnpm only. Dependency changes include `pnpm-lock.yaml`
-  and must not add `package-lock.json`; regenerate the lockfile with the Docker
-  `lockfile` export target, never by installing dependencies on the host.
+- Use pnpm only. Dependency changes include `pnpm-lock.yaml` and must not add
+  `package-lock.json`.
 
 Architecture and configuration contracts are documented in
 [`docs/architecture.md`](docs/architecture.md) and
@@ -93,9 +89,9 @@ Architecture and configuration contracts are documented in
    migration, compatibility, or trust assumptions change.
 6. Add a concise user/operator-facing entry under `Unreleased` in
    `CHANGELOG.md`.
-7. For runtime changes, export `lib/` through the Docker `artifacts` target,
-   review the generated tree, replace the committed artifact, and then run the
-   Docker `verify` target.
+7. For runtime changes, regenerate `lib/` from `src/`, review the diff, commit
+   it, run `pnpm run check`, and smoke-test with an isolated DSH install when
+   UI or install behavior changed.
 
 User-visible copy must remain available in Simplified Chinese and English.
 Usage and costs must stay clearly identified as analytics/estimates; an
@@ -106,44 +102,28 @@ unpriced token category is unknown, not free.
 Fast source gate:
 
 ```bash
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
+pnpm install --frozen-lockfile
+pnpm run check:next
 ```
 
-Export generated runtime artifacts after a source change:
+After a runtime source change, rebuild and review `lib/`, then run:
 
 ```bash
-rm -rf output/docker-artifacts
-docker build --target artifacts --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-artifacts .
+pnpm run check
+npm pack --dry-run --json --ignore-scripts
 ```
 
-Review `output/docker-artifacts/lib/`, replace the generated `lib/` tree, then
-run the full submission gate on both supported Node lines:
+Optional UI smoke (isolated `DSH_HOME` only):
 
 ```bash
-docker build --target verify --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:verify-22 .
-docker build --target verify --build-arg NODE_VERSION=24 \
-  --tag dsh-hub-oauth-gateway-sandbox:verify-24 .
-```
-
-The `verify` target lints, type-checks, tests, rebuilds, compares the rebuilt
-`lib/` to the committed tree, and inspects the npm manifest without publishing.
-A documentation/package-only change may use `--target inspect`; a documentation-
-only change does not need an unrelated `lib/` rebuild.
-
-For dependency changes, export a reviewed lockfile without running project
-source on the host:
-
-```bash
-rm -rf output/docker-lockfile
-docker build --target lockfile --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-lockfile .
+export DSH_HOME=/tmp/dsh-verify-$USER
+# install @deepseek-ai/dsh, then:
+dsh plugin --profile web add "$PWD"
+dsh web --host 127.0.0.1 --port 3080
 ```
 
 Never use a live credential or provider call as evidence that replaces an
-automated sandbox regression test.
+automated regression test.
 
 ## Pull requests
 

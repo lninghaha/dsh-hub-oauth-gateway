@@ -4,11 +4,19 @@ import { AccountAdapterRegistry } from "./registry.js";
 import type { AccountSnapshotRepository } from "./repository.js";
 import { resolveAccountSpecs } from "./specs.js";
 import { resolveCredential } from "./transport.js";
-import type { AccountConfig, AccountDeps, AccountSpec, CredentialResolver, ProviderDescriptor } from "./types.js";
+import {
+	type AccountConfig,
+	type AccountDeps,
+	type AccountSpec,
+	accountIdentityKey,
+	type CredentialResolver,
+	type ProviderDescriptor,
+} from "./types.js";
 
 interface CacheEntry {
 	readonly configKey: string;
 	readonly snapshot: AccountSnapshot;
+	readonly consecutiveTransientFailures: number;
 }
 
 export interface AccountServiceOptions {
@@ -21,6 +29,8 @@ export interface AccountServiceOptions {
 	readonly refreshMs?: number;
 	readonly concurrency?: number;
 	readonly includeCompatibilityProviders?: boolean;
+	/** Drop lastGood after this many consecutive transient failures (default 3). */
+	readonly staleFailureLimit?: number;
 }
 
 export interface AccountRefreshResult {
@@ -29,19 +39,44 @@ export interface AccountRefreshResult {
 }
 
 const DEFAULT_REFRESH_MS = 5 * 60_000;
+const DEFAULT_STALE_FAILURE_LIMIT = 3;
 
 function isTransient(status: AccountSnapshot["status"]): boolean {
 	return status === "unavailable" || status === "rate-limited" || status === "error";
 }
 
-function withStaleData(previous: AccountSnapshot | null, current: AccountSnapshot): AccountSnapshot {
-	if (previous?.status !== "ok" || !isTransient(current.status)) return current;
+function withStaleData(
+	previous: AccountSnapshot | null,
+	current: AccountSnapshot,
+	consecutiveTransientFailures: number,
+	staleFailureLimit: number,
+): { snapshot: AccountSnapshot; consecutiveTransientFailures: number } {
+	const previousUsable =
+		previous !== null &&
+		(previous.status === "ok" || previous.stale) &&
+		(previous.balance !== null || previous.windows.length > 0 || previous.status === "ok");
+	if (previousUsable && isTransient(current.status)) {
+		const failures = consecutiveTransientFailures + 1;
+		if (failures >= staleFailureLimit) {
+			return {
+				snapshot: { ...current, stale: false },
+				consecutiveTransientFailures: failures,
+			};
+		}
+		return {
+			snapshot: {
+				...previous,
+				status: current.status,
+				fetchedAt: current.fetchedAt,
+				stale: true,
+				warningCode: current.warningCode ?? previous.warningCode,
+			},
+			consecutiveTransientFailures: failures,
+		};
+	}
 	return {
-		...previous,
-		status: current.status,
-		fetchedAt: current.fetchedAt,
-		stale: true,
-		warningCode: current.warningCode ?? previous.warningCode,
+		snapshot: current,
+		consecutiveTransientFailures: current.status === "ok" ? 0 : consecutiveTransientFailures,
 	};
 }
 
@@ -63,6 +98,7 @@ function depsForSpec(deps: AccountDeps, spec: AccountSpec): AccountDeps {
 function pendingSnapshot(spec: AccountSpec): AccountSnapshot {
 	return {
 		providerId: spec.id,
+		profileId: spec.profileId,
 		displayName: spec.displayName,
 		adapterId: spec.adapter,
 		mode: spec.mode,
@@ -76,6 +112,10 @@ function pendingSnapshot(spec: AccountSpec): AccountSnapshot {
 		missingCredentials: [],
 		warningCode: null,
 	};
+}
+
+function cacheKeyOf(spec: AccountSpec): string {
+	return accountIdentityKey(spec.id, spec.profileId);
 }
 
 async function mapConcurrent<T, R>(
@@ -108,6 +148,7 @@ export class AccountService {
 	readonly #refreshMs: number;
 	readonly #concurrency: number;
 	readonly #includeCompatibility: boolean;
+	readonly #staleFailureLimit: number;
 	readonly #cache = new Map<string, CacheEntry>();
 	readonly #inflight = new Map<string, Promise<AccountSnapshot>>();
 	#lastRefreshAt: number | null = null;
@@ -122,6 +163,7 @@ export class AccountService {
 		this.#refreshMs = options.refreshMs ?? DEFAULT_REFRESH_MS;
 		this.#concurrency = options.concurrency ?? 3;
 		this.#includeCompatibility = options.includeCompatibilityProviders ?? true;
+		this.#staleFailureLimit = options.staleFailureLimit ?? DEFAULT_STALE_FAILURE_LIMIT;
 	}
 
 	get lastRefreshAt(): number | null {
@@ -138,6 +180,7 @@ export class AccountService {
 			for (const ref of [
 				spec.apiKeyRef,
 				spec.monitor.credentialRef,
+				spec.monitor.secretKeyRef,
 				spec.monitor.fallbackCredentialRef,
 				spec.monitor.fallbackUserIdRef,
 				spec.monitor.request?.auth?.credentialRef,
@@ -151,17 +194,19 @@ export class AccountService {
 	async list(): Promise<readonly AccountSnapshot[]> {
 		const specs = await this.specs();
 		return specs.map((spec) => {
-			const memory = this.#cache.get(spec.id);
+			const key = cacheKeyOf(spec);
+			const memory = this.#cache.get(key);
 			if (memory?.configKey === spec.configKey) return memory.snapshot;
-			return this.#repository.latest(spec.id) ?? pendingSnapshot(spec);
+			return this.#repository.latest(spec.id, spec.profileId) ?? pendingSnapshot(spec);
 		});
 	}
 
-	async get(providerId: string, force = false): Promise<AccountSnapshot | null> {
-		const spec = (await this.specs()).find(({ id }) => id === providerId);
+	async get(providerId: string, force = false, profileId = ""): Promise<AccountSnapshot | null> {
+		const spec = (await this.specs()).find(({ id, profileId: profile }) => id === providerId && profile === profileId);
 		if (spec === undefined) return null;
 		const now = this.#deps.now?.() ?? Date.now();
-		const hit = this.#cache.get(providerId);
+		const key = cacheKeyOf(spec);
+		const hit = this.#cache.get(key);
 		const age = now - (hit?.snapshot.fetchedAt ?? 0);
 		if (!force && hit?.configKey === spec.configKey && age >= 0 && age < this.#refreshMs) return hit.snapshot;
 		return this.#refreshSpec(spec);
@@ -181,15 +226,17 @@ export class AccountService {
 	}
 
 	async #refreshSpec(spec: AccountSpec): Promise<AccountSnapshot> {
-		const existing = this.#inflight.get(spec.id);
+		const key = cacheKeyOf(spec);
+		const existing = this.#inflight.get(key);
 		if (existing !== undefined) return existing;
-		const promise = this.#collect(spec).finally(() => this.#inflight.delete(spec.id));
-		this.#inflight.set(spec.id, promise);
+		const promise = this.#collect(spec).finally(() => this.#inflight.delete(key));
+		this.#inflight.set(key, promise);
 		return promise;
 	}
 
 	async #collect(spec: AccountSpec): Promise<AccountSnapshot> {
 		const now = this.#deps.now?.() ?? Date.now();
+		const key = cacheKeyOf(spec);
 		const adapter = this.#registry.get(spec.adapter);
 		let current: AccountSnapshot;
 		if (adapter === null || spec.mode === null) {
@@ -222,10 +269,20 @@ export class AccountService {
 				current = buildErrorSnapshot(spec, statusOfError(error), now);
 			}
 		}
-		const previous = this.#cache.get(spec.id)?.snapshot ?? this.#repository.latest(spec.id);
-		const snapshot = withStaleData(previous, current);
+		const previousEntry = this.#cache.get(key);
+		const previous = previousEntry?.snapshot ?? this.#repository.latest(spec.id, spec.profileId);
+		const { snapshot, consecutiveTransientFailures } = withStaleData(
+			previous,
+			current,
+			previousEntry?.consecutiveTransientFailures ?? 0,
+			this.#staleFailureLimit,
+		);
 		const stored = this.#repository.save(snapshot, now);
-		this.#cache.set(spec.id, { configKey: spec.configKey, snapshot: stored });
+		this.#cache.set(key, {
+			configKey: spec.configKey,
+			snapshot: stored,
+			consecutiveTransientFailures,
+		});
 		return stored;
 	}
 }

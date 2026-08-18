@@ -88,6 +88,13 @@ export function codingOAuthProxyInEffect(): string | undefined {
 	return installedProxy;
 }
 
+/** Hint appended to unreachable-network errors when a scoped proxy may be required. */
+export function codingOAuthProxyUnreachableHint(): string {
+	return codingOAuthProxyInEffect() === undefined
+		? "; a scoped coding OAuth proxy may be required on this network"
+		: "";
+}
+
 /** Backward-compatible status accessor. */
 export function grokBuildProxyInEffect(): string | undefined {
 	return codingOAuthProxyInEffect();

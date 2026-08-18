@@ -102,6 +102,9 @@ const expectedAllowlist = [
 	"docs/configuration.md",
 	"docs/migration-v1.md",
 	"docs/research/usage-analytics-landscape.md",
+	"docs/research/token-monitor.md",
+	"docs/research/token-monitor-supplement-proposal.md",
+	"docs/research/ccswitch-provider-usage.md",
 ];
 const actualAllowlist = manifest.files;
 if (!Array.isArray(actualAllowlist)) fail("package.json files must be an explicit array");

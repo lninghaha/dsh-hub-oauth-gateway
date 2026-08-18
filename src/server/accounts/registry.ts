@@ -1,3 +1,4 @@
+import { antigravityQuotaAdapter } from "./adapters/antigravity-quota.js";
 import {
 	dashscopeBalanceAdapter,
 	deepseekBalanceAdapter,
@@ -7,7 +8,12 @@ import {
 	siliconflowBalanceAdapter,
 	zaiBalanceAdapter,
 } from "./adapters/balance-schemes.js";
-import { kimiTokenPlanAdapter, minimaxTokenPlanAdapter, zaiTokenPlanAdapter } from "./adapters/coding-plans.js";
+import {
+	kimiTokenPlanAdapter,
+	minimaxTokenPlanAdapter,
+	zaiTeamPlanAdapter,
+	zaiTokenPlanAdapter,
+} from "./adapters/coding-plans.js";
 import { declarativeAdapter } from "./adapters/declarative.js";
 import { newApiAdapter } from "./adapters/new-api.js";
 import {
@@ -19,8 +25,10 @@ import {
 	geminiQuotaAdapter,
 	grokSubscriptionAdapter,
 } from "./adapters/oauth-subscriptions.js";
+import { ollamaCloudAdapter } from "./adapters/ollama-cloud.js";
 import { openCodeGoAdapter } from "./adapters/opencode-go.js";
 import { sub2ApiAdapter } from "./adapters/sub2api.js";
+import { volcengineCodingPlanAdapter } from "./adapters/volcengine-coding-plan.js";
 import type { AccountAdapter, ProviderDescriptor } from "./types.js";
 
 export const BUILTIN_ACCOUNT_ADAPTERS: readonly AccountAdapter[] = Object.freeze([
@@ -35,8 +43,12 @@ export const BUILTIN_ACCOUNT_ADAPTERS: readonly AccountAdapter[] = Object.freeze
 	sub2ApiAdapter,
 	openCodeGoAdapter,
 	zaiTokenPlanAdapter,
+	zaiTeamPlanAdapter,
 	kimiTokenPlanAdapter,
 	minimaxTokenPlanAdapter,
+	volcengineCodingPlanAdapter,
+	antigravityQuotaAdapter,
+	ollamaCloudAdapter,
 	claudeOauthAdapter,
 	codexWhamAdapter,
 	geminiQuotaAdapter,
@@ -79,6 +91,11 @@ const PROVIDER_DEFAULTS: Readonly<Record<string, string>> = Object.freeze({
 	kimi: "moonshot-balance",
 	zai: "zai-token-plan",
 	"zai-coding-cn": "zai-token-plan",
+	"zai-team": "zai-team-plan",
+	volcengine: "volcengine-coding-plan",
+	ark: "volcengine-coding-plan",
+	antigravity: "antigravity-quota",
+	"ollama-cloud": "ollama-cloud",
 	"kimi-coding": "kimi-token-plan",
 	"kimi-for-coding": "kimi-token-plan",
 	minimax: "minimax-token-plan",

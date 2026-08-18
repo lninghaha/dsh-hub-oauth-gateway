@@ -111,3 +111,23 @@ export function bucketTimestamp(key: string, timeZone: string, granularity: Time
 	}
 	return candidate;
 }
+
+/** Shift a YYYY-MM-DD calendar key by whole days (timezone-independent once keyed). */
+export function shiftDayKey(dayKey: string, deltaDays: number): string {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+	if (match === null) throw new Error(`invalid day key ${dayKey}`);
+	const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + deltaDays));
+	return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+}
+
+export function enumerateDayKeys(fromDayKey: string, toDayKeyInclusive: string): string[] {
+	const keys: string[] = [];
+	let current = fromDayKey;
+	for (let guard = 0; guard < 4000; guard += 1) {
+		keys.push(current);
+		if (current === toDayKeyInclusive) return keys;
+		current = shiftDayKey(current, 1);
+		if (current > toDayKeyInclusive) break;
+	}
+	return keys;
+}

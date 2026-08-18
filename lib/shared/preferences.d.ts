@@ -13,6 +13,20 @@ export declare const SidebarMetricSchema: z.ZodEnum<{
     alerts: "alerts";
 }>;
 export type SidebarMetric = z.infer<typeof SidebarMetricSchema>;
+export declare const DashboardModuleIdSchema: z.ZodEnum<{
+    accounts: "accounts";
+    alerts: "alerts";
+    kpi: "kpi";
+    heatmap: "heatmap";
+    trend: "trend";
+    breakdown: "breakdown";
+}>;
+export type DashboardModuleId = z.infer<typeof DashboardModuleIdSchema>;
+export declare const ALL_DASHBOARD_MODULES: readonly DashboardModuleId[];
+export declare function modulesForPreset(preset: DashboardPreset): {
+    readonly order: DashboardModuleId[];
+    readonly hidden: DashboardModuleId[];
+};
 export declare const UserPreferencesSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     display: z.ZodObject<{
@@ -47,6 +61,26 @@ export declare const UserPreferencesSchema: z.ZodObject<{
         timeZone: z.ZodString;
         weekStartsOn: z.ZodUnion<readonly [z.ZodLiteral<0>, z.ZodLiteral<1>, z.ZodLiteral<6>]>;
         baseCurrency: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+        modules: z.ZodDefault<z.ZodObject<{
+            order: z.ZodArray<z.ZodEnum<{
+                accounts: "accounts";
+                alerts: "alerts";
+                kpi: "kpi";
+                heatmap: "heatmap";
+                trend: "trend";
+                breakdown: "breakdown";
+            }>>;
+            hidden: z.ZodArray<z.ZodEnum<{
+                accounts: "accounts";
+                alerts: "alerts";
+                kpi: "kpi";
+                heatmap: "heatmap";
+                trend: "trend";
+                breakdown: "breakdown";
+            }>>;
+        }, z.core.$strict>>;
+        modulesCustomized: z.ZodDefault<z.ZodBoolean>;
+        streakMinTokens: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>;
     providers: z.ZodObject<{
         hidden: z.ZodArray<z.ZodString>;
@@ -57,6 +91,14 @@ export declare const UserPreferencesSchema: z.ZodObject<{
     privacy: z.ZodObject<{
         showSessionIdentifiers: z.ZodBoolean;
         redactExports: z.ZodBoolean;
+        autoExportEnabled: z.ZodDefault<z.ZodBoolean>;
+        autoExportDirectory: z.ZodDefault<z.ZodString>;
+        autoExportLayout: z.ZodDefault<z.ZodEnum<{
+            daily: "daily";
+            filtered: "filtered";
+            bundle: "bundle";
+        }>>;
+        autoExportIntervalMinutes: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>;
     alerts: z.ZodDefault<z.ZodObject<{
         enabled: z.ZodBoolean;
@@ -66,4 +108,7 @@ export declare const UserPreferencesSchema: z.ZodObject<{
 }, z.core.$strict>;
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 export declare function defaultUserPreferences(timeZone?: string): UserPreferences;
+export declare function effectiveModules(preferences: UserPreferences): DashboardModuleId[];
+export declare function applyPresetToPreferences(preferences: UserPreferences, preset: DashboardPreset): UserPreferences;
+export declare function resetModulesToPreset(preferences: UserPreferences): UserPreferences;
 //# sourceMappingURL=preferences.d.ts.map

@@ -18,6 +18,10 @@ describe("client locales", () => {
 			"motion.system",
 			"motion.always",
 			"motion.never",
+			"dashboard.tab.overview",
+			"dashboard.tab.activity",
+			"settings.tab.display",
+			"settings.tab.providers",
 		]) {
 			expect(zh[key as keyof typeof zh]).toBeTruthy();
 			expect(en[key as keyof typeof en]).toBeTruthy();

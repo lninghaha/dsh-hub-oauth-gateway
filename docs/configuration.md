@@ -89,8 +89,11 @@ Common monitor fields:
 | `adapter` | Required registered adapter ID |
 | `mode` | `balance` or `subscription`; required by `declarative` |
 | `credentialRef` | Uppercase DSH credential reference |
+| `secretKeyRef` | Second credential (e.g. Volcengine SK) |
 | `usageBaseURL` | Optional absolute account API base URL |
 | `region` | Adapter-specific region selector |
+| `profiles` | Optional array of `{ id, label?, credentialRef?, ... }` for multi-account cards |
+| `allowCookieSession` | Explicit opt-in for cookie-based adapters (`ollama-cloud`) |
 | `fallbackCredentialRef` | Separate fallback credential, used by selected adapters |
 | `fallbackUserIdRef` | Separate fallback user-ID reference |
 | `warning.warnBelow` | Nonnegative absolute warning threshold |
@@ -115,8 +118,12 @@ new-api
 sub2api
 opencode-go
 zai-token-plan
+zai-team-plan
 kimi-token-plan
 minimax-token-plan
+volcengine-coding-plan
+antigravity-quota
+ollama-cloud
 claude-oauth
 codex-wham
 gemini-quota
@@ -127,6 +134,51 @@ amp-subscription
 declarative
 ```
 
+Compatibility-only provider ids also include `volcengine`, `zai-team`,
+`antigravity`, and `ollama-cloud`.
+
+Multi-profile example (OpenRouter):
+
+```yaml
+accounts:
+  monitors:
+    openrouter:
+      adapter: openrouter-balance
+      profiles:
+        - id: personal
+          credentialRef: OPENROUTER_MGMT_PERSONAL
+        - id: work
+          credentialRef: OPENROUTER_MGMT_WORK
+```
+
+Volcengine Coding Plan (AK/SK refs; no chat probe):
+
+```yaml
+accounts:
+  monitors:
+    volcengine:
+      adapter: volcengine-coding-plan
+      credentialRef: VOLCENGINE_ACCESS_KEY
+      secretKeyRef: VOLCENGINE_SECRET_KEY
+      region: cn-beijing
+```
+
+### Refresh modes
+
+| Field | Meaning |
+| --- | --- |
+| `refresh.accountMode` | `fixed` (default) or `adaptive` |
+| `refresh.accountAdaptiveMinMinutes` | Adaptive floor (default 2) |
+| `refresh.accountAdaptiveMaxMinutes` | Adaptive ceiling (default 30) |
+
+Adaptive mode shortens the background account interval when quota windows are
+hot. Page open / ordinary GET still never triggers credentialed refresh.
+
+### Auto export (local only)
+
+User preferences may enable writing export files to an **absolute** local
+directory (`privacy.autoExport*`). The writer refuses CI/Docker sandbox homes,
+never includes credentials or sessions, and is skipped when disabled.
 Providers with a known ID or hostname receive a default adapter. An unknown provider without an explicit monitor remains visible as unsupported; token history still works.
 
 For `minimax-token-plan`, `credentialRef` must resolve to the operator's Token Plan subscription key. MiniMax documents this key as separate from a regular pay-as-you-go API key; the two are not interchangeable. The current quota path is `/v1/token_plan/remains` on the configured `api.minimax.io` or `api.minimaxi.com` origin. [MiniMax Token Plan FAQ](https://platform.minimaxi.com/docs/token-plan/faq)

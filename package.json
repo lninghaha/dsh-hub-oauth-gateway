@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web; coding-plan OAuth sign-in and an API gateway are planned next",
-  "version": "1.1.0",
+	"version": "1.5.1",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -49,7 +49,10 @@
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/migration-v1.md",
-    "docs/research/usage-analytics-landscape.md"
+    "docs/research/usage-analytics-landscape.md",
+    "docs/research/token-monitor.md",
+    "docs/research/token-monitor-supplement-proposal.md",
+    "docs/research/ccswitch-provider-usage.md"
   ],
   "type": "module",
   "main": "lib/index.js",
@@ -85,23 +88,24 @@
     }
   },
   "scripts": {
+    "assert:node": "node scripts/assert-node.mjs",
     "clean:next": "node build/clean-next.mjs",
     "typecheck:next": "tsc -b tsconfig.host.json tsconfig.client.json",
     "build:server:next": "tsc -p tsconfig.build.json && tsc -p tsconfig.dts-bin.json && node build/build-server.mjs",
     "build:client:next": "node build/build-client.mjs",
-    "build:next": "pnpm run clean:next && pnpm run typecheck:next && pnpm run build:server:next && pnpm run build:client:next",
+    "build:next": "pnpm run assert:node && pnpm run clean:next && pnpm run typecheck:next && pnpm run build:server:next && pnpm run build:client:next",
     "build": "pnpm run release:build",
     "test:next": "vitest run",
     "test:next:watch": "vitest",
     "test": "pnpm run build:next && pnpm run test:next",
     "lint:next": "biome check",
-    "check:next": "pnpm run lint:next && pnpm run build:next && pnpm run test:next",
+    "check:next": "pnpm run assert:node && pnpm run lint:next && pnpm run build:next && pnpm run test:next",
     "release:promote": "node build/promote-release.mjs",
     "release:verify": "node build/verify-release.mjs && node scripts/test-bundle.mjs && node scripts/test-install.mjs",
-    "release:build": "pnpm run build:next && pnpm run release:promote && pnpm run release:verify",
-    "release:inspect": "node scripts/release.mjs --dry-run",
-    "release:pack": "node scripts/release.mjs --pack",
-    "check": "pnpm run lint:next && pnpm run release:build && pnpm run test:next",
+    "release:build": "pnpm run assert:node && pnpm run build:next && pnpm run release:promote && pnpm run release:verify",
+    "release:inspect": "pnpm run assert:node && node scripts/release.mjs --dry-run",
+    "release:pack": "pnpm run assert:node && node scripts/release.mjs --pack",
+    "check": "pnpm run assert:node && pnpm run lint:next && pnpm run release:build && pnpm run test:next",
     "prepack": "pnpm run release:build"
   },
   "devDependencies": {
@@ -181,11 +185,6 @@
     },
     "@deepseek-ai/dsh-tools": {
       "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "@earendil-works/pi-ai": "0.84.2"
     }
   },
   "license": "MIT AND Apache-2.0"

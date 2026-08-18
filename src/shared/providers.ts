@@ -100,8 +100,8 @@ const REF_NAME_MAX = 128;
 const MODEL_ID_MAX = 128;
 /** Max number of model ids retained in a summary. */
 const MODEL_LIST_MAX = 64;
-/** Max total characters across all warnings on a record. */
-const WARNINGS_TOTAL_MAX = 2048;
+/** Max total characters across all warnings on a record (reserved for future truncation). */
+const _WARNINGS_TOTAL_MAX = 2048;
 
 /** Sanitized provider id. Never contains a raw payload or credential value. */
 const ProviderIdSchema = z.string().min(1).max(128);
@@ -169,7 +169,10 @@ export const ProviderOAuthChallengeSnapshotSchema = z
 		method: z.enum(["device-code", "authorization-code"]),
 		// Verification URL is always required to be HTTPS so the operator never
 		// opens a non-secure endpoint to authorize.
-		verificationUrl: z.string().url().refine((value) => value.startsWith("https://"), "verification URL must be HTTPS"),
+		verificationUrl: z
+			.string()
+			.url()
+			.refine((value) => value.startsWith("https://"), "verification URL must be HTTPS"),
 		pollIntervalMs: z.number().int().positive().nullable(),
 	})
 	.strict();

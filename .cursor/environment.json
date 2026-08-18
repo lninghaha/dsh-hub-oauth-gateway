@@ -1,0 +1,4 @@
+{
+  "name": "dsh-hub-oauth-gateway",
+  "install": "export NVM_DIR=\"$HOME/.nvm\"; [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"; nvm install 22.22.2; nvm alias default 22.22.2; nvm use --delete-prefix 22.22.2 --silent || nvm use 22.22.2; hash -r; export PATH=\"$NVM_DIR/versions/node/v22.22.2/bin:$PATH\"; node -v; corepack enable; corepack prepare pnpm@11.21.0 --activate; pnpm install --frozen-lockfile"
+}

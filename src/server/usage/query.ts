@@ -1,11 +1,13 @@
-import type { BreakdownData, OverviewData, SeriesData } from "../../shared/contracts.js";
+import type { ActivityData, BreakdownData, DailyExportRow, OverviewData, SeriesData } from "../../shared/contracts.js";
 import type { UsageBuckets, UsageQuery } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
 import { estimateUsageCost } from "../pricing/engine.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { UsageFact } from "./projector.js";
 import type { UsageRepository } from "./repository.js";
-import { bucketKey, bucketTimestamp } from "./time.js";
+import { bucketKey, bucketTimestamp, enumerateDayKeys, shiftDayKey } from "./time.js";
+
+export const ACTIVITY_WINDOW_DAYS = 370;
 
 interface UsageTotals extends UsageBuckets {
 	requests: number;
@@ -121,6 +123,40 @@ function groupKey(fact: UsageFact, query: UsageQuery): string {
 	}
 }
 
+function computeStreaks(
+	days: readonly { tokens: number; hasData: boolean }[],
+	streakMinTokens: number,
+): { streak: number; longestStreak: number } {
+	let longest = 0;
+	let run = 0;
+	for (const day of days) {
+		if (day.hasData && day.tokens > streakMinTokens) {
+			run += 1;
+			if (run > longest) longest = run;
+		} else {
+			run = 0;
+		}
+	}
+	let streak = 0;
+	for (let index = days.length - 1; index >= 0; index -= 1) {
+		const day = days[index];
+		if (day === undefined) break;
+		if (day.hasData && day.tokens > streakMinTokens) streak += 1;
+		else break;
+	}
+	return { streak, longestStreak: longest };
+}
+
+export interface ActivityOptions {
+	readonly timeZone: string;
+	readonly metric: UsageQuery["metric"];
+	readonly weekStartsOn: 0 | 1 | 6;
+	readonly streakMinTokens: number;
+	readonly now?: number;
+	readonly providers?: readonly string[];
+	readonly models?: readonly string[];
+}
+
 export class UsageQueryService {
 	readonly #usage: UsageRepository;
 	readonly #pricing: PricingRepository;
@@ -229,5 +265,85 @@ export class UsageQueryService {
 			})
 			.sort((left, right) => totalTokens(right.buckets) - totalTokens(left.buckets));
 		return { dimension, rows };
+	}
+
+	activity(options: ActivityOptions): ActivityData {
+		const now = options.now ?? Date.now();
+		const todayKey = bucketKey(now, options.timeZone, "day");
+		const fromKey = shiftDayKey(todayKey, -(ACTIVITY_WINDOW_DAYS - 1));
+		const from = bucketTimestamp(fromKey, options.timeZone, "day");
+		const to = bucketTimestamp(shiftDayKey(todayKey, 1), options.timeZone, "day");
+		const facts = this.#usage.listFacts({
+			from,
+			to,
+			providers: options.providers ?? [],
+			models: options.models ?? [],
+		});
+		const rules = this.#pricing.list();
+		const byDay = new Map<string, UsageFact[]>();
+		for (const fact of facts) {
+			const key = bucketKey(fact.occurredAt, options.timeZone, "day");
+			const values = byDay.get(key) ?? [];
+			values.push(fact);
+			byDay.set(key, values);
+		}
+		const days = enumerateDayKeys(fromKey, todayKey).map((date) => {
+			const dayFacts = byDay.get(date);
+			if (dayFacts === undefined) {
+				return { date, tokens: 0, cost: null, requests: 0, hasData: false };
+			}
+			const totals = aggregate(dayFacts);
+			const cost = estimateUsageCost(dayFacts, rules, this.#baseCurrency);
+			return {
+				date,
+				tokens: totalTokens(totals),
+				cost: cost.amount,
+				requests: totals.requests,
+				hasData: true,
+			};
+		});
+		const { streak, longestStreak } = computeStreaks(days, options.streakMinTokens);
+		return {
+			metric: options.metric,
+			days,
+			streak,
+			longestStreak,
+			weekStartsOn: options.weekStartsOn,
+			streakMinTokens: options.streakMinTokens,
+		};
+	}
+
+	dailyExportRows(query: UsageQuery): DailyExportRow[] {
+		const facts = this.#usage.listFacts(filterFor(query));
+		const rules = this.#pricing.list();
+		const groups = new Map<string, UsageFact[]>();
+		for (const fact of facts) {
+			const date = bucketKey(fact.occurredAt, query.timeZone, "day");
+			const key = `${date}\0${fact.providerId}`;
+			const values = groups.get(key) ?? [];
+			values.push(fact);
+			groups.set(key, values);
+		}
+		return [...groups.entries()]
+			.map(([composite, groupFacts]) => {
+				const separator = composite.indexOf("\0");
+				const date = composite.slice(0, separator);
+				const provider = composite.slice(separator + 1);
+				const totals = aggregate(groupFacts);
+				const cost = estimateUsageCost(groupFacts, rules, this.#baseCurrency);
+				return {
+					date,
+					provider,
+					inputTokens: totals.inputTokens,
+					outputTokens: totals.outputTokens,
+					cacheReadTokens: totals.cacheReadTokens,
+					cacheWriteTokens: totals.cacheWriteTokens,
+					requests: totals.requests,
+					estimatedCost: cost.amount,
+					currency: cost.currency,
+					priceCoverage: cost.coverageRatio,
+				};
+			})
+			.sort((left, right) => left.date.localeCompare(right.date) || left.provider.localeCompare(right.provider));
 	}
 }

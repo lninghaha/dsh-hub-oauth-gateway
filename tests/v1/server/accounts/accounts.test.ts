@@ -25,10 +25,14 @@ describe("account adapters, policy, and service", () => {
 
 	it("registers all compatibility adapters and maps common providers", () => {
 		const registry = new AccountAdapterRegistry();
-		expect(BUILTIN_ACCOUNT_ADAPTERS.length).toBeGreaterThanOrEqual(21);
+		expect(BUILTIN_ACCOUNT_ADAPTERS.length).toBeGreaterThanOrEqual(25);
 		expect(registry.get("claude-oauth")?.mode).toBe("subscription");
+		expect(registry.get("volcengine-coding-plan")?.mode).toBe("subscription");
+		expect(registry.get("zai-team-plan")?.mode).toBe("subscription");
 		expect(defaultAdapterId({ id: "deepseek-official" })).toBe("deepseek-balance");
 		expect(defaultAdapterId({ id: "passion-clone", baseURL: "https://edge.passionapi.com/v1" })).toBe("sub2api");
+		expect(defaultAdapterId({ id: "volcengine" })).toBe("volcengine-coding-plan");
+		expect(defaultAdapterId({ id: "zai-team" })).toBe("zai-team-plan");
 	});
 
 	it("keeps v0.3 root monitor configuration compatible with the v1 account namespace", () => {

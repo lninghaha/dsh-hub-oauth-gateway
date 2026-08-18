@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { type UsageAlert } from "../../shared/contracts.js";
 import type { AccountSnapshot } from "../../shared/domain.js";
+import type { ProvidersData } from "../../shared/providers.js";
+import type { FeesRepository } from "../fees/repository.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageQueryService } from "../usage/query.js";
@@ -35,6 +37,10 @@ export interface UsageStatsApiDependencies {
     readonly pricing: PricingRepository;
     readonly preferences: PreferencesRepository;
     readonly accounts: AccountApiService;
+    readonly fees?: FeesRepository | undefined;
+    readonly providers?: {
+        list(): Promise<ProvidersData>;
+    } | undefined;
     readonly alerts?: {
         list(): Promise<readonly UsageAlert[]>;
     } | undefined;

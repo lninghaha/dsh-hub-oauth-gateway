@@ -6,6 +6,7 @@ import {
 	UsageGroupBySchema,
 	UsageMetricSchema,
 } from "./domain.js";
+import { FeesDataSchema } from "./fees.js";
 
 export const API_BASE = "/api/usage-stats/v1";
 
@@ -13,6 +14,7 @@ export const API_PATHS = Object.freeze({
 	overview: `${API_BASE}/overview`,
 	series: `${API_BASE}/series`,
 	breakdown: `${API_BASE}/breakdown`,
+	activity: `${API_BASE}/activity`,
 	accounts: `${API_BASE}/accounts`,
 	account: `${API_BASE}/account`,
 	providers: `${API_BASE}/providers`,
@@ -20,6 +22,7 @@ export const API_PATHS = Object.freeze({
 	settings: `${API_BASE}/settings`,
 	pricing: `${API_BASE}/pricing`,
 	alerts: `${API_BASE}/alerts`,
+	fees: `${API_BASE}/fees`,
 	credentials: `${API_BASE}/credentials`,
 	credentialImport: `${API_BASE}/credentials/import`,
 	oauthDevice: `${API_BASE}/oauth/device`,
@@ -27,6 +30,12 @@ export const API_PATHS = Object.freeze({
 	export: `${API_BASE}/export`,
 	health: `${API_BASE}/health`,
 });
+
+export const ExportLayoutSchema = z.enum(["filtered", "daily", "bundle"]);
+export type ExportLayout = z.infer<typeof ExportLayoutSchema>;
+
+export type { AccountFeeRecord, FeesData } from "./fees.js";
+export { FeesDataSchema };
 
 export const ApiMetaSchema = z
 	.object({
@@ -162,3 +171,44 @@ export const PricingDataSchema = z
 	.strict();
 
 export type PricingData = z.infer<typeof PricingDataSchema>;
+
+export const ActivityDaySchema = z
+	.object({
+		date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+		tokens: z.number().int().nonnegative(),
+		cost: z.number().nonnegative().nullable(),
+		requests: z.number().int().nonnegative(),
+		hasData: z.boolean(),
+	})
+	.strict();
+
+export const ActivityDataSchema = z
+	.object({
+		metric: UsageMetricSchema,
+		days: z.array(ActivityDaySchema),
+		streak: z.number().int().nonnegative(),
+		longestStreak: z.number().int().nonnegative(),
+		weekStartsOn: z.union([z.literal(0), z.literal(1), z.literal(6)]),
+		streakMinTokens: z.number().int().nonnegative(),
+	})
+	.strict();
+
+export type ActivityData = z.infer<typeof ActivityDataSchema>;
+export type ActivityDay = z.infer<typeof ActivityDaySchema>;
+
+export const DailyExportRowSchema = z
+	.object({
+		date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+		provider: z.string().min(1),
+		inputTokens: z.number().int().nonnegative(),
+		outputTokens: z.number().int().nonnegative(),
+		cacheReadTokens: z.number().int().nonnegative(),
+		cacheWriteTokens: z.number().int().nonnegative(),
+		requests: z.number().int().nonnegative(),
+		estimatedCost: z.number().nonnegative().nullable(),
+		currency: z.string().min(1),
+		priceCoverage: z.number().min(0).max(1),
+	})
+	.strict();
+
+export type DailyExportRow = z.infer<typeof DailyExportRowSchema>;

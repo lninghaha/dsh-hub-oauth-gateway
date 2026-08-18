@@ -7,6 +7,7 @@ import type {
 	DeclarativeRequest,
 	ExtractField,
 	MonitorConfig,
+	MonitorProfileConfig,
 	WarningThresholds,
 } from "./types.js";
 
@@ -161,6 +162,37 @@ function requestOf(value: unknown, label: string): DeclarativeRequest {
 	};
 }
 
+function profileOf(value: unknown, label: string, allowInsecure: boolean): MonitorProfileConfig {
+	const input = recordOf(value, label);
+	const id = optionalString(input.id, `${label}.id`);
+	if (id === undefined || id.length > 128) throw new Error(`${label}.id is required and at most 128 characters`);
+	if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)) throw new Error(`${label}.id has invalid characters`);
+	return {
+		id,
+		...(optionalString(input.label, `${label}.label`) === undefined
+			? {}
+			: { label: optionalString(input.label, `${label}.label`) }),
+		...(credentialRef(input.credentialRef, `${label}.credentialRef`) === undefined
+			? {}
+			: { credentialRef: credentialRef(input.credentialRef, `${label}.credentialRef`) }),
+		...(credentialRef(input.secretKeyRef, `${label}.secretKeyRef`) === undefined
+			? {}
+			: { secretKeyRef: credentialRef(input.secretKeyRef, `${label}.secretKeyRef`) }),
+		...(usageUrl(input.usageBaseURL, allowInsecure, `${label}.usageBaseURL`) === undefined
+			? {}
+			: { usageBaseURL: usageUrl(input.usageBaseURL, allowInsecure, `${label}.usageBaseURL`) }),
+		...(optionalString(input.region, `${label}.region`) === undefined
+			? {}
+			: { region: optionalString(input.region, `${label}.region`) }),
+		...(credentialRef(input.fallbackCredentialRef, `${label}.fallbackCredentialRef`) === undefined
+			? {}
+			: { fallbackCredentialRef: credentialRef(input.fallbackCredentialRef, `${label}.fallbackCredentialRef`) }),
+		...(credentialRef(input.fallbackUserIdRef, `${label}.fallbackUserIdRef`) === undefined
+			? {}
+			: { fallbackUserIdRef: credentialRef(input.fallbackUserIdRef, `${label}.fallbackUserIdRef`) }),
+	};
+}
+
 function monitorOf(key: string, value: unknown, registry: AccountAdapterRegistry): MonitorConfig {
 	const label = `monitors.${key}`;
 	const input = recordOf(value, label);
@@ -172,6 +204,18 @@ function monitorOf(key: string, value: unknown, registry: AccountAdapterRegistry
 	if (mode !== undefined && mode !== "balance" && mode !== "subscription") {
 		throw new Error(`${label}.mode must be balance or subscription`);
 	}
+	let profiles: MonitorProfileConfig[] | undefined;
+	if (input.profiles !== undefined) {
+		if (!Array.isArray(input.profiles)) throw new Error(`${label}.profiles must be an array`);
+		if (input.profiles.length > 32) throw new Error(`${label}.profiles must contain at most 32 entries`);
+		const seen = new Set<string>();
+		profiles = input.profiles.map((entry, index) => {
+			const profile = profileOf(entry, `${label}.profiles[${index}]`, allowInsecure);
+			if (seen.has(profile.id)) throw new Error(`${label}.profiles duplicate id "${profile.id}"`);
+			seen.add(profile.id);
+			return profile;
+		});
+	}
 	const monitor: MonitorConfig = {
 		providerId,
 		adapter,
@@ -179,6 +223,9 @@ function monitorOf(key: string, value: unknown, registry: AccountAdapterRegistry
 		...(credentialRef(input.credentialRef, `${label}.credentialRef`) === undefined
 			? {}
 			: { credentialRef: credentialRef(input.credentialRef, `${label}.credentialRef`) }),
+		...(credentialRef(input.secretKeyRef, `${label}.secretKeyRef`) === undefined
+			? {}
+			: { secretKeyRef: credentialRef(input.secretKeyRef, `${label}.secretKeyRef`) }),
 		...(usageUrl(input.usageBaseURL, allowInsecure, `${label}.usageBaseURL`) === undefined
 			? {}
 			: { usageBaseURL: usageUrl(input.usageBaseURL, allowInsecure, `${label}.usageBaseURL`) }),
@@ -188,6 +235,9 @@ function monitorOf(key: string, value: unknown, registry: AccountAdapterRegistry
 			: {}),
 		...(optionalBoolean(input.allowPrivateNetwork, `${label}.allowPrivateNetwork`) === true
 			? { allowPrivateNetwork: true }
+			: {}),
+		...(optionalBoolean(input.allowCookieSession, `${label}.allowCookieSession`) === true
+			? { allowCookieSession: true }
 			: {}),
 		...(optionalString(input.region, `${label}.region`) === undefined
 			? {}
@@ -201,6 +251,7 @@ function monitorOf(key: string, value: unknown, registry: AccountAdapterRegistry
 		...(credentialRef(input.fallbackUserIdRef, `${label}.fallbackUserIdRef`) === undefined
 			? {}
 			: { fallbackUserIdRef: credentialRef(input.fallbackUserIdRef, `${label}.fallbackUserIdRef`) }),
+		...(profiles === undefined ? {} : { profiles }),
 	};
 	if (adapter === "declarative") {
 		if (mode === undefined) throw new Error(`${label}.mode is required for declarative monitors`);

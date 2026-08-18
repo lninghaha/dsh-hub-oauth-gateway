@@ -6,10 +6,10 @@ import {
 	type ApiFailure,
 	type ApiMeta,
 	type ApiSuccess,
+	ExportLayoutSchema,
 	type PricingData,
 	type UsageAlert,
 } from "../../shared/contracts.js";
-import type { ProvidersData } from "../../shared/providers.js";
 import type { AccountSnapshot, PriceRule, UsageQuery } from "../../shared/domain.js";
 import {
 	CurrencyCodeSchema,
@@ -19,7 +19,10 @@ import {
 	UsageMetricSchema,
 	UsageQuerySchema,
 } from "../../shared/domain.js";
+import { FeesDataSchema } from "../../shared/fees.js";
 import { UserPreferencesSchema } from "../../shared/preferences.js";
+import type { ProvidersData } from "../../shared/providers.js";
+import type { FeesRepository } from "../fees/repository.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageQueryService } from "../usage/query.js";
@@ -67,6 +70,7 @@ export interface UsageStatsApiDependencies {
 	readonly pricing: PricingRepository;
 	readonly preferences: PreferencesRepository;
 	readonly accounts: AccountApiService;
+	readonly fees?: FeesRepository | undefined;
 	readonly providers?: { list(): Promise<ProvidersData> } | undefined;
 	readonly alerts?: { list(): Promise<readonly UsageAlert[]> } | undefined;
 	freshness(): ApiFreshness;
@@ -276,9 +280,52 @@ export function registerV1Routes(
 				),
 			);
 		}),
+		register(API_PATHS.activity, ["GET"], async (_request, response, url) => {
+			const preferences = dependencies.preferences.load("UTC");
+			const metric = UsageMetricSchema.parse(url.searchParams.get("metric") ?? "tokens");
+			const providers = (url.searchParams.get("providers") ?? "")
+				.split(",")
+				.map((value) => value.trim())
+				.filter(Boolean);
+			const models = (url.searchParams.get("models") ?? "")
+				.split(",")
+				.map((value) => value.trim())
+				.filter(Boolean);
+			writeJson(
+				response,
+				200,
+				success(
+					dependencies,
+					dependencies.queries.activity({
+						timeZone: preferences.display.timeZone,
+						metric,
+						weekStartsOn: preferences.display.weekStartsOn,
+						streakMinTokens: preferences.display.streakMinTokens,
+						...(dependencies.now === undefined ? {} : { now: dependencies.now() }),
+						providers,
+						models,
+					}),
+				),
+			);
+		}),
 		register(API_PATHS.accounts, ["GET"], async (_request, response) => {
 			const data: AccountsData = { accounts: [...(await dependencies.accounts.list())] };
 			writeJson(response, 200, success(dependencies, data));
+		}),
+		register(API_PATHS.fees, ["GET", "PUT"], async (request, response) => {
+			if (dependencies.fees === undefined) {
+				writeJson(response, 503, failure(dependencies, "unavailable", "fees ledger is not composed"));
+				return;
+			}
+			if (request.method === "GET") {
+				writeJson(response, 200, success(dependencies, { fees: dependencies.fees.list() }));
+				return;
+			}
+			const body = await readJsonBody(request, response);
+			if (body === undefined) return;
+			const input = FeesDataSchema.parse(body);
+			const saved = dependencies.fees.replaceAll(input.fees, dependencies.now?.() ?? Date.now());
+			writeJson(response, 200, success(dependencies, saved));
 		}),
 		register(API_PATHS.account, ["GET"], async (_request, response, url) => {
 			const id = z.string().min(1).parse(url.searchParams.get("id"));
@@ -348,13 +395,62 @@ export function registerV1Routes(
 		}),
 		register(API_PATHS.export, ["GET"], async (_request, response, url) => {
 			const format = z.enum(["csv", "json"]).parse(url.searchParams.get("format") ?? "csv");
+			const layout = ExportLayoutSchema.parse(url.searchParams.get("layout") ?? "filtered");
 			const dimension = z.enum(["provider", "model", "session"]).parse(url.searchParams.get("dimension") ?? "provider");
 			const query = parseUsageQuery(url, dependencies);
 			const exportPreferences = dependencies.preferences.load("UTC");
 			const showSessions = exportPreferences.privacy.showSessionIdentifiers && !exportPreferences.privacy.redactExports;
-			const data = dependencies.queries.breakdown(query, dimension, showSessions);
+			const snapshot = dependencies.queries.breakdown(query, dimension, showSessions);
+			if (layout === "daily") {
+				const rows = dependencies.queries.dailyExportRows(query);
+				if (format === "json") {
+					writeJson(response, 200, success(dependencies, { query, layout, rows }));
+					return;
+				}
+				writeCsv(response, "dsh-hub-oauth-gateway-daily.csv", [
+					[
+						"date",
+						"provider",
+						"input_tokens",
+						"output_tokens",
+						"cache_read_tokens",
+						"cache_write_tokens",
+						"requests",
+						"estimated_cost",
+						"currency",
+						"price_coverage",
+					],
+					...rows.map((row) => [
+						row.date,
+						row.provider,
+						row.inputTokens,
+						row.outputTokens,
+						row.cacheReadTokens,
+						row.cacheWriteTokens,
+						row.requests,
+						row.estimatedCost,
+						row.currency,
+						row.priceCoverage,
+					]),
+				]);
+				return;
+			}
+			if (layout === "bundle") {
+				const daily = dependencies.queries.dailyExportRows(query);
+				writeJson(
+					response,
+					200,
+					success(dependencies, {
+						generatedAt: dependencies.now?.() ?? Date.now(),
+						query,
+						snapshot,
+						daily,
+					}),
+				);
+				return;
+			}
 			if (format === "json") {
-				writeJson(response, 200, success(dependencies, { query, ...data }));
+				writeJson(response, 200, success(dependencies, { query, layout, ...snapshot }));
 				return;
 			}
 			writeCsv(response, "dsh-hub-oauth-gateway.csv", [
@@ -372,8 +468,8 @@ export function registerV1Routes(
 					"currency",
 					"price_coverage",
 				],
-				...data.rows.map((row) => [
-					data.dimension,
+				...snapshot.rows.map((row) => [
+					snapshot.dimension,
 					row.key,
 					row.label,
 					row.requests,

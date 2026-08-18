@@ -4,6 +4,7 @@ import { defaultUserPreferences } from "../../../src/shared/preferences.js";
 
 const account = {
 	providerId: "provider-a",
+	profileId: "",
 	displayName: "Provider A",
 	adapterId: "test",
 	mode: "subscription" as const,

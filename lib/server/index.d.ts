@@ -8,6 +8,12 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         accountMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
         accountConcurrency: import("zod").ZodDefault<import("zod").ZodNumber>;
         timeoutMs: import("zod").ZodDefault<import("zod").ZodNumber>;
+        accountMode: import("zod").ZodDefault<import("zod").ZodEnum<{
+            fixed: "fixed";
+            adaptive: "adaptive";
+        }>>;
+        accountAdaptiveMinMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
+        accountAdaptiveMaxMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
     }, import("zod/v4/core").$strip>>;
     retention: import("zod").ZodDefault<import("zod").ZodObject<{
         usageDays: import("zod").ZodDefault<import("zod").ZodNumber>;
@@ -22,6 +28,31 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
     pricing: import("zod").ZodDefault<import("zod").ZodObject<{
         baseCurrency: import("zod").ZodDefault<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<string, string>>>;
     }, import("zod/v4/core").$strip>>;
+    codingOAuth: import("zod").ZodDefault<import("zod").ZodObject<{
+        enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
+        proxy: import("zod").ZodOptional<import("zod").ZodString>;
+        proxyKimi: import("zod").ZodDefault<import("zod").ZodBoolean>;
+        retryPolicy: import("zod").ZodOptional<import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodUnknown>>;
+        capabilities: import("zod").ZodOptional<import("zod").ZodObject<{
+            codexSearch: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            codexImages: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            codexImageEdits: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            codexUsage: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            codexFast: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            grokImagineImage: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            grokImagineVideo: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            searchResults: import("zod").ZodOptional<import("zod").ZodNumber>;
+            imageCount: import("zod").ZodOptional<import("zod").ZodNumber>;
+            videoArtifactTtlMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+        }, import("zod/v4/core").$strict>>;
+        gateway: import("zod").ZodOptional<import("zod").ZodObject<{
+            enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
+            bind: import("zod").ZodDefault<import("zod").ZodString>;
+            port: import("zod").ZodDefault<import("zod").ZodNumber>;
+            apiKey: import("zod").ZodOptional<import("zod").ZodString>;
+            rateLimit: import("zod").ZodDefault<import("zod").ZodNumber>;
+        }, import("zod/v4/core").$strict>>;
+    }, import("zod/v4/core").$strict>>;
     debug: import("zod").ZodDefault<import("zod").ZodBoolean>;
 }, import("zod/v4/core").$strict>, import("zod").ZodTransform<{
     accounts: {};
@@ -30,6 +61,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         accountMinutes: number;
         accountConcurrency: number;
         timeoutMs: number;
+        accountMode: "fixed" | "adaptive";
+        accountAdaptiveMinMinutes: number;
+        accountAdaptiveMaxMinutes: number;
     };
     retention: {
         usageDays: number;
@@ -41,6 +75,31 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
     };
     pricing: {
         baseCurrency: string;
+    };
+    codingOAuth: {
+        enabled: boolean;
+        proxyKimi: boolean;
+        proxy?: string | undefined;
+        retryPolicy?: Record<string, unknown> | undefined;
+        capabilities?: {
+            codexSearch?: boolean | undefined;
+            codexImages?: boolean | undefined;
+            codexImageEdits?: boolean | undefined;
+            codexUsage?: boolean | undefined;
+            codexFast?: boolean | undefined;
+            grokImagineImage?: boolean | undefined;
+            grokImagineVideo?: boolean | undefined;
+            searchResults?: number | undefined;
+            imageCount?: number | undefined;
+            videoArtifactTtlMs?: number | undefined;
+        } | undefined;
+        gateway?: {
+            enabled: boolean;
+            bind: string;
+            port: number;
+            rateLimit: number;
+            apiKey?: string | undefined;
+        } | undefined;
     };
     debug: boolean;
 }, {
@@ -49,6 +108,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         accountMinutes: number;
         accountConcurrency: number;
         timeoutMs: number;
+        accountMode: "fixed" | "adaptive";
+        accountAdaptiveMinMinutes: number;
+        accountAdaptiveMaxMinutes: number;
     };
     retention: {
         usageDays: number;
@@ -60,6 +122,31 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
     };
     pricing: {
         baseCurrency: string;
+    };
+    codingOAuth: {
+        enabled: boolean;
+        proxyKimi: boolean;
+        proxy?: string | undefined;
+        retryPolicy?: Record<string, unknown> | undefined;
+        capabilities?: {
+            codexSearch?: boolean | undefined;
+            codexImages?: boolean | undefined;
+            codexImageEdits?: boolean | undefined;
+            codexUsage?: boolean | undefined;
+            codexFast?: boolean | undefined;
+            grokImagineImage?: boolean | undefined;
+            grokImagineVideo?: boolean | undefined;
+            searchResults?: number | undefined;
+            imageCount?: number | undefined;
+            videoArtifactTtlMs?: number | undefined;
+        } | undefined;
+        gateway?: {
+            enabled: boolean;
+            bind: string;
+            port: number;
+            rateLimit: number;
+            apiKey?: string | undefined;
+        } | undefined;
     };
     debug: boolean;
     accounts?: unknown;

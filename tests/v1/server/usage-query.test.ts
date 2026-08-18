@@ -128,4 +128,61 @@ describe("usage query and timezone buckets", () => {
 		expect(breakdown.rows[0]?.key).toBe("session-1");
 		expect(breakdown.rows[0]?.label).toBe("Session 1");
 	});
+
+	it("densifies a 370-day activity window with empty vs zero and streak rules", () => {
+		const now = Date.parse("2024-03-11T12:00:00+08:00");
+		const activity = service.activity({
+			timeZone: "Asia/Shanghai",
+			metric: "tokens",
+			weekStartsOn: 1,
+			streakMinTokens: 0,
+			now,
+		});
+		expect(activity.days).toHaveLength(370);
+		expect(activity.days.at(-1)?.date).toBe("2024-03-11");
+		const withFacts = activity.days.filter((day) => day.hasData);
+		expect(withFacts.map((day) => day.date)).toEqual(["2024-03-10"]);
+		expect(withFacts[0]?.tokens).toBe(260);
+		expect(activity.days.find((day) => day.date === "2024-03-09")).toMatchObject({
+			hasData: false,
+			tokens: 0,
+			requests: 0,
+		});
+		expect(activity.streak).toBe(0);
+		expect(activity.longestStreak).toBe(1);
+	});
+
+	it("computes current streak from today when usage exceeds the threshold", () => {
+		const now = Date.parse("2024-03-10T20:00:00+08:00");
+		const low = service.activity({
+			timeZone: "Asia/Shanghai",
+			metric: "tokens",
+			weekStartsOn: 1,
+			streakMinTokens: 300,
+			now,
+		});
+		expect(low.streak).toBe(0);
+		const high = service.activity({
+			timeZone: "Asia/Shanghai",
+			metric: "tokens",
+			weekStartsOn: 1,
+			streakMinTokens: 0,
+			now,
+		});
+		expect(high.streak).toBe(1);
+		expect(high.longestStreak).toBe(1);
+	});
+
+	it("keeps Asia/Shanghai calendar days across UTC timestamps", () => {
+		const now = Date.parse("2024-03-10T16:30:00Z");
+		const activity = service.activity({
+			timeZone: "Asia/Shanghai",
+			metric: "tokens",
+			weekStartsOn: 1,
+			streakMinTokens: 0,
+			now,
+		});
+		expect(activity.days.at(-1)?.date).toBe("2024-03-11");
+		expect(activity.days.find((day) => day.date === "2024-03-10")?.hasData).toBe(true);
+	});
 });

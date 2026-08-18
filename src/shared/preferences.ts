@@ -20,6 +20,58 @@ export type DashboardPreset = z.infer<typeof DashboardPresetSchema>;
 export const SidebarMetricSchema = z.enum(["todayTokens", "todayCost", "lowestQuota", "alerts"]);
 export type SidebarMetric = z.infer<typeof SidebarMetricSchema>;
 
+export const DashboardModuleIdSchema = z.enum(["kpi", "heatmap", "trend", "accounts", "alerts", "breakdown"]);
+export type DashboardModuleId = z.infer<typeof DashboardModuleIdSchema>;
+
+export const ALL_DASHBOARD_MODULES: readonly DashboardModuleId[] = Object.freeze([
+	"kpi",
+	"heatmap",
+	"trend",
+	"accounts",
+	"alerts",
+	"breakdown",
+]);
+
+export function modulesForPreset(preset: DashboardPreset): {
+	readonly order: DashboardModuleId[];
+	readonly hidden: DashboardModuleId[];
+} {
+	const visible: DashboardModuleId[] =
+		preset === "minimal"
+			? ["kpi"]
+			: preset === "quota"
+				? ["kpi", "accounts", "alerts"]
+				: preset === "cost"
+					? ["kpi", "heatmap", "trend", "accounts", "breakdown"]
+					: [...ALL_DASHBOARD_MODULES];
+	return {
+		order: [...ALL_DASHBOARD_MODULES],
+		hidden: ALL_DASHBOARD_MODULES.filter((id) => !visible.includes(id)),
+	};
+}
+
+const ModulesSchema = z
+	.object({
+		order: z.array(DashboardModuleIdSchema).min(1).max(16),
+		hidden: z.array(DashboardModuleIdSchema).max(16),
+	})
+	.strict()
+	.superRefine(({ order, hidden }, context) => {
+		if (new Set(order).size !== order.length) {
+			context.addIssue({ code: "custom", path: ["order"], message: "duplicate module id" });
+		}
+		if (new Set(hidden).size !== hidden.length) {
+			context.addIssue({ code: "custom", path: ["hidden"], message: "duplicate module id" });
+		}
+		for (const id of hidden) {
+			if (!order.includes(id)) {
+				context.addIssue({ code: "custom", path: ["hidden"], message: `hidden module missing from order: ${id}` });
+			}
+		}
+	});
+
+const DEFAULT_MODULES = modulesForPreset("analyst");
+
 export const UserPreferencesSchema = z
 	.object({
 		version: z.literal(1),
@@ -34,6 +86,9 @@ export const UserPreferencesSchema = z
 				timeZone: TimeZoneSchema,
 				weekStartsOn: z.union([z.literal(0), z.literal(1), z.literal(6)]),
 				baseCurrency: CurrencyCodeSchema,
+				modules: ModulesSchema.default(DEFAULT_MODULES),
+				modulesCustomized: z.boolean().default(false),
+				streakMinTokens: z.number().int().nonnegative().default(0),
 			})
 			.strict(),
 		providers: z
@@ -54,6 +109,10 @@ export const UserPreferencesSchema = z
 			.object({
 				showSessionIdentifiers: z.boolean(),
 				redactExports: z.boolean(),
+				autoExportEnabled: z.boolean().default(false),
+				autoExportDirectory: z.string().max(1024).default(""),
+				autoExportLayout: z.enum(["filtered", "daily", "bundle"]).default("bundle"),
+				autoExportIntervalMinutes: z.number().int().min(5).max(1440).default(60),
 			})
 			.strict(),
 		alerts: z
@@ -70,6 +129,7 @@ export const UserPreferencesSchema = z
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 
 export function defaultUserPreferences(timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone): UserPreferences {
+	const modules = modulesForPreset("analyst");
 	return {
 		version: 1,
 		display: {
@@ -82,6 +142,9 @@ export function defaultUserPreferences(timeZone = Intl.DateTimeFormat().resolved
 			timeZone,
 			weekStartsOn: 1,
 			baseCurrency: "USD",
+			modules: { order: [...modules.order], hidden: [...modules.hidden] },
+			modulesCustomized: false,
+			streakMinTokens: 0,
 		},
 		providers: {
 			hidden: [],
@@ -92,11 +155,51 @@ export function defaultUserPreferences(timeZone = Intl.DateTimeFormat().resolved
 		privacy: {
 			showSessionIdentifiers: false,
 			redactExports: true,
+			autoExportEnabled: false,
+			autoExportDirectory: "",
+			autoExportLayout: "bundle",
+			autoExportIntervalMinutes: 60,
 		},
 		alerts: {
 			enabled: true,
 			quotaRemainingRatio: 0.2,
 			dailyCostThreshold: null,
+		},
+	};
+}
+
+export function effectiveModules(preferences: UserPreferences): DashboardModuleId[] {
+	const modules = preferences.display.modulesCustomized
+		? preferences.display.modules
+		: modulesForPreset(preferences.display.preset);
+	const hidden = new Set(modules.hidden);
+	return modules.order.filter((id) => !hidden.has(id));
+}
+
+export function applyPresetToPreferences(preferences: UserPreferences, preset: DashboardPreset): UserPreferences {
+	if (preferences.display.modulesCustomized) {
+		return { ...preferences, display: { ...preferences.display, preset } };
+	}
+	const modules = modulesForPreset(preset);
+	return {
+		...preferences,
+		display: {
+			...preferences.display,
+			preset,
+			modules: { order: [...modules.order], hidden: [...modules.hidden] },
+			modulesCustomized: false,
+		},
+	};
+}
+
+export function resetModulesToPreset(preferences: UserPreferences): UserPreferences {
+	const modules = modulesForPreset(preferences.display.preset);
+	return {
+		...preferences,
+		display: {
+			...preferences.display,
+			modules: { order: [...modules.order], hidden: [...modules.hidden] },
+			modulesCustomized: false,
 		},
 	};
 }

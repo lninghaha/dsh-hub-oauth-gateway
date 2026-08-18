@@ -162,22 +162,38 @@ export interface DeclarativeExtract {
 	readonly divisor?: number;
 }
 
+/** One credential profile under a provider monitor (optional multi-account). */
+export interface MonitorProfileConfig {
+	readonly id: string;
+	readonly label?: string | undefined;
+	readonly credentialRef?: string | undefined;
+	readonly secretKeyRef?: string | undefined;
+	readonly usageBaseURL?: string | undefined;
+	readonly region?: string | undefined;
+	readonly fallbackCredentialRef?: string | undefined;
+	readonly fallbackUserIdRef?: string | undefined;
+}
+
 /** Non-secret per-provider monitor configuration (validated shape). */
 export interface MonitorConfig {
 	readonly providerId?: string | undefined;
 	readonly adapter?: string | undefined;
 	readonly mode?: "balance" | "subscription" | undefined;
 	readonly credentialRef?: string | undefined;
+	readonly secretKeyRef?: string | undefined;
 	readonly usageBaseURL?: string | undefined;
 	readonly allowInsecure?: boolean | undefined;
 	readonly allowCrossOrigin?: boolean | undefined;
 	readonly allowPrivateNetwork?: boolean | undefined;
+	/** Explicit cookie / session opt-in for adapters that require it (e.g. ollama-cloud). */
+	readonly allowCookieSession?: boolean | undefined;
 	readonly region?: string | undefined;
 	readonly warning?: WarningThresholds | undefined;
 	readonly fallbackCredentialRef?: string | undefined;
 	readonly fallbackUserIdRef?: string | undefined;
 	readonly request?: DeclarativeRequest | undefined;
 	readonly extract?: DeclarativeExtract | undefined;
+	readonly profiles?: readonly MonitorProfileConfig[] | undefined;
 }
 
 export interface AccountConfig {
@@ -187,6 +203,8 @@ export interface AccountConfig {
 /** One provider bound to its adapter and effective configuration. */
 export interface AccountSpec {
 	readonly id: string;
+	/** Empty string = default / single-profile monitor. */
+	readonly profileId: string;
 	readonly displayName: string;
 	readonly adapter: string | null;
 	readonly mode: "balance" | "subscription" | null;
@@ -195,6 +213,11 @@ export interface AccountSpec {
 	readonly providerBaseURL?: string;
 	readonly monitor: MonitorConfig;
 	readonly configKey: string;
+}
+
+/** Stable cache / repository identity for one account card. */
+export function accountIdentityKey(providerId: string, profileId = ""): string {
+	return profileId === "" ? providerId : `${providerId}\u0000${profileId}`;
 }
 
 /** Context handed to an adapter's `collect`. */

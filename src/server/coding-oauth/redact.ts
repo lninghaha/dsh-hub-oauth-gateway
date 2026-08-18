@@ -58,3 +58,17 @@ export function safeMessage(error: unknown): string {
 	text = redactOpaqueTokens(text);
 	return text.slice(0, 1000);
 }
+
+/** Redact credentials from a proxy URL while keeping host for operator diagnostics. */
+export function redactProxyUrl(url: string): string {
+	try {
+		const parsed = new URL(url);
+		if (parsed.username !== "" || parsed.password !== "") {
+			parsed.username = "redacted";
+			parsed.password = "";
+		}
+		return parsed.toString();
+	} catch {
+		return "[invalid-proxy-url]";
+	}
+}

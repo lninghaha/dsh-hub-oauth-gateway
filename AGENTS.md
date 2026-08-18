@@ -23,29 +23,44 @@
 - 本项目是独立社区插件，不得暗示供应商背书；用量和成本只能描述为统计或估算，缺失价格不得当作免费。
 - 只支持监测操作者拥有或获授权使用的账户与 endpoint；不得扩展为凭据共享、批量账号运营、额度转售、付费限制绕过、客户端冒充或未授权监测工具。
 
-## 3. Docker sandbox 强制规则
+## 3. 云环境验证（主路径）
 
-- **插件开发过程中禁止本机测试。** 宿主机不得直接执行任何项目代码、依赖安装、lint、类型检查、构建、测试、安装器或打包检查，包括但不限于：
-  - `node` / `npm` / `npx` / `pnpm`；
-  - `tsc` / `vitest` / `biome`；
-  - `scripts/*.mjs`、`build/*.mjs`、`npm pack` 或插件安装命令。
-- 宿主机只允许进行文件查看/编辑、只读 Git 检查以及 Docker 生命周期操作。不得把宿主机已有的 `node_modules`、`.next` 或其他项目产物当作验证依据。
-- 所有 lint、类型检查、构建、测试、安装器回归和打包检查只能在一次性 Docker sandbox 中运行。仓库没有现成 sandbox 配置时，不得回退到本机执行；应先向用户说明“尚未验证”，并在获得同意后再补充临时或项目级 Docker 方案。
-- Docker sandbox 必须满足：
-  - 使用仓库声明的 Node.js 与包管理器版本；
-  - 源码通过隔离的 build context / `COPY` 进入容器，测试不得回写宿主仓库；
-  - 不挂载 `$HOME`、真实 DSH profile、credential 文件、其他项目目录或 Docker socket；
-  - 不使用 `--network=host`、`--privileged`、宿主端口映射或宿主 PID/IPC namespace；
-  - `DSH_HOME`、数据库、缓存和临时文件全部位于容器临时目录；
-  - 仅依赖安装阶段可按需联网；执行项目代码和测试时应禁网，且不得访问真实 provider；
-  - 测试数据使用 mock、脱敏 fixture 和临时目录，不读取任何本地 CLI 登录状态或真实凭据。
-- 容器内的标准验证顺序：
-  1. 锁文件安装（例如 `pnpm install --frozen-lockfile`）；
-  2. 快速开发门禁 `pnpm run check:next`；
-  3. 交付前完整门禁 `pnpm run check`；
-  4. 发布前在容器内检查 `npm pack --dry-run --json --ignore-scripts` 的完整清单。
-- 生成的 `lib/` 必须在容器内由 `src/` 重建，再显式导出到宿主机的已忽略临时目录，经审阅后替换；不得手改 `lib/`，也不得让测试容器直接写宿主 `lib/`。
-- 反馈验证结果时必须说明所用镜像/Node 版本、容器内命令和结果。没有在 Docker sandbox 中执行的检查一律不得声称“已通过”。
+本项目**不再要求** Docker sandbox 作为交付/发版前置验证。Agent 与贡献者在 **Cursor Cloud / 本仓库云开发环境** 内直接安装依赖、跑门禁，并安装 DeepSeek Harness（DSH）做插件冒烟验证。
+
+### 3.1 允许在云环境执行
+
+在云 Agent 工作区（隔离机器）上可以直接使用：
+
+- `node` / `npm` / `npx` / `pnpm`（版本对齐 `package.json` / `packageManager`）；
+  - **必须**使用 Node `^22.19.0 || >=24`（见 `.nvmrc`）。云环境若 PATH 上先出现 `/exec-daemon/node`（常为 22.14），会出现 `Unsupported engine` 警告；请先 `nvm use` / 把 nvm 的 bin 放到 PATH 最前，再跑脚本。
+  - 门禁脚本会先跑 `pnpm run assert:node`，版本不合规直接失败。
+- `tsc` / `vitest` / `biome`、`scripts/*.mjs`、`build/*.mjs`、`npm pack --dry-run`；
+- 安装 `@deepseek-ai/dsh`、向隔离 profile 安装本插件、启动 `dsh web` 做 UI/API 冒烟。
+
+推荐顺序：
+
+1. `pnpm install --frozen-lockfile`（或仓库约定的锁文件安装）；
+2. 快速门禁 `pnpm run check:next`；
+3. 交付门禁 `pnpm run check`（含重建/校验 `lib/` 时按 `package.json` scripts）；
+4. 发布前 `npm pack --dry-run --json --ignore-scripts` 审阅清单；
+5. **DSH 冒烟**：隔离 `DSH_HOME`（例如 `/tmp/dsh-verify-*` 或云工作区下的独立目录）安装 DSH → `dsh plugin --profile web add <本仓库路径>` → 启动 `dsh web` → 检查 `http://127.0.0.1:3080` 与 Usage Center 是否加载。面向最终用户的安装优先使用 npm 包名 `dsh-hub-oauth-gateway`（见 [`README.md`](README.md)）。
+
+### 3.2 隔离与隐私（仍强制）
+
+- 验证用 `DSH_HOME` 必须与操作者真实本机 profile 分离；不得读取或写入真实凭据、生产 SQLite、其他项目目录。
+- 自动化测试仍使用 mock / 脱敏 fixture；不得依赖真实 provider、真实 API key 或现网账户。
+- 不得把云环境里的真实 token、cookie、session、绝对私有路径写进 Git、PR、截图或公开日志。
+- 声称“已通过”时须说明：Node/pnpm 版本、执行的命令，以及是否完成 DSH 冒烟（URL / 侧栏 Usage Center 等可观察结果）。
+
+### 3.3 Docker（可选）
+
+- 仓库可保留 `Dockerfile` 供 CI 或偏好容器复现的贡献者使用，**不是** Agent 交付前置条件。
+- 不得在未获用户要求时借机大改 Docker/CI 仅“为了恢复强制 sandbox”。
+
+### 3.4 `lib/` 产物
+
+- `src/` 是运行时唯一源；`lib/` 是提交到 Git 的生成产物，不得手改。
+- 运行时变更须在云环境由 `src/` 重建 `lib/` 并审阅 diff 后提交。
 
 ## 4. 源码、依赖与产物
 
@@ -57,11 +72,11 @@
 
 ## 5. 变更、兼容性与文档
 
-- 修复优先增加回归测试；安全边界变化必须包含负向/对抗测试。测试不得依赖真实 provider、真实凭据、现有 DSH profile 或运行中的 DSH Web。
+- 修复优先增加回归测试；安全边界变化必须包含负向/对抗测试。测试不得依赖真实 provider、真实凭据、现有个人 DSH profile 或未隔离的生产 Web。
 - 可观察行为、配置、API、安装方式、数据迁移或安全边界变化时，同步更新相关 README、公开文档与迁移说明。
 - 用户可见文案同时维护中文和英文；避免文档宣称尚未实现或无法验证的能力。
 - 版本遵循 SemVer：兼容修复为 patch，兼容新能力为 minor，破坏公开 export、配置、API、存储或安装契约为 major。
-- `lib/` 可复现、文档同步、完整 Docker 门禁和 npm 打包清单审阅是发布前置条件。
+- `lib/` 可复现、文档同步、云环境门禁（`check`）与 npm 打包清单审阅、以及隔离 DSH 冒烟是发布前置条件。
 
 ## 6. 安全不变量
 
@@ -71,10 +86,10 @@
 - SQLite、API、日志和导出默认不得包含凭据、prompt/response、cwd、本地 credential 路径或 provider 原始响应。
 - 发现疑似漏洞或秘密泄露时立即停止扩散，不在公开渠道粘贴细节，并按 `SECURITY.md` 处理。
 
-## 7. DSH Web 服务重启
+## 7. DSH Web 启动与重启
 
-- Agent **不得主动执行或安排** DSH Web 服务重启，包括但不限于 `dsh-web restart`、`systemctl --user restart dsh-web.service`、延时任务、后台任务或 systemd 临时单元。
-- 安装插件或完成需要重载的代码变更后，Agent 只提供以下命令，由用户自行选择时机执行：
+- **云 Agent 隔离实例**：为冒烟验证，Agent **可以**在隔离 `DSH_HOME` 下安装/启动/重启 `dsh web`（含 `dsh-web restart` 等价操作），只要不触碰操作者个人机器上的真实 profile 或用户未授权的服务。
+- **操作者本机 / 共享 `dsh-web.service`**：Agent **不得擅自**重启用户正在使用的本机或会话所依赖的 DSH Web；安装或代码变更后应提示用户自行选择时机执行：
 
   ```bash
   dsh-web restart
@@ -86,6 +101,5 @@
   systemctl --user restart dsh-web.service
   ```
 
-- Agent 应明确提示“尚未重启，当前运行实例仍使用旧代码”，不得以验证为由代替用户执行重启。
+- 对用户本机实例，Agent 应明确提示“尚未重启，当前运行实例仍使用旧代码”，除非用户明确要求代为重启。
 - 用户完成重启并明确要求检查后，Agent 可以执行只读状态、HTTP、bundle 和 API 健康检查。
-- 原因：当前开发/对话工作本身可能运行在 `dsh-web.service` 中，主动重启会中断正在进行的工作与会话。

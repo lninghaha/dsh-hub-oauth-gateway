@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { collectProvidersData } from "../../../src/server/providers/catalog.js";
 import type { AccountSnapshot } from "../../../src/shared/domain.js";
 import { ProvidersDataSchema } from "../../../src/shared/providers.js";
-import { collectProvidersData } from "../../../src/server/providers/catalog.js";
 
 function snapshot(overrides: Partial<AccountSnapshot> = {}): AccountSnapshot {
 	return {
 		providerId: "deepseek-official",
+		profileId: "",
 		displayName: "DeepSeek",
 		adapterId: "deepseek-balance",
 		mode: "balance",
@@ -35,6 +36,7 @@ describe("provider catalog", () => {
 				snapshot(),
 				snapshot({
 					providerId: "missing-key",
+					profileId: "",
 					displayName: "Missing",
 					adapterId: "general",
 					status: "not-configured",
@@ -59,6 +61,7 @@ describe("provider catalog", () => {
 			accounts: [
 				snapshot({
 					providerId: "relay-a",
+					profileId: "",
 					displayName: "Relay",
 					adapterId: "new-api",
 					status: "error",
