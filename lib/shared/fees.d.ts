@@ -17,6 +17,7 @@ export type FeeTopup = z.infer<typeof FeeTopupSchema>;
 export declare const AccountFeeRecordSchema: z.ZodObject<{
     id: z.ZodString;
     providerId: z.ZodString;
+    profileId: z.ZodDefault<z.ZodString>;
     accountLabel: z.ZodNullable<z.ZodString>;
     kind: z.ZodEnum<{
         subscription: "subscription";
@@ -43,6 +44,7 @@ export declare const FeesDataSchema: z.ZodObject<{
     fees: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         providerId: z.ZodString;
+        profileId: z.ZodDefault<z.ZodString>;
         accountLabel: z.ZodNullable<z.ZodString>;
         kind: z.ZodEnum<{
             subscription: "subscription";

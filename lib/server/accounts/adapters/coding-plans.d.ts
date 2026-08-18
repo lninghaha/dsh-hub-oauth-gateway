@@ -14,4 +14,10 @@ export declare const zaiTokenPlanAdapter: AccountAdapter;
 export declare const kimiTokenPlanAdapter: AccountAdapter;
 /** MiniMax Coding Plan: token-plan endpoint with a fail-closed first-party legacy fallback. */
 export declare const minimaxTokenPlanAdapter: AccountAdapter;
+export declare const ZAI_TEAM_API_KEY_REF = "ZAI_TEAM_API_KEY";
+/**
+ * Z.ai / GLM Team Plan quota (`type=2`). Intentionally separate from
+ * `zai-token-plan`: personal keys must not silently fall back to team limits.
+ */
+export declare const zaiTeamPlanAdapter: AccountAdapter;
 //# sourceMappingURL=coding-plans.d.ts.map

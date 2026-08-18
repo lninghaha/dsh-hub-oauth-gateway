@@ -81,9 +81,7 @@ function mergeProfileMonitor(base: MonitorConfig, profile: MonitorProfileConfig)
 		...(profile.secretKeyRef === undefined ? {} : { secretKeyRef: profile.secretKeyRef }),
 		...(profile.usageBaseURL === undefined ? {} : { usageBaseURL: profile.usageBaseURL }),
 		...(profile.region === undefined ? {} : { region: profile.region }),
-		...(profile.fallbackCredentialRef === undefined
-			? {}
-			: { fallbackCredentialRef: profile.fallbackCredentialRef }),
+		...(profile.fallbackCredentialRef === undefined ? {} : { fallbackCredentialRef: profile.fallbackCredentialRef }),
 		...(profile.fallbackUserIdRef === undefined ? {} : { fallbackUserIdRef: profile.fallbackUserIdRef }),
 		profiles: undefined,
 	};

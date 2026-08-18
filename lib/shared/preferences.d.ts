@@ -91,6 +91,14 @@ export declare const UserPreferencesSchema: z.ZodObject<{
     privacy: z.ZodObject<{
         showSessionIdentifiers: z.ZodBoolean;
         redactExports: z.ZodBoolean;
+        autoExportEnabled: z.ZodDefault<z.ZodBoolean>;
+        autoExportDirectory: z.ZodDefault<z.ZodString>;
+        autoExportLayout: z.ZodDefault<z.ZodEnum<{
+            daily: "daily";
+            filtered: "filtered";
+            bundle: "bundle";
+        }>>;
+        autoExportIntervalMinutes: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>;
     alerts: z.ZodDefault<z.ZodObject<{
         enabled: z.ZodBoolean;

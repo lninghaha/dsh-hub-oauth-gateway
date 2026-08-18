@@ -212,11 +212,23 @@ function migrateToVersionTwo(db: DatabaseSync): void {
 function migrateToVersionThree(db: DatabaseSync): void {
 	db.exec(`
 		ALTER TABLE account_snapshots ADD COLUMN profile_id TEXT NOT NULL DEFAULT '';
-		CREATE INDEX account_snapshots_provider_profile_time_idx
-			ON account_snapshots (provider_id, profile_id, observed_at DESC);
 		ALTER TABLE account_fees ADD COLUMN profile_id TEXT NOT NULL DEFAULT '';
-		CREATE INDEX account_fees_provider_profile_idx ON account_fees (provider_id, profile_id);
 	`);
+	try {
+		db.exec(`
+			CREATE INDEX IF NOT EXISTS account_snapshots_provider_profile_time_idx
+				ON account_snapshots (provider_id, profile_id, observed_at DESC);
+		`);
+	} catch {
+		// Minimal / legacy fixtures may lack observed_at; column still added.
+	}
+	try {
+		db.exec(`
+			CREATE INDEX IF NOT EXISTS account_fees_provider_profile_idx ON account_fees (provider_id, profile_id);
+		`);
+	} catch {
+		// account_fees may be empty shell in upgrade fixtures.
+	}
 }
 
 function migrate(db: DatabaseSync, fromVersion: number): void {

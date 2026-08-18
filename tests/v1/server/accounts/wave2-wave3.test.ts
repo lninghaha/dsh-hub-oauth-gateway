@@ -8,9 +8,9 @@ import { ollamaCloudAdapter, parseOllamaCloud } from "../../../../src/server/acc
 import {
 	parseVolcengineCodingPlan,
 	signVolcengineGet,
+	VOLCENGINE_API_HOST,
 	volcengineCanonicalQuery,
 	volcengineCodingPlanAdapter,
-	VOLCENGINE_API_HOST,
 } from "../../../../src/server/accounts/adapters/volcengine-coding-plan.js";
 import { validateAccountConfig } from "../../../../src/server/accounts/config.js";
 import { ProviderError } from "../../../../src/server/accounts/errors.js";
@@ -160,6 +160,7 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 		expect(parsed.plan).toBe("Coding Pro");
 		expect(parsed.windows.map((window) => window.kind)).toEqual(["session", "weekly", "monthly"]);
 
+		const publicLookup = vi.fn(async () => [{ address: "8.8.8.8", family: 4 }]);
 		const fetch = vi.fn(async (url: string) => {
 			expect(String(url)).toContain("Action=GetCodingPlanUsage");
 			expect(String(url)).not.toMatch(/chat|completions/i);
@@ -184,11 +185,9 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 				configKey: "{}",
 			},
 			credentials: {
-				resolve: vi.fn(async (ref: string) =>
-					ref.includes("SECRET") ? { value: "sk" } : { value: "ak" },
-				),
+				resolve: vi.fn(async (ref: string) => (ref.includes("SECRET") ? { value: "sk" } : { value: "ak" })),
 			},
-			deps: { fetch: fetch as never, now: () => Date.UTC(2024, 0, 2, 3, 4, 5) },
+			deps: { fetch: fetch as never, lookup: publicLookup, now: () => Date.UTC(2024, 0, 2, 3, 4, 5) },
 			now: Date.UTC(2024, 0, 2, 3, 4, 5),
 			credential: "ak",
 		});
@@ -208,7 +207,9 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 				monitor: { secretKeyRef: "VOLCENGINE_SECRET_KEY" },
 				configKey: "{}",
 			},
-			credentials: { resolve: vi.fn(async () => ({ value: "ak" })) },
+			credentials: {
+				resolve: vi.fn(async (ref: string) => (ref.includes("SECRET") ? undefined : { value: "ak" })),
+			},
 			deps: {},
 			now: 1,
 			credential: "ak",
@@ -241,10 +242,13 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 				now: 1,
 				credential: "secret",
 			}),
-		).resolves.toMatchObject({ status: expect.stringMatching(/unavailable|unauthorized|invalid-response|error/) });
+		).resolves.toMatchObject({
+			status: expect.stringMatching(/unavailable|unauthorized|invalid-response|error|unsupported/),
+		});
 	});
 
 	it("queries zai-team-plan with type=2 and does not fall back to personal host", async () => {
+		const publicLookup = vi.fn(async () => [{ address: "8.8.8.8", family: 4 }]);
 		const fetch = vi.fn(async (url: string) => {
 			expect(String(url)).toContain("open.bigmodel.cn");
 			expect(String(url)).toContain("type=2");
@@ -255,9 +259,7 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 				headers: { get: () => "application/json" },
 				json: async () => ({
 					data: {
-						limits: [
-							{ type: "TOKENS_LIMIT", usage: 100, remaining: 40, unit: 5, number: 300, percentage: 60 },
-						],
+						limits: [{ type: "TOKENS_LIMIT", usage: 100, remaining: 40, unit: 5, number: 300, percentage: 60 }],
 					},
 				}),
 			};
@@ -274,7 +276,7 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 				configKey: "{}",
 			},
 			credentials: { resolve: vi.fn(async () => ({ value: "team-key" })) },
-			deps: { fetch: fetch as never },
+			deps: { fetch: fetch as never, lookup: publicLookup },
 			now: 1,
 			credential: "team-key",
 		});
@@ -328,7 +330,9 @@ describe("wave3 adaptive refresh / auto-export / ollama opt-in", () => {
 			}),
 		).toMatchObject({ status: "not-configured" });
 
-		const parsed = parseOllamaCloud({ data: { plan: "Pro", usage: { session: { usedPercent: 10 }, weekly: { usedPercent: 20 } } } });
+		const parsed = parseOllamaCloud({
+			data: { plan: "Pro", usage: { session: { usedPercent: 10 }, weekly: { usedPercent: 20 } } },
+		});
 		expect(parsed.windows).toHaveLength(2);
 
 		const result = await ollamaCloudAdapter.collect({

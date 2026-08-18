@@ -5,7 +5,7 @@ export declare class AccountSnapshotRepository {
     constructor(database: UsageDatabase);
     save(snapshot: AccountSnapshot, observedAt?: number): AccountSnapshot;
     saveMany(snapshots: readonly AccountSnapshot[], observedAt?: number): AccountSnapshot[];
-    latest(providerId: string): AccountSnapshot | null;
+    latest(providerId: string, profileId?: string): AccountSnapshot | null;
     latestAll(): AccountSnapshot[];
     pruneBefore(cutoff: number): number;
 }

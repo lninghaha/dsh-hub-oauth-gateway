@@ -71,10 +71,10 @@ export function BreakdownTable({
 								<td>{formatPercent(row.cacheHitRate)}</td>
 								{showBuckets ? (
 									<>
-										<td>{formatCompact(row.buckets.input)}</td>
-										<td>{formatCompact(row.buckets.output)}</td>
-										<td>{formatCompact(row.buckets.cacheRead)}</td>
-										<td>{formatCompact(row.buckets.cacheWrite)}</td>
+										<td>{formatCompact(row.buckets.inputTokens)}</td>
+										<td>{formatCompact(row.buckets.outputTokens)}</td>
+										<td>{formatCompact(row.buckets.cacheReadTokens)}</td>
+										<td>{formatCompact(row.buckets.cacheWriteTokens)}</td>
 									</>
 								) : null}
 								<td title={`${Math.round(row.cost.coverageRatio * 100)}% priced`}>

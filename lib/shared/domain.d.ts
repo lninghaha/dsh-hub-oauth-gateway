@@ -55,6 +55,7 @@ export declare const BalanceSnapshotSchema: z.ZodObject<{
 export type BalanceSnapshot = z.infer<typeof BalanceSnapshotSchema>;
 export declare const AccountSnapshotSchema: z.ZodObject<{
     providerId: z.ZodString;
+    profileId: z.ZodDefault<z.ZodString>;
     displayName: z.ZodString;
     adapterId: z.ZodNullable<z.ZodString>;
     mode: z.ZodNullable<z.ZodEnum<{

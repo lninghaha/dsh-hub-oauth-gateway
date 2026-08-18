@@ -268,7 +268,8 @@ export const en = {
 	"breakdown.input": "Input",
 	"breakdown.output": "Output",
 	"settings.autoExport": "Automatic export directory",
-	"settings.autoExportHint": "Writes only to a local absolute path; never writes credentials or sessions. Leave empty to disable.",
+	"settings.autoExportHint":
+		"Writes only to a local absolute path; never writes credentials or sessions. Leave empty to disable.",
 	"settings.autoExportEnabled": "Enable scheduled export to a local directory",
 	"settings.autoExportPath": "Export directory (absolute path)",
 	"settings.autoExportLayout": "Export layout",

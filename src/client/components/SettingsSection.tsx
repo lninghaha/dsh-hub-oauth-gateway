@@ -512,6 +512,7 @@ function emptyFee(currency: string): AccountFeeRecord {
 	return {
 		id: `fee-${Date.now()}`,
 		providerId: "provider-a",
+		profileId: "",
 		accountLabel: null,
 		kind: "subscription",
 		planName: null,

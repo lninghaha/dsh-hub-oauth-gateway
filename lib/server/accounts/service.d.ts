@@ -1,7 +1,7 @@
 import type { AccountSnapshot } from "../../shared/domain.js";
 import { AccountAdapterRegistry } from "./registry.js";
 import type { AccountSnapshotRepository } from "./repository.js";
-import type { AccountConfig, AccountDeps, AccountSpec, CredentialResolver, ProviderDescriptor } from "./types.js";
+import { type AccountConfig, type AccountDeps, type AccountSpec, type CredentialResolver, type ProviderDescriptor } from "./types.js";
 export interface AccountServiceOptions {
     readonly credentials: CredentialResolver | undefined;
     readonly getProviders: () => Promise<readonly ProviderDescriptor[]>;
@@ -12,6 +12,8 @@ export interface AccountServiceOptions {
     readonly refreshMs?: number;
     readonly concurrency?: number;
     readonly includeCompatibilityProviders?: boolean;
+    /** Drop lastGood after this many consecutive transient failures (default 3). */
+    readonly staleFailureLimit?: number;
 }
 export interface AccountRefreshResult {
     readonly accounts: readonly AccountSnapshot[];
@@ -24,7 +26,7 @@ export declare class AccountService {
     specs(): Promise<AccountSpec[]>;
     credentialRefs(): Promise<ReadonlySet<string>>;
     list(): Promise<readonly AccountSnapshot[]>;
-    get(providerId: string, force?: boolean): Promise<AccountSnapshot | null>;
+    get(providerId: string, force?: boolean, profileId?: string): Promise<AccountSnapshot | null>;
     refresh(providerIds?: readonly string[]): Promise<readonly AccountSnapshot[]>;
 }
 //# sourceMappingURL=service.d.ts.map

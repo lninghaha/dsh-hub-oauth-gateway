@@ -31,7 +31,10 @@ function hmac(key: Buffer | string, value: string): Buffer {
 }
 
 function amzDateParts(now: number): { amzDate: string; shortDate: string } {
-	const iso = new Date(now).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+	const iso = new Date(now)
+		.toISOString()
+		.replace(/[-:]/g, "")
+		.replace(/\.\d{3}Z$/, "Z");
 	return { amzDate: iso, shortDate: iso.slice(0, 8) };
 }
 
@@ -80,8 +83,7 @@ function windowFromUsage(kind: string, source: unknown): RawQuotaWindow | null {
 	const used = numberOrNull(record.Used ?? record.used ?? record.currentValue ?? record.Current);
 	let usedPercent: number | null = null;
 	if (total !== null && total > 0) {
-		const consumed =
-			used !== null ? used : remaining === null ? null : Math.max(0, Math.min(total, total - remaining));
+		const consumed = used !== null ? used : remaining === null ? null : Math.max(0, Math.min(total, total - remaining));
 		if (consumed !== null) usedPercent = clampPercent((consumed / total) * 100);
 	}
 	if (usedPercent === null) usedPercent = clampPercent(record.UsedPercent ?? record.usedPercent ?? record.percentage);
@@ -100,7 +102,8 @@ function windowFromUsage(kind: string, source: unknown): RawQuotaWindow | null {
 export function parseVolcengineCodingPlan(body: unknown): { plan: string; windows: RawQuotaWindow[] } {
 	const root = asRecord(body);
 	const result = asRecord(root?.Result ?? root?.result) ?? root;
-	const usage = asRecord(result?.Usage ?? result?.usage ?? result?.CodingPlanUsage ?? result?.codingPlanUsage) ?? result;
+	const usage =
+		asRecord(result?.Usage ?? result?.usage ?? result?.CodingPlanUsage ?? result?.codingPlanUsage) ?? result;
 	const plan = String(result?.PlanName ?? result?.planName ?? result?.Plan ?? result?.plan ?? "Volcengine Coding Plan")
 		.trim()
 		.replace(/\s+/g, " ");
@@ -127,7 +130,13 @@ export const volcengineCodingPlanAdapter: AccountAdapter = {
 		if (accessKey === "") missing.push(accessKeyRef);
 		if (secretKey === "") missing.push(secretKeyRef);
 		if (missing.length > 0) {
-			return { status: "not-configured", plan: "Volcengine Coding Plan", region, missingCredentials: missing, windows: [] };
+			return {
+				status: "not-configured",
+				plan: "Volcengine Coding Plan",
+				region,
+				missingCredentials: missing,
+				windows: [],
+			};
 		}
 		const hostUrl = ctx.spec.monitor.usageBaseURL ?? VOLCENGINE_API_HOST;
 		let hostOrigin: string;

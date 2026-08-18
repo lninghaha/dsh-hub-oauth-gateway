@@ -5,6 +5,12 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
         accountMinutes: z.ZodDefault<z.ZodNumber>;
         accountConcurrency: z.ZodDefault<z.ZodNumber>;
         timeoutMs: z.ZodDefault<z.ZodNumber>;
+        accountMode: z.ZodDefault<z.ZodEnum<{
+            fixed: "fixed";
+            adaptive: "adaptive";
+        }>>;
+        accountAdaptiveMinMinutes: z.ZodDefault<z.ZodNumber>;
+        accountAdaptiveMaxMinutes: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strip>>;
     retention: z.ZodDefault<z.ZodObject<{
         usageDays: z.ZodDefault<z.ZodNumber>;
@@ -52,6 +58,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
         accountMinutes: number;
         accountConcurrency: number;
         timeoutMs: number;
+        accountMode: "fixed" | "adaptive";
+        accountAdaptiveMinMinutes: number;
+        accountAdaptiveMaxMinutes: number;
     };
     retention: {
         usageDays: number;
@@ -96,6 +105,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
         accountMinutes: number;
         accountConcurrency: number;
         timeoutMs: number;
+        accountMode: "fixed" | "adaptive";
+        accountAdaptiveMinMinutes: number;
+        accountAdaptiveMaxMinutes: number;
     };
     retention: {
         usageDays: number;

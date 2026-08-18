@@ -184,6 +184,7 @@ export type BreakdownData = z.infer<typeof BreakdownDataSchema>;
 export declare const AccountsDataSchema: z.ZodObject<{
     accounts: z.ZodArray<z.ZodObject<{
         providerId: z.ZodString;
+        profileId: z.ZodDefault<z.ZodString>;
         displayName: z.ZodString;
         adapterId: z.ZodNullable<z.ZodString>;
         mode: z.ZodNullable<z.ZodEnum<{

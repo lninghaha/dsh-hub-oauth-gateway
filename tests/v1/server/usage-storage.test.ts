@@ -276,9 +276,9 @@ describe("SQLite usage projection", () => {
 						| undefined
 				)?.name;
 				expect(tables).toBe("account_fees");
-				const columns = upgraded
-					.prepare("PRAGMA table_info(account_snapshots)")
-					.all() as unknown as Array<{ name: string }>;
+				const columns = upgraded.prepare("PRAGMA table_info(account_snapshots)").all() as unknown as Array<{
+					name: string;
+				}>;
 				expect(columns.some((column) => column.name === "profile_id")).toBe(true);
 			} finally {
 				upgraded.close();

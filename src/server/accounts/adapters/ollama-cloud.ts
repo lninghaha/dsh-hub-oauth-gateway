@@ -96,12 +96,10 @@ export const ollamaCloudAdapter: AccountAdapter = {
 			}
 		}
 		try {
-			const body = await requestJson(
-				url,
-				{ headers: { accept: "application/json", cookie } },
-				ctx.deps,
-				{ providerBaseURL: origin, enforceSameOrigin: true },
-			);
+			const body = await requestJson(url, { headers: { accept: "application/json", cookie } }, ctx.deps, {
+				providerBaseURL: origin,
+				enforceSameOrigin: true,
+			});
 			const parsed = parseOllamaCloud(body);
 			return {
 				status: parsed.windows.length > 0 ? "ok" : "invalid-response",

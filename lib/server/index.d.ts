@@ -8,6 +8,12 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         accountMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
         accountConcurrency: import("zod").ZodDefault<import("zod").ZodNumber>;
         timeoutMs: import("zod").ZodDefault<import("zod").ZodNumber>;
+        accountMode: import("zod").ZodDefault<import("zod").ZodEnum<{
+            fixed: "fixed";
+            adaptive: "adaptive";
+        }>>;
+        accountAdaptiveMinMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
+        accountAdaptiveMaxMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
     }, import("zod/v4/core").$strip>>;
     retention: import("zod").ZodDefault<import("zod").ZodObject<{
         usageDays: import("zod").ZodDefault<import("zod").ZodNumber>;
@@ -55,6 +61,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         accountMinutes: number;
         accountConcurrency: number;
         timeoutMs: number;
+        accountMode: "fixed" | "adaptive";
+        accountAdaptiveMinMinutes: number;
+        accountAdaptiveMaxMinutes: number;
     };
     retention: {
         usageDays: number;
@@ -99,6 +108,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         accountMinutes: number;
         accountConcurrency: number;
         timeoutMs: number;
+        accountMode: "fixed" | "adaptive";
+        accountAdaptiveMinMinutes: number;
+        accountAdaptiveMaxMinutes: number;
     };
     retention: {
         usageDays: number;

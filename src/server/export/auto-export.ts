@@ -5,7 +5,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { isAbsolute, resolve, sep } from "node:path";
-import type { ExportLayout } from "../shared/contracts.js";
+import type { ExportLayout } from "../../shared/contracts.js";
 
 export interface AutoExportPreferences {
 	readonly enabled: boolean;

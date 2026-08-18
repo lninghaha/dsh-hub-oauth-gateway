@@ -51,7 +51,11 @@ function withStaleData(
 	consecutiveTransientFailures: number,
 	staleFailureLimit: number,
 ): { snapshot: AccountSnapshot; consecutiveTransientFailures: number } {
-	if (previous?.status === "ok" && isTransient(current.status)) {
+	const previousUsable =
+		previous !== null &&
+		(previous.status === "ok" || previous.stale) &&
+		(previous.balance !== null || previous.windows.length > 0 || previous.status === "ok");
+	if (previousUsable && isTransient(current.status)) {
 		const failures = consecutiveTransientFailures + 1;
 		if (failures >= staleFailureLimit) {
 			return {
