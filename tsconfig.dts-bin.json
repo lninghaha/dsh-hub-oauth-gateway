@@ -7,17 +7,12 @@
     "outDir": ".next/lib",
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
+    "emitDeclarationOnly": true,
     "stripInternal": true,
     "types": ["node"]
   },
   "include": [
-    "src/index.ts",
-    "src/server/**/*.ts",
-    "src/shared/**/*.ts",
-    "src/cli/**/*.ts"
-  ],
-  "exclude": [
+    "src/cli/coding-oauth.ts",
     "src/server/coding-oauth/invariant.ts"
   ]
 }

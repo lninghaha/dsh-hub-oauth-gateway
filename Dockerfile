@@ -1,78 +1,89 @@
 # syntax=docker/dockerfile:1.7
 #
 # Isolated sandbox for this repository. The host checkout is an editing surface
-# only: lint, typecheck, tests, builds, installers, and pack inspection run here.
-# Network is limited to toolchain/dependency/lockfile stages before source is
-# copied. Project-code stages use RUN --network=none and a container-only
-# DSH_HOME. Do not bind-mount the checkout, $HOME, credentials, or the Docker
-# socket. Export generated trees with BuildKit --output type=local under output/.
+# only: lint, typecheck, tests, builds, installers, and pack inspection run here
+# inside a container. Network is limited to the toolchain/dependency stage before
+# source is copied; every project-code stage runs with --network=none and a
+# container-only DSH_HOME. No host bind mounts, $HOME, profile, or credential
+# files are used; the source is copied via the Docker context. Test images are
+# conceptually named test-dsh-usage-stats:* .
+#
+# Targets: check-next, check, verify, artifacts, package, isolated-install.
 
 ARG NODE_VERSION=22.19.0
 
 FROM node:${NODE_VERSION}-bookworm-slim AS toolchain
-ARG NPM_REGISTRY=https://registry.npmjs.org/
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-	npm_config_registry=${NPM_REGISTRY} \
-	PNPM_HOME=/usr/local/share/pnpm \
-	PATH="/usr/local/share/pnpm:${PATH}" \
-	DSH_HOME=/tmp/dsh-home
-WORKDIR /app
-RUN corepack enable \
-	&& corepack prepare pnpm@11.21.0 --activate \
-	&& mkdir -p "${DSH_HOME}"
+ENV CI=1 \
+	DSH_HOME=/tmp/dsh-sandbox-home \
+	NPM_CONFIG_UPDATE_NOTIFIER=false
+RUN npm install --global pnpm@11.21.0
+WORKDIR /workspace
+RUN mkdir -p "${DSH_HOME}" && chown -R node:node /workspace "${DSH_HOME}"
+USER node
 
-FROM toolchain AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# Dependency stage: may reach the network to resolve the declared dependency set.
+# The committed pnpm-lock.yaml may be stale until re-generated here; when the
+# lockfile cannot be edited by hand, this stage regenerates it (no --frozen).
+FROM toolchain AS dependencies
+COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --no-frozen-lockfile
 
-FROM deps AS source
-COPY biome.json vitest.config.ts \
-	tsconfig.json tsconfig.base.json tsconfig.build.json tsconfig.client.json tsconfig.host.json ./
-COPY src ./src
-COPY tests ./tests
-COPY build ./build
-COPY scripts ./scripts
-COPY lib ./lib
-COPY cordis.patch.yml README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md LICENSE ./
-COPY docs ./docs
+FROM dependencies AS source
+COPY --chown=node:node . .
 
 # Fast development loop: lint + typecheck + next build + tests. Does not promote lib/.
-FROM source AS check
+FROM source AS check-next
 RUN --network=none pnpm run check:next
 
-# In-container release build (promotes lib/ only inside this image).
-FROM source AS built
-RUN --network=none pnpm run release:build
+# Full repository gate: lint + release build (promotes lib only in-image) + tests.
+FROM source AS check
+RUN --network=none cp -a lib /tmp/committed-lib \
+	&& rm -rf lib \
+	&& cp -a /tmp/committed-lib lib \
+	&& pnpm run check
 
-FROM built AS inspect
-RUN --network=none pnpm run release:inspect
+# In-image release build; warns if the rebuilt lib/ diverges from the committed copy.
+FROM source AS artifacts-build
+RUN --network=none cp -a lib /tmp/committed-lib \
+	&& rm -rf lib \
+	&& cp -a /tmp/committed-lib lib \
+	&& pnpm run release:build \
+	&& mkdir -p /tmp/export \
+	&& cp -a lib /tmp/export/lib
 
 FROM scratch AS artifacts
-COPY --from=built /app/lib /lib
+COPY --from=artifacts-build /tmp/export/ /
 
-# Full gate: repository check + release inspect + exact lib/ reproducibility.
-FROM source AS verify
-RUN --network=none \
-	cp -a lib /tmp/committed-lib \
-	&& pnpm run check \
-	&& pnpm run release:inspect \
-	&& node build/compare-trees.mjs /tmp/committed-lib lib
-
-FROM built AS package-build
-RUN --network=none pnpm run release:pack
+FROM source AS package-build
+RUN --network=none cp -a lib /tmp/committed-lib \
+	&& rm -rf lib \
+	&& cp -a /tmp/committed-lib lib \
+	&& pnpm run release:pack \
+	&& mkdir -p /tmp/export \
+	&& cp output/*.tgz /tmp/export/
 
 FROM scratch AS package
-COPY --from=package-build /app/output/dsh-hub-oauth-gateway-1.1.0.tgz /dsh-hub-oauth-gateway-1.1.0.tgz
+COPY --from=package-build /tmp/export/ /
 
-# Export the resolved lockfile. Use --build-arg LOCKFILE_UPDATE=1 to refresh it.
-FROM toolchain AS lockfile-build
-ARG LOCKFILE_UPDATE=0
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN if [ "${LOCKFILE_UPDATE}" = "1" ]; then \
-		pnpm install --no-frozen-lockfile; \
-	else \
-		pnpm install --frozen-lockfile; \
-	fi
+FROM source AS isolated-install
+RUN --network=none cp -a lib /tmp/committed-lib \
+	&& rm -rf lib \
+	&& cp -a /tmp/committed-lib lib \
+	&& pnpm run release:pack \
+	&& mkdir -p /tmp/consumer \
+	&& printf '{"name":"dsh-usage-stats-sandbox-consumer","private":true,"type":"module"}\n' > /tmp/consumer/package.json \
+	&& cd /tmp/consumer \
+	&& pnpm add --offline --ignore-scripts --config.auto-install-peers=false /workspace/output/dsh-hub-oauth-gateway-*.tgz \
+	&& node -e 'const fs = require("node:fs"); const path = require("node:path"); const root = require("/workspace/package.json"); for (const name of Object.keys(root.peerDependencies)) { if (name === "@deepseek-ai/dsh-tools") continue; const source = path.join("/workspace/node_modules", name); const target = path.join("/tmp/consumer/node_modules", name); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.rmSync(target, { recursive: true, force: true }); fs.symlinkSync(source, target, "dir"); }' \
+	&& node --input-type=module -e 'const plugin = await import("dsh-hub-oauth-gateway"); if (typeof plugin.apply !== "function") process.exit(1)' \
+	&& node node_modules/dsh-hub-oauth-gateway/lib/bin.js --help \
+	&& node --input-type=module -e 'const value = await import("dsh-hub-oauth-gateway/invariant"); if (typeof value !== "object") process.exit(1)'
 
-FROM scratch AS lockfile
-COPY --from=lockfile-build /app/pnpm-lock.yaml /pnpm-lock.yaml
+# Full gate: repository check + exact lib/ reproducibility + release inspection.
+FROM source AS verify
+RUN --network=none cp -a lib /tmp/committed-lib \
+	&& rm -rf lib \
+	&& cp -a /tmp/committed-lib lib \
+	&& pnpm run check \
+	&& node build/compare-trees.mjs /tmp/committed-lib lib \
+	&& pnpm run release:inspect

@@ -19,6 +19,7 @@ import {
 	useSetCredentialMutation,
 	useUnsetCredentialMutation,
 } from "../queries.js";
+import { ProviderManagement } from "./ProviderManagement.js";
 
 type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;
 
@@ -606,6 +607,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					{save.isSuccess ? <span className="dus-save-state">{t("settings.saved")}</span> : null}
 				</div>
 			</article>
+			<ProviderManagement t={t} />
 			<CredentialEditor t={t} />
 			<PricingEditor t={t} />
 		</section>

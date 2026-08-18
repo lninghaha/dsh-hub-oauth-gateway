@@ -12,6 +12,8 @@
 !tsconfig.build.json
 !tsconfig.client.json
 !tsconfig.host.json
+!tsconfig.dts-bin.json
+!tsconfig.dts-invariant.json
 
 # Sources, tests, and build/release helpers
 !src
@@ -35,5 +37,8 @@
 !CODE_OF_CONDUCT.md
 !SECURITY.md
 !LICENSE
+!NOTICE
+!LICENSES
+!LICENSES/**
 !docs
 !docs/**

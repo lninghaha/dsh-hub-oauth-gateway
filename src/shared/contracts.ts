@@ -15,6 +15,7 @@ export const API_PATHS = Object.freeze({
 	breakdown: `${API_BASE}/breakdown`,
 	accounts: `${API_BASE}/accounts`,
 	account: `${API_BASE}/account`,
+	providers: `${API_BASE}/providers`,
 	refresh: `${API_BASE}/refresh`,
 	settings: `${API_BASE}/settings`,
 	pricing: `${API_BASE}/pricing`,

@@ -3,21 +3,13 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "src",
+    "rootDir": "src/server/coding-oauth",
     "outDir": ".next/lib",
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
+    "emitDeclarationOnly": true,
     "stripInternal": true,
     "types": ["node"]
   },
-  "include": [
-    "src/index.ts",
-    "src/server/**/*.ts",
-    "src/shared/**/*.ts",
-    "src/cli/**/*.ts"
-  ],
-  "exclude": [
-    "src/server/coding-oauth/invariant.ts"
-  ]
+  "include": ["src/server/coding-oauth/invariant.ts"]
 }

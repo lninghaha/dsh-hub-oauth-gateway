@@ -9,6 +9,7 @@ import {
 	type PricingData,
 	type UsageAlert,
 } from "../../shared/contracts.js";
+import type { ProvidersData } from "../../shared/providers.js";
 import type { AccountSnapshot, PriceRule, UsageQuery } from "../../shared/domain.js";
 import {
 	CurrencyCodeSchema,
@@ -66,6 +67,7 @@ export interface UsageStatsApiDependencies {
 	readonly pricing: PricingRepository;
 	readonly preferences: PreferencesRepository;
 	readonly accounts: AccountApiService;
+	readonly providers?: { list(): Promise<ProvidersData> } | undefined;
 	readonly alerts?: { list(): Promise<readonly UsageAlert[]> } | undefined;
 	freshness(): ApiFreshness;
 	now?(): number;
@@ -286,6 +288,13 @@ export function registerV1Routes(
 				return;
 			}
 			writeJson(response, 200, success(dependencies, account));
+		}),
+		register(API_PATHS.providers, ["GET"], async (_request, response) => {
+			if (dependencies.providers === undefined) {
+				writeJson(response, 503, failure(dependencies, "unavailable", "provider catalog is not composed"));
+				return;
+			}
+			writeJson(response, 200, success(dependencies, await dependencies.providers.list()));
 		}),
 		register(API_PATHS.alerts, ["GET"], async (_request, response) => {
 			const alerts = (await dependencies.alerts?.list()) ?? [];

@@ -14,9 +14,14 @@ for (const path of [
 	"lib/index.d.ts",
 	"lib/index.d.ts.map",
 	"lib/client.js",
+	"lib/bin.js",
+	"lib/invariant.js",
 	"cordis.patch.yml",
 	"README.md",
 	"SECURITY.md",
+	"NOTICE",
+	"LICENSES/Apache-2.0.txt",
+	"docs/oauth-provenance.md",
 ]) {
 	await access(resolve(root, path));
 }
@@ -25,6 +30,10 @@ for (const path of [manifest.main, manifest.types, manifest.exports?.["."]?.impo
 	await access(resolve(root, path));
 }
 assert.equal(manifest.exports?.["./client"], "./lib/client.js");
+assert.equal(manifest.license, "MIT AND Apache-2.0");
+assert.equal(manifest.bin?.["dsh-coding-oauth"], "lib/bin.js");
+assert.equal(manifest.bin?.["dsh-grok-build"], "lib/bin.js");
+assert.equal(manifest.exports?.["./invariant"]?.import ?? manifest.exports?.["./invariant"]?.default, "./lib/invariant.js");
 
 const files = await readdir(resolve(root, "lib"));
 for (const stale of ["usage.js", "accounts.js", "balance.js", "subscriptions.js", "oauth-device.js"]) {

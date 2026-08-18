@@ -1,0 +1,16 @@
+NOTICE
+======
+
+dsh-hub-oauth-gateway
+Copyright 2026 dsh-hub-oauth-gateway contributors
+
+This product is licensed under MIT AND Apache-2.0.
+
+This product includes software derived from dsh-coding-subscription-oauth
+(formerly dsh-grok-build), licensed under the Apache License, Version 2.0.
+See LICENSES/Apache-2.0.txt and docs/oauth-provenance.md.
+
+That OAuth implementation includes software developed by the dsh-xai project
+(https://github.com/MirDie/dsh-xai), licensed under the Apache License,
+Version 2.0. Portions of the coding-oauth store, session, grok-import, redact,
+invariant, adapter, auth, and CLI modules are derived from that work.

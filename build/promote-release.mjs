@@ -5,7 +5,16 @@ const source = resolve(".next/lib");
 const target = resolve("lib");
 const staging = resolve(`.release-lib-${process.pid}`);
 const backup = resolve(`.release-lib-backup-${process.pid}`);
-const runtimeFiles = new Set(["index.js", "index.js.map", "client.js", "client.js.map"]);
+const runtimeFiles = new Set([
+	"index.js",
+	"index.js.map",
+	"client.js",
+	"client.js.map",
+	"bin.js",
+	"bin.js.map",
+	"invariant.js",
+	"invariant.js.map",
+]);
 
 async function moveDirectory(from, to) {
 	try {

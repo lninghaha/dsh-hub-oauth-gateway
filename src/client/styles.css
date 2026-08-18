@@ -835,6 +835,56 @@
   color: var(--dus-success);
 }
 
+.dus-credential-status.is-attention {
+  color: var(--dus-warning);
+}
+
+.dus-provider-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.dus-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.dus-provider-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--dus-border);
+  border-radius: 12px;
+  background: var(--dus-card);
+}
+
+.dus-provider-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.dus-provider-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.dus-provider-meta dt {
+  color: var(--dus-muted);
+  font-size: 10px;
+}
+
+.dus-provider-meta dd {
+  margin: 0;
+  font-size: 12px;
+}
+
 .dus-error-inline {
   color: var(--dus-danger);
   font-size: 10px;

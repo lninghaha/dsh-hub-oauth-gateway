@@ -66,7 +66,9 @@ if (typeof manifest.version !== "string" || !semver.test(manifest.version)) {
 	fail(`package version is not valid SemVer: ${String(manifest.version)}`);
 }
 if (manifest.private === true) fail("release package must not be private");
-if (manifest.license !== "MIT") fail(`package license must be MIT; found ${String(manifest.license)}`);
+if (manifest.license !== "MIT" && manifest.license !== "MIT AND Apache-2.0") {
+	fail(`package license must be MIT or MIT AND Apache-2.0; found ${String(manifest.license)}`);
+}
 if (manifest.publishConfig?.access !== "public") fail("publishConfig.access must be public");
 if (manifest.publishConfig?.registry !== "https://registry.npmjs.org/") {
 	fail("publishConfig.registry must explicitly target the public npm registry");
@@ -92,7 +94,10 @@ const expectedAllowlist = [
 	"CODE_OF_CONDUCT.md",
 	"SECURITY.md",
 	"LICENSE",
+	"NOTICE",
+	"LICENSES/Apache-2.0.txt",
 	"docs/00-project-rules.md",
+	"docs/oauth-provenance.md",
 	"docs/architecture.md",
 	"docs/configuration.md",
 	"docs/migration-v1.md",
@@ -134,6 +139,8 @@ for (const required of [
 	"CONTRIBUTING.md",
 	"CODE_OF_CONDUCT.md",
 	"SECURITY.md",
+	"NOTICE",
+	"LICENSES/Apache-2.0.txt",
 	"docs/00-project-rules.md",
 	"cordis.patch.yml",
 	"scripts/install.mjs",

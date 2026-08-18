@@ -9,6 +9,7 @@ import {
 	PricingDataSchema,
 	SeriesDataSchema,
 } from "../shared/contracts.js";
+import { ProvidersDataSchema } from "../shared/providers.js";
 import type { PriceRule } from "../shared/domain.js";
 import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
 import { fetchApi, mutateApi } from "./api.js";
@@ -93,6 +94,18 @@ export function useBreakdownQuery(
 		{
 			queryKey: ["usage-stats", "breakdown", url],
 			queryFn: ({ signal }) => fetchApi(url, BreakdownDataSchema, {}, signal),
+			enabled,
+			refetchInterval: enabled ? 30_000 : false,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useProvidersQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "providers"],
+			queryFn: ({ signal }) => fetchApi(API_PATHS.providers, ProvidersDataSchema, {}, signal),
 			enabled,
 			refetchInterval: enabled ? 30_000 : false,
 		},

@@ -13,6 +13,8 @@ Runtime configuration belongs under the existing Cordis row named `dsh-hub-oauth
         accounts:
           monitors: {}
         oauthDevice: {}
+        codingOAuth:
+          enabled: true
         debug: false
 ```
 
@@ -200,6 +202,20 @@ oauthDevice:
 The client ID is public OAuth application metadata, not a client secret. Use an OAuth app you control or explicitly trust and enable GitHub Device Flow for that app. The project deliberately does not bundle an unverified third-party client ID.
 
 During authorization, the upstream device code stays in an expiring, bounded server-memory map. The browser receives a random flow ID, user code, verification URL, interval, and expiry. Successful access tokens go directly to the DSH credential seam.
+
+## `codingOAuth`
+
+Integrated coding-subscription OAuth owner. Keep this enabled after cutover so Grok Build, Codex, Kimi Code, and Claude Code routes, settings, and credential files stay in this plugin. Disable only in isolated tests.
+
+| Field | Default | Meaning |
+| --- | ---: | --- |
+| `enabled` | `true` | Register OAuth LLM routes, compatibility HTTP paths, CLI-backed sessions, and optional capabilities |
+| `proxy` | unset | HTTPS proxy URL for the audited coding-subscription host allowlist |
+| `proxyKimi` | `false` | Also send Kimi China traffic through the proxy |
+| `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-subscription-oauth` settings namespace |
+| `gateway` | disabled | Opt-in isolated local OpenAI-compatible gateway; loopback bind only |
+
+Do not enable this owner in the same Cordis process as a live `dsh-coding-subscription-oauth` bundle. The two implementations share routes, settings, and credential files.
 
 ## `debug`
 

@@ -8,6 +8,7 @@ import { evaluateUsageAlerts } from "./alerts/service.js";
 import { registerCredentialRoutes } from "./api/credentials.js";
 import { registerLegacyRoutes } from "./api/legacy.js";
 import { type ApiFreshness, registerV1Routes } from "./api/router.js";
+import { applyCodingOAuth, type CodingOAuthRuntime } from "./coding-oauth/compose.js";
 import { DEFAULT_RUNTIME_CONFIG, type RuntimeConfig, RuntimeConfigSchema } from "./config.js";
 import type { UsageStatsHostContext } from "./context.js";
 import { configuredProviders } from "./host/providers.js";
@@ -20,6 +21,7 @@ import { UsageDatabase } from "./storage/database.js";
 import { usageDatabasePath } from "./storage/path.js";
 import { UsageQueryService } from "./usage/query.js";
 import { UsageRepository } from "./usage/repository.js";
+import { collectProvidersData } from "./providers/catalog.js";
 import { UsageProjectionService } from "./usage/service.js";
 import { bucketKey, bucketTimestamp } from "./usage/time.js";
 
@@ -52,6 +54,41 @@ export async function apply(
 	const sessions = fromContext(ctx, "sessions", ctx.sessions);
 	const persistence = fromContext(ctx, "sessionPersistence", ctx.sessionPersistence);
 	const settings = fromContext(ctx, "settings", ctx.settings);
+	const llm = fromContext(ctx, "llm", ctx.llm);
+
+	let codingOAuthRuntime: CodingOAuthRuntime | undefined;
+	if (config.codingOAuth.enabled) {
+		if (llm === undefined) {
+			ctx.logger.warn("usage-stats: coding OAuth is enabled but the llm service is unavailable");
+		} else {
+			try {
+				codingOAuthRuntime = applyCodingOAuth(
+					{
+						...ctx,
+						llm,
+						logger: (namespace: string) => ({
+							debug: (message: unknown) => ctx.logger.debug(`${namespace}: ${String(message)}`),
+							info: (message: unknown) => ctx.logger.info(`${namespace}: ${String(message)}`),
+							warn: (message: unknown) => ctx.logger.warn(`${namespace}: ${String(message)}`),
+							error: (message: unknown) => ctx.logger.error(`${namespace}: ${String(message)}`),
+						}),
+					} as never,
+					{
+						proxyKimi: config.codingOAuth.proxyKimi,
+						...(config.codingOAuth.proxy === undefined ? {} : { proxy: config.codingOAuth.proxy }),
+						...(config.codingOAuth.retryPolicy === undefined
+							? {}
+							: { retryPolicy: config.codingOAuth.retryPolicy as never }),
+						...(config.codingOAuth.capabilities === undefined ? {} : { capabilities: config.codingOAuth.capabilities }),
+						...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway }),
+					},
+				);
+			} catch (error) {
+				ctx.logger.warn("usage-stats: coding OAuth composition failed closed (details redacted)");
+				if (config.debug) ctx.logger.warn(String(error instanceof Error ? error.name : "error"));
+			}
+		}
+	}
 
 	let database: UsageDatabase;
 	try {
@@ -154,6 +191,14 @@ export async function apply(
 		deps: accountDeps,
 	});
 	await accountService.specs();
+	const providersApi = {
+		list: async () =>
+			collectProvidersData({
+				accounts: await accountService.list(),
+				...(codingOAuthRuntime === undefined ? {} : { codingOAuth: codingOAuthRuntime }),
+				now,
+			}),
+	};
 
 	const queryService = new UsageQueryService(usage, pricing, userPreferences.display.baseCurrency);
 	const alertsApi = {
@@ -194,6 +239,7 @@ export async function apply(
 			pricing,
 			preferences,
 			accounts: accountService,
+			providers: providersApi,
 			alerts: alertsApi,
 			freshness,
 			now,

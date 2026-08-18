@@ -28,6 +28,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "bin": {
+    "dsh-coding-oauth": "lib/bin.js",
+    "dsh-grok-build": "lib/bin.js",
     "dsh-hub-oauth-gateway-install": "scripts/install.mjs"
   },
   "files": [
@@ -40,7 +42,10 @@
     "CODE_OF_CONDUCT.md",
     "SECURITY.md",
     "LICENSE",
+    "NOTICE",
+    "LICENSES/Apache-2.0.txt",
     "docs/00-project-rules.md",
+    "docs/oauth-provenance.md",
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/migration-v1.md",
@@ -56,6 +61,10 @@
       "default": "./lib/index.js"
     },
     "./client": "./lib/client.js",
+    "./invariant": {
+      "types": "./lib/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -78,7 +87,7 @@
   "scripts": {
     "clean:next": "node build/clean-next.mjs",
     "typecheck:next": "tsc -b tsconfig.host.json tsconfig.client.json",
-    "build:server:next": "tsc -p tsconfig.build.json && node build/build-server.mjs",
+    "build:server:next": "tsc -p tsconfig.build.json && tsc -p tsconfig.dts-bin.json && node build/build-server.mjs",
     "build:client:next": "node build/build-client.mjs",
     "build:next": "pnpm run clean:next && pnpm run typecheck:next && pnpm run build:server:next && pnpm run build:client:next",
     "build": "pnpm run release:build",
@@ -105,9 +114,19 @@
     "@deepseek-ai/dsh-client-ui-settings": "0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-sidebar": "0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-atomic-write": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-attachment": "0.1.0-rc.6",
     "@deepseek-ai/dsh-client-web": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-credentials": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-home-paths": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-host-webserver": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-invariants": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm-pi-ai": "0.1.0-rc.6",
     "@deepseek-ai/dsh-session": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "3.18.1",
+    "@earendil-works/pi-ai": "0.84.2",
     "@tanstack/react-query": "^5.101.4",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -126,10 +145,48 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "undici": "^7.16.0",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-session": ">=0.1.0-rc.6 <0.2.0"
+    "@deepseek-ai/cordis": "^4.0.1-rc.1",
+    "@deepseek-ai/dsh-atomic-write": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-attachment": "*",
+    "@deepseek-ai/dsh-credentials": "*",
+    "@deepseek-ai/dsh-home-paths": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-host-webserver": "*",
+    "@deepseek-ai/dsh-invariants": "*",
+    "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm-pi-ai": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-session": ">=0.1.0-rc.6 <0.2.0",
+    "@deepseek-ai/dsh-tools": "*",
+    "@deepseek-ai/schemastery": "3.18.1",
+    "@earendil-works/pi-ai": "0.84.2"
   },
-  "license": "MIT"
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-attachment": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-credentials": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-host-webserver": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-invariants": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "@earendil-works/pi-ai": "0.84.2"
+    }
+  },
+  "license": "MIT AND Apache-2.0"
 }
