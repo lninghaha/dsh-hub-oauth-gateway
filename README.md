@@ -21,7 +21,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 ## 功能 / Highlights
 
 - **Quick Peek + Full Dashboard**：侧栏快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
-- **设置页签**：Settings → 用量中心拆成显示 / 供应商 / 费用 / 凭据四个顶部标签，缩短瀑布流滚动。
+- **设置页签**：Settings → 用量中心拆成显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用 / 凭据七个顶部标签，缩短瀑布流滚动。
 - **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
 - **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
 - **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
