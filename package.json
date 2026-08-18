@@ -49,7 +49,8 @@
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/migration-v1.md",
-    "docs/research/usage-analytics-landscape.md"
+    "docs/research/usage-analytics-landscape.md",
+    "docs/research/token-monitor.md"
   ],
   "type": "module",
   "main": "lib/index.js",

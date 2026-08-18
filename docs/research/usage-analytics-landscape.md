@@ -1,6 +1,6 @@
 # Usage analytics product landscape
 
-Research snapshot: 2026-08-16.
+Research snapshot: 2026-08-16 (Token Monitor note added 2026-08-18).
 
 This review focuses on products that answer one or more of these questions:
 
@@ -92,22 +92,25 @@ Examples:
 - [ccusage](https://github.com/ccusage/ccusage), which analyzes local Claude Code JSONL data
 - [claude-usage](https://github.com/flukelaster/claude-usage), a local Claude Code usage/cost dashboard
 - menu-bar tools such as [CodexBar's OpenAI integration](https://github.com/steipete/CodexBar/blob/main/docs/openai.md)
+- [Token Monitor](https://github.com/Javis603/token-monitor), a cross-tool desktop widget (tokscale parsers + AI tool limits + optional multi-device hub)
 
 Strengths:
 
 - local-first and fast;
 - works from existing agent logs without a proxy;
 - daily/monthly/session/block views fit individual developers;
-- low setup cost.
+- low setup cost;
+- mature examples (Token Monitor) also ship heatmaps/streaks, subscription fee ledgers, auto-export folders, and multi-account limit profiles.
 
 Limitations:
 
-- commonly focused on one agent or provider;
+- commonly focused on one agent or provider (Token Monitor is the broad exception, still log-parser based);
 - historical parsers are coupled to log format changes;
 - account balance and subscription windows may require separate credential-bearing calls;
-- local timezone and duplicate streaming snapshots are easy sources of incorrect totals.
+- local timezone and duplicate streaming snapshots are easy sources of incorrect totals;
+- optional sync hubs and menu-bar shells expand scope beyond an in-host plugin.
 
-Implication: preserve local-first operation, but normalize facts in SQLite, isolate corrupt sessions, maintain projection cursors, and key facts by logical turn/step so re-reading a snapshot cannot double-count it.
+Implication: preserve local-first operation, but normalize facts in SQLite, isolate corrupt sessions, maintain projection cursors, and key facts by logical turn/step so re-reading a snapshot cannot double-count it. UX patterns such as year heatmaps, module composition, and subscription ROI tooltips are portable; multi-device hubs, automatic price catalogs, and transcript drill-down are not. Detailed comparison: [`token-monitor.md`](./token-monitor.md).
 
 ### 5. General metrics dashboards
 
