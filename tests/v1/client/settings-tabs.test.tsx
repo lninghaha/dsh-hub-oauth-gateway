@@ -1,0 +1,90 @@
+/** @vitest-environment jsdom */
+import { fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SettingsSection } from "../../../src/client/components/SettingsSection.js";
+import { en } from "../../../src/client/locales.js";
+import { defaultUserPreferences } from "../../../src/shared/preferences.js";
+
+vi.mock("../../../src/client/queries.js", async () => {
+	const actual = await vi.importActual<typeof import("../../../src/client/queries.js")>("../../../src/client/queries.js");
+	return {
+		...actual,
+		usePreferencesQuery: () => ({
+			data: { ok: true as const, data: defaultUserPreferences("UTC") },
+			isPending: false,
+			error: null,
+		}),
+		useAccountsQuery: () => ({
+			data: { ok: true as const, data: { accounts: [] } },
+			isPending: false,
+			error: null,
+		}),
+		useSavePreferencesMutation: () => ({
+			mutate: vi.fn(),
+			isPending: false,
+			isSuccess: false,
+		}),
+		useFeesQuery: () => ({
+			data: { ok: true as const, data: { fees: [] } },
+			isPending: false,
+			error: null,
+		}),
+		useSaveFeesMutation: () => ({
+			mutate: vi.fn(),
+			isPending: false,
+			isSuccess: false,
+		}),
+		useCredentialQuery: () => ({
+			data: { ok: true as const, data: { credentials: [] } },
+			isPending: false,
+			error: null,
+		}),
+		useSetCredentialMutation: () => ({ mutate: vi.fn(), isPending: false }),
+		useUnsetCredentialMutation: () => ({ mutate: vi.fn(), isPending: false }),
+		useCredentialImportMutation: () => ({ mutate: vi.fn(), isPending: false }),
+		useDeviceCodeMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined }),
+		useDevicePollMutation: () => ({ mutate: vi.fn(), isPending: false }),
+		usePricingQuery: () => ({
+			data: { ok: true as const, data: { rules: [] } },
+			isPending: false,
+			error: null,
+		}),
+		useSavePricingMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
+	};
+});
+
+vi.mock("../../../src/client/components/ProviderManagement.js", () => ({
+	ProviderManagement: () => <div data-testid="provider-management">providers-panel</div>,
+}));
+
+function translate(key: string): string {
+	return (en as Record<string, string>)[key] ?? key;
+}
+
+function renderSettings(): void {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+	const wrap = ({ children }: { children: ReactNode }) => (
+		<QueryClientProvider client={client}>{children}</QueryClientProvider>
+	);
+	render(<SettingsSection close={vi.fn()} t={translate as never} />, { wrapper: wrap });
+}
+
+describe("settings section tabs", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("defaults to the display panel and unmounts it when switching away", () => {
+		renderSettings();
+		expect(document.querySelector('[data-settings-tab="display"]')).toBeTruthy();
+		expect(screen.getByText(en["settings.display"])).toBeTruthy();
+		expect(document.querySelector('[data-settings-tab="providers"]')).toBeNull();
+
+		fireEvent.click(screen.getByRole("button", { name: en["settings.tab.providers"] }));
+		expect(document.querySelector('[data-settings-tab="display"]')).toBeNull();
+		expect(document.querySelector('[data-settings-tab="providers"]')).toBeTruthy();
+		expect(screen.getByTestId("provider-management")).toBeTruthy();
+	});
+});

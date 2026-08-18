@@ -1,12 +1,18 @@
 import { Modal } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { OverviewData, UsageAlert } from "../../shared/contracts.js";
 import type { UsageMetric } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
-import { defaultUserPreferences, effectiveModules } from "../../shared/preferences.js";
+import { defaultUserPreferences, effectiveModules, type DashboardModuleId } from "../../shared/preferences.js";
 import { UsageStatsApiError } from "../api.js";
 import { usageUiController, useUsageUi } from "../controller.js";
+import {
+	type DashboardTabId,
+	dashboardTabsForModules,
+	modulesForDashboardTab,
+	resolveDashboardTab,
+} from "../dashboard-tabs.js";
 import { deltaRatio, formatCompact, formatCurrency, formatPercent, formatRelativeTime } from "../format.js";
 import { type Translate, translator } from "../locales.js";
 import {
@@ -242,6 +248,12 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 	}, [ui.selectedProviderId]);
 
 	const modules = useMemo(() => effectiveModules(preferences), [preferences]);
+	const dashboardTabs = useMemo(() => dashboardTabsForModules(modules), [modules]);
+	const [activeDashboardTab, setActiveDashboardTab] = useState<DashboardTabId | null>(null);
+	const resolvedDashboardTab = useMemo(
+		() => resolveDashboardTab(activeDashboardTab, dashboardTabs),
+		[activeDashboardTab, dashboardTabs],
+	);
 	const showHeatmap = modules.includes("heatmap");
 	const showTrend = modules.includes("trend");
 	const showAccounts = modules.includes("accounts");
@@ -354,106 +366,107 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 	const exportDailyCsv = exportUrl(query, "csv", dimension, "daily");
 	const exportBundleJson = exportUrl(query, "json", dimension, "bundle");
 
-	const moduleSections =
-		ui.surface === "dashboard" && overviewData !== null
-			? modules.map((moduleId) => {
-					switch (moduleId) {
-						case "kpi":
-							return <OverviewCards data={overviewData} t={t} key="kpi" />;
-						case "alerts":
-							return <AlertList alerts={alertData} title={t("metric.alerts")} key="alerts" />;
-						case "heatmap":
-							return activityData === null ? (
-								<section className="dus-section" key="heatmap">
-									<div className="dus-chart-empty">{t("dashboard.loading")}</div>
-								</section>
-							) : (
-								<ActivityHeatmap
-									data={activityData}
-									metric={filters.metric}
-									currency={overviewData.cost.currency}
-									t={t}
-									key="heatmap"
-								/>
-							);
-						case "trend":
-							return (
-								<section className="dus-section dus-trend-section" key="trend">
-									<div className="dus-section-head">
-										<h3 className="dus-section-title">{t("trend.title")}</h3>
-										<span className="dus-section-note">
-											{t(
-												`metric.${filters.metric === "estimatedCost" ? "cost" : filters.metric === "cacheHitRate" ? "cacheHit" : filters.metric}`,
-											)}
-										</span>
-									</div>
-									{series.error !== null ? (
-										<div className="dus-error">
-											{t("dashboard.error", { message: errorMessage(t, series.error) ?? "" })}
-										</div>
-									) : seriesData === null ? (
-										<div className="dus-chart-empty">{t("dashboard.loading")}</div>
-									) : (
-										<UsageChart
-											data={seriesData}
-											metric={filters.metric}
-											currency={overviewData.cost.currency}
-											colors={preferences.providers.colors}
-										/>
-									)}
-								</section>
-							);
-						case "accounts":
-							return (
-								<section className="dus-section dus-accounts-section" key="accounts">
-									<h3 className="dus-section-title">{t("accounts.title")}</h3>
-									<AccountGrid
-										accounts={accountData}
-										emptyLabel={t("accounts.empty")}
-										selectedProviderId={selectedProvider}
-										onSelect={setProvider}
-										fees={feeRecords}
-										monthEstimatedCost={monthCostAmount}
-										baseCurrency={preferences.display.baseCurrency}
-										t={t}
-									/>
-								</section>
-							);
-						case "breakdown":
-							return (
-								<section className="dus-section dus-breakdown-section" key="breakdown">
-									<h3 className="dus-section-title">{t("breakdown.title")}</h3>
-									{breakdown.error !== null ? (
-										<div className="dus-error">
-											{t("dashboard.error", { message: errorMessage(t, breakdown.error) ?? "" })}
-										</div>
-									) : breakdownData === null ? (
-										<div className="dus-chart-empty">{t("dashboard.loading")}</div>
-									) : (
-										<BreakdownTable
-											data={breakdownData}
-											onSelect={breakdownData.dimension === "provider" ? setProvider : undefined}
-											labels={{
-												dimension: t("breakdown.dimension"),
-												tokens: t("breakdown.tokens"),
-												share: t("breakdown.share"),
-												requests: t("breakdown.requests"),
-												cache: t("breakdown.cache"),
-												input: t("breakdown.input"),
-												output: t("breakdown.output"),
-												cacheRead: t("breakdown.cacheRead"),
-												cacheWrite: t("breakdown.cacheWrite"),
-												cost: t("breakdown.cost"),
-											}}
-										/>
-									)}
-								</section>
-							);
-						default:
-							return null;
-					}
-				})
-			: null;
+	const renderModule = (moduleId: DashboardModuleId): ReactNode => {
+		if (overviewData === null) return null;
+		switch (moduleId) {
+			case "kpi":
+				return <OverviewCards data={overviewData} t={t} key="kpi" />;
+			case "alerts":
+				return <AlertList alerts={alertData} title={t("metric.alerts")} key="alerts" />;
+			case "heatmap":
+				return activityData === null ? (
+					<section className="dus-section" key="heatmap">
+						<div className="dus-chart-empty">{t("dashboard.loading")}</div>
+					</section>
+				) : (
+					<ActivityHeatmap
+						data={activityData}
+						metric={filters.metric}
+						currency={overviewData.cost.currency}
+						t={t}
+						key="heatmap"
+					/>
+				);
+			case "trend":
+				return (
+					<section className="dus-section dus-trend-section" key="trend">
+						<div className="dus-section-head">
+							<h3 className="dus-section-title">{t("trend.title")}</h3>
+							<span className="dus-section-note">
+								{t(
+									`metric.${filters.metric === "estimatedCost" ? "cost" : filters.metric === "cacheHitRate" ? "cacheHit" : filters.metric}`,
+								)}
+							</span>
+						</div>
+						{series.error !== null ? (
+							<div className="dus-error">
+								{t("dashboard.error", { message: errorMessage(t, series.error) ?? "" })}
+							</div>
+						) : seriesData === null ? (
+							<div className="dus-chart-empty">{t("dashboard.loading")}</div>
+						) : (
+							<UsageChart
+								data={seriesData}
+								metric={filters.metric}
+								currency={overviewData.cost.currency}
+								colors={preferences.providers.colors}
+							/>
+						)}
+					</section>
+				);
+			case "accounts":
+				return (
+					<section className="dus-section dus-accounts-section" key="accounts">
+						<h3 className="dus-section-title">{t("accounts.title")}</h3>
+						<AccountGrid
+							accounts={accountData}
+							emptyLabel={t("accounts.empty")}
+							selectedProviderId={selectedProvider}
+							onSelect={setProvider}
+							fees={feeRecords}
+							monthEstimatedCost={monthCostAmount}
+							baseCurrency={preferences.display.baseCurrency}
+							t={t}
+						/>
+					</section>
+				);
+			case "breakdown":
+				return (
+					<section className="dus-section dus-breakdown-section" key="breakdown">
+						<h3 className="dus-section-title">{t("breakdown.title")}</h3>
+						{breakdown.error !== null ? (
+							<div className="dus-error">
+								{t("dashboard.error", { message: errorMessage(t, breakdown.error) ?? "" })}
+							</div>
+						) : breakdownData === null ? (
+							<div className="dus-chart-empty">{t("dashboard.loading")}</div>
+						) : (
+							<BreakdownTable
+								data={breakdownData}
+								onSelect={breakdownData.dimension === "provider" ? setProvider : undefined}
+								labels={{
+									dimension: t("breakdown.dimension"),
+									tokens: t("breakdown.tokens"),
+									share: t("breakdown.share"),
+									requests: t("breakdown.requests"),
+									cache: t("breakdown.cache"),
+									input: t("breakdown.input"),
+									output: t("breakdown.output"),
+									cacheRead: t("breakdown.cacheRead"),
+									cacheWrite: t("breakdown.cacheWrite"),
+									cost: t("breakdown.cost"),
+								}}
+							/>
+						)}
+					</section>
+				);
+			default:
+				return null;
+		}
+	};
+
+	const activeTabModules =
+		resolvedDashboardTab === null ? [] : modulesForDashboardTab(resolvedDashboardTab).filter((id) => modules.includes(id));
 
 	return (
 		<div className="dus-overlay-root">
@@ -466,7 +479,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 				className={`dus-modal${ui.surface === "peek" ? " is-peek" : " is-dashboard"}`}
 			>
 				<div
-					className={`dus-dashboard${preferences.display.density === "compact" ? " is-density-compact" : ""}${preferences.display.reducedMotion === "always" ? " is-reduced-motion" : preferences.display.reducedMotion === "never" ? " allows-motion" : ""}`}
+					className={`dus-dashboard${ui.surface === "peek" ? " is-peek-layout" : ""}${preferences.display.density === "compact" ? " is-density-compact" : ""}${preferences.display.reducedMotion === "always" ? " is-reduced-motion" : preferences.display.reducedMotion === "never" ? " allows-motion" : ""}`}
 				>
 					<header className="dus-dashboard-header">
 						<div>
@@ -495,16 +508,33 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						</div>
 					</header>
 					{ui.surface === "dashboard" ? (
-						<Toolbar
-							filters={filters}
-							onChange={setFilters}
-							refreshing={refresh.isPending}
-							onRefresh={() => refresh.mutate("all")}
-							exportFilteredCsv={exportFilteredCsv}
-							exportDailyCsv={exportDailyCsv}
-							exportBundleJson={exportBundleJson}
-							t={t}
-						/>
+						<div className="dus-dashboard-chrome">
+							<Toolbar
+								filters={filters}
+								onChange={setFilters}
+								refreshing={refresh.isPending}
+								onRefresh={() => refresh.mutate("all")}
+								exportFilteredCsv={exportFilteredCsv}
+								exportDailyCsv={exportDailyCsv}
+								exportBundleJson={exportBundleJson}
+								t={t}
+							/>
+							{dashboardTabs.length > 0 ? (
+								<nav className="dus-tabs" aria-label={t("dashboard.title")}>
+									{dashboardTabs.map((tab) => (
+										<button
+											key={tab}
+											type="button"
+											className={`dus-tab${resolvedDashboardTab === tab ? " is-active" : ""}`}
+											aria-current={resolvedDashboardTab === tab ? "page" : undefined}
+											onClick={() => setActiveDashboardTab(tab)}
+										>
+											{t(`dashboard.tab.${tab}`)}
+										</button>
+									))}
+								</nav>
+							) : null}
+						</div>
 					) : null}
 					<main className="dus-dashboard-body">
 						{error !== null ? (
@@ -546,7 +576,9 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 										</button>
 									</div>
 								)}
-								<div className="dus-module-stack">{moduleSections}</div>
+								<div className="dus-module-stack" data-active-tab={resolvedDashboardTab ?? ""}>
+									{activeTabModules.map((moduleId) => renderModule(moduleId))}
+								</div>
 							</>
 						)}
 					</main>

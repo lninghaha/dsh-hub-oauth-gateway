@@ -17,6 +17,16 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   Settings provider-management view with independent connection, auth, model, and
   quota states.
 
+## 1.5.0
+
+### Changed
+
+- Full dashboard and Settings → Usage Center use top tabs (one panel at a time),
+  following the coding-subscription OAuth settings pattern, so modules and
+  settings no longer stack as a long waterfall.
+- Quick Peek and the full dashboard use content height with `max-height` instead
+  of fixed 760px / 900px frames; Peek account cards keep a compact scroll cap.
+
 ## 1.4.0
 
 ### Added

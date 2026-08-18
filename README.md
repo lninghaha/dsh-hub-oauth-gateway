@@ -16,7 +16,8 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 ## 功能 / Highlights
 
-- **Quick Peek + Full Dashboard**：侧栏快速查看，完整仪表盘支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
+- **Quick Peek + Full Dashboard**：侧栏快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
+- **设置页签**：Settings → 用量中心拆成显示 / 供应商 / 费用 / 凭据四个顶部标签，缩短瀑布流滚动。
 - **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
 - **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
 - **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
@@ -77,9 +78,9 @@ systemctl --user restart dsh-web.service
 ## 使用 / Usage
 
 1. 点击侧栏底部的 Usage Center，打开 Quick Peek。
-2. 进入 Full Dashboard 后选择时间范围、指标和 provider/model 维度。
+2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细，并选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
-4. 在 **Settings → Usage Center** 调整预设、密度、时区、货币、供应商显示、提醒、价格、凭据和导出隐私。
+4. 在 **Settings → Usage Center** 用顶部页签调整显示、供应商、费用与凭据/价格。
 5. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
 
 ## 运行配置 / Runtime configuration

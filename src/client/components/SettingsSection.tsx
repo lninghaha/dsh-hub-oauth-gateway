@@ -12,6 +12,7 @@ import {
 } from "../../shared/preferences.js";
 import { usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
+import { SETTINGS_TABS } from "../settings-tabs.js";
 import {
 	useAccountsQuery,
 	useCredentialImportMutation,
@@ -819,6 +820,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 		defaultUserPreferences(Intl.DateTimeFormat().resolvedOptions().timeZone),
 	);
 	const [initialized, setInitialized] = useState(false);
+	const [activeSettingsTab, setActiveSettingsTab] = useState<(typeof SETTINGS_TABS)[number]>("display");
 	useEffect(() => {
 		if (initialized || preferences.data?.ok !== true) return;
 		setDraft(preferences.data.data);
@@ -845,25 +847,52 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					{t("settings.preview")}
 				</button>
 			</div>
-			<article className="dus-settings-card">
-				<h3>{t("settings.display")}</h3>
-				<PreferenceEditor draft={draft} onChange={setDraft} accounts={accountList} t={t} />
-				<div className="dus-settings-actions">
+			<nav className="dus-settings-tabs" aria-label={t("settings.title")}>
+				{SETTINGS_TABS.map((tab) => (
 					<button
+						key={tab}
 						type="button"
-						className="dus-primary-button"
-						disabled={save.isPending}
-						onClick={() => save.mutate(draft)}
+						className={`dus-tab${activeSettingsTab === tab ? " is-active" : ""}`}
+						aria-current={activeSettingsTab === tab ? "page" : undefined}
+						onClick={() => setActiveSettingsTab(tab)}
 					>
-						{save.isPending ? t("settings.saving") : t("settings.save")}
+						{t(`settings.tab.${tab}`)}
 					</button>
-					{save.isSuccess ? <span className="dus-save-state">{t("settings.saved")}</span> : null}
+				))}
+			</nav>
+			{activeSettingsTab === "display" ? (
+				<article className="dus-settings-card" data-settings-tab="display">
+					<h3>{t("settings.display")}</h3>
+					<PreferenceEditor draft={draft} onChange={setDraft} accounts={accountList} t={t} />
+					<div className="dus-settings-actions">
+						<button
+							type="button"
+							className="dus-primary-button"
+							disabled={save.isPending}
+							onClick={() => save.mutate(draft)}
+						>
+							{save.isPending ? t("settings.saving") : t("settings.save")}
+						</button>
+						{save.isSuccess ? <span className="dus-save-state">{t("settings.saved")}</span> : null}
+					</div>
+				</article>
+			) : null}
+			{activeSettingsTab === "providers" ? (
+				<div data-settings-tab="providers">
+					<ProviderManagement t={t} />
 				</div>
-			</article>
-			<ProviderManagement t={t} />
-			<FeesEditor t={t} currency={draft.display.baseCurrency} />
-			<CredentialEditor t={t} />
-			<PricingEditor t={t} />
+			) : null}
+			{activeSettingsTab === "fees" ? (
+				<div data-settings-tab="fees">
+					<FeesEditor t={t} currency={draft.display.baseCurrency} />
+				</div>
+			) : null}
+			{activeSettingsTab === "credentials" ? (
+				<div data-settings-tab="credentials">
+					<CredentialEditor t={t} />
+					<PricingEditor t={t} />
+				</div>
+			) : null}
 		</section>
 	);
 }
