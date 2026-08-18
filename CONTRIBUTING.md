@@ -36,12 +36,15 @@ Verify in the **Cursor Cloud / local cloud workspace** with the declared Node.js
 and pnpm versions. Docker is optional, not required.
 
 ```bash
-node -v   # ^22.19 || >=24
+node -v   # must satisfy ^22.19 || >=24 — see .nvmrc; avoid /exec-daemon/node 22.14
 pnpm -v   # packageManager in package.json
 pnpm install --frozen-lockfile
 pnpm run check:next
 ```
 
+If you see `Unsupported engine ... current: {"node":"v22.14.0"...}`, switch to the
+nvm Node from `.nvmrc` (or any `22.19+` / `24+`) so that `node` and `pnpm` share
+that runtime before re-running.
 For plugin smoke tests, use an **isolated** `DSH_HOME` (never the operator’s
 personal profile), install `@deepseek-ai/dsh`, add this package to the web
 profile, and start `dsh web` on loopback.

@@ -32,6 +32,8 @@
 在云 Agent 工作区（隔离机器）上可以直接使用：
 
 - `node` / `npm` / `npx` / `pnpm`（版本对齐 `package.json` / `packageManager`）；
+  - **必须**使用 Node `^22.19.0 || >=24`（见 `.nvmrc`）。云环境若 PATH 上先出现 `/exec-daemon/node`（常为 22.14），会出现 `Unsupported engine` 警告；请先 `nvm use` / 把 nvm 的 bin 放到 PATH 最前，再跑脚本。
+  - 门禁脚本会先跑 `pnpm run assert:node`，版本不合规直接失败。
 - `tsc` / `vitest` / `biome`、`scripts/*.mjs`、`build/*.mjs`、`npm pack --dry-run`；
 - 安装 `@deepseek-ai/dsh`、向隔离 profile 安装本插件、启动 `dsh web` 做 UI/API 冒烟。
 

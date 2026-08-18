@@ -13,7 +13,9 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   contributors verify in the Cursor Cloud environment with `pnpm` gates and an
   isolated DeepSeek Harness (`DSH_HOME`) install for plugin smoke tests.
   Documented in `AGENTS.md`, `docs/00-project-rules.md`, and `CONTRIBUTING.md`.
-
+- Pin cloud/dev Node via `.nvmrc` / `.cursor/environment.json` and
+  `pnpm run assert:node` so Cursor’s `/exec-daemon/node` 22.14 no longer drives
+  `Unsupported engine` warnings during builds.
 ### Added
 
 - Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),
