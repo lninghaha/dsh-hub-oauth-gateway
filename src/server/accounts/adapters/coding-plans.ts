@@ -254,7 +254,13 @@ export const kimiTokenPlanAdapter: AccountAdapter = {
 		const apiKeyRef = ctx.spec.apiKeyRef ?? KIMI_API_KEY_REF;
 		const apiKey = await resolveCredential(ctx.credentials, apiKeyRef);
 		if (apiKey === "") {
-			return { status: "not-configured", plan: "Kimi For Coding", missingCredentials: [apiKeyRef], windows: [] };
+			return {
+				status: "not-configured",
+				plan: "Kimi For Coding",
+				missingCredentials: [apiKeyRef],
+				windows: [],
+				diagnosticCode: "missing-credential",
+			};
 		}
 		try {
 			const configured = nonEmptyUrl(ctx.spec.monitor.usageBaseURL, "/coding/v1/usages");
@@ -268,9 +274,18 @@ export const kimiTokenPlanAdapter: AccountAdapter = {
 				configured === null ? { providerBaseURL: KIMI_USAGE_URL, enforceSameOrigin: true } : undefined,
 			);
 			const parsed = parseKimi(body);
-			return { status: parsed.windows.length > 0 ? "ok" : "invalid-response", ...parsed };
+			if (parsed.windows.length === 0) {
+				return { status: "invalid-response", ...parsed, diagnosticCode: "invalid-response" };
+			}
+			return { status: "ok", ...parsed };
 		} catch (error) {
-			return { status: statusOfError(error), plan: "Kimi For Coding", windows: [] };
+			const status = statusOfError(error);
+			return {
+				status,
+				plan: "Kimi For Coding",
+				windows: [],
+				diagnosticCode: status === "unauthorized" ? "auth-error" : status,
+			};
 		}
 	},
 };

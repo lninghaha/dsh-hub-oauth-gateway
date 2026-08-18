@@ -254,12 +254,12 @@ accounts:
 | TM provider | 本仓库 adapter / 默认 | 缺口判定 | 建议优先级 |
 | --- | --- | --- | --- |
 | claude | `claude-oauth` | 已有 | — |
-| codex | `codex-wham` | 已有；缺多账号并排/切换 UI | P1-H |
+| codex | `codex-wham` | **已修**：补 `chatgpt-account-id` + `used_percent`；不做 CLI app-server spawn | — |
 | opencode | `opencode-go` | Go API 已有；TM 另读本地 OpenCode DB 限额 | P2：仅当 DSH 暴露同类本地态再考虑 |
 | cursor | `cursor-subscription` | 已有 | — |
 | antigravity | catalog `unsupported`（`dsh-agy` 外置） | **额度探测缺失** | **P1**（只读探测，不接管 OAuth） |
-| kimi | `kimi-token-plan` / `moonshot-balance` | 已有；TM 另有 Web cookie 路径 | P2：API key 路径优先；cookie 需更高门槛 |
-| grok | `grok-subscription` | 已有 | — |
+| kimi | `kimi-token-plan` / OAuth→`KIMI_API_KEY` 桥 | OAuth 已桥接 Coding usages；TM Web cookie 仍不做 | — |
+| grok | `grok-subscription` | billing + `grok.com` credits 回退；不 spawn CLI | — |
 | copilot | `copilot-device` | 已有 | — |
 | commandcode | 无 | **缺失** | P2（cookie / 非官方 internal API，稳定性与 ToS 风险高） |
 | mimo | 无 | **缺失** | P2（cookie） |

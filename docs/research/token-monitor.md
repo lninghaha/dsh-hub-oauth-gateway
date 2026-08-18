@@ -113,6 +113,19 @@ Token Monitor 是跨 30+ AI 编程工具的 **Electron 本地小窗 + 可选多�
 
 每一步都应附回归测试；涉及账户刷新与导出的变更需含负向/对抗用例（空快照覆盖、路径穿越、凭据不入库）。
 
+## Codex / Grok / Kimi 额度路径备注（本仓库实现）
+
+对照 Token Monitor Limits 后的断点与修复结论：
+
+| 供应商 | TM 主路径 | 本仓库 |
+| --- | --- | --- |
+| Codex | CLI app-server RPC + `wham/usage`（Bearer + `chatgpt-account-id`，`used_percent`） | `codex-wham` 已对齐 HTTP 头与字段；**不** spawn Codex CLI |
+| Claude | `api.anthropic.com/api/oauth/usage` | 同端点；失败看 OAuth token / 刷新 |
+| Grok | CLI RPC / `GetGrokCreditsConfig` | `cli-chat-proxy` billing，空窗回退 `grok.com/rest/grok-build/credits`；不 spawn Electron |
+| Kimi | Coding `usages` API | OAuth 会话桥到 `KIMI_API_KEY` → `kimi-token-plan`；不做 Web cookie |
+
+失败原因以脱敏 `diagnosticCode` / `warningCode` 暴露到 Providers 与账户卡，避免只能看到 `--`。
+
 ## 参考
 
 - 上游 README（中英）：`README.md` / `README.zh-CN.md`

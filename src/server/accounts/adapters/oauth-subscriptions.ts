@@ -4,9 +4,10 @@
  * authenticated with a user access token.
  */
 
+import { chatgptAccountIdFromAccessToken } from "../../coding-oauth/codex-http.js";
 import { clampPercent, nonEmptyString, numberOrNull, round1, statusOfError, toIso } from "../normalize.js";
 import { requestJson, resolveCredential } from "../transport.js";
-import type { AccountAdapter, RawQuotaWindow } from "../types.js";
+import type { AccountAdapter, AccountDeps, RawQuotaWindow } from "../types.js";
 
 const CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
@@ -14,6 +15,8 @@ const GEMINI_QUOTA_URL = "https://cloudcode-pa.googleapis.com/v1internal:retriev
 const COPILOT_USAGE_URL = "https://api.github.com/copilot_internal/user";
 const CURSOR_USAGE_URL = "https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage";
 const GROK_BILLING_URL = "https://cli-chat-proxy.grok.com/v1/billing";
+/** Token Monitor fallback shape: Grok Build billing Connect RPC on grok.com. */
+const GROK_CREDITS_URL = "https://grok.com/rest/grok-build/credits";
 const AMP_BALANCE_URL = "https://ampcode.com/api/internal";
 
 export const CLAUDE_OAUTH_TOKEN_REF = "CLAUDE_OAUTH_TOKEN";
@@ -90,7 +93,13 @@ export const claudeOauthAdapter: AccountAdapter = {
 		const tokenRef = ctx.spec.apiKeyRef ?? CLAUDE_OAUTH_TOKEN_REF;
 		const token = await resolveCredential(ctx.credentials, tokenRef);
 		if (token === "") {
-			return { status: "not-configured", plan: "Claude Subscription", missingCredentials: [tokenRef], windows: [] };
+			return {
+				status: "not-configured",
+				plan: "Claude Subscription",
+				missingCredentials: [tokenRef],
+				windows: [],
+				diagnosticCode: "missing-credential",
+			};
 		}
 		try {
 			const body = await requestJson(
@@ -109,41 +118,65 @@ export const claudeOauthAdapter: AccountAdapter = {
 			const plan =
 				nonEmptyString(root?.subscription_type ?? root?.subscriptionType ?? root?.rate_limit_tier) ??
 				"Claude Subscription";
-			return { status: windows.length > 0 ? "ok" : "invalid-response", plan, windows };
+			if (windows.length === 0) {
+				return { status: "invalid-response", plan, windows, diagnosticCode: "invalid-response" };
+			}
+			return { status: "ok", plan, windows };
 		} catch (error) {
-			return { status: statusOfError(error), plan: "Claude Subscription", windows: [] };
+			const status = statusOfError(error);
+			return {
+				status,
+				plan: "Claude Subscription",
+				windows: [],
+				diagnosticCode: status === "unauthorized" ? "auth-error" : status,
+			};
 		}
 	},
 };
 //#endregion
 
 //#region codex wham subscription
-function parseCodexUsage(body: unknown): RawQuotaWindow[] {
+function percentWindow(kind: string, usedPercent: number, resetsAt: unknown): RawQuotaWindow | null {
+	const percent = clampPercent(usedPercent);
+	if (percent === null) return null;
+	const reset = toIso(resetsAt);
+	return {
+		kind,
+		usedPercent: round1(percent),
+		remainingPercent: round1(100 - percent),
+		...(reset === null ? {} : { resetsAt: reset }),
+	};
+}
+
+/**
+ * Parse ChatGPT `wham/usage` windows.
+ * Prefer `used_percent` (official Codex shape); fall back to used/limit ratios.
+ */
+export function parseCodexUsage(body: unknown): RawQuotaWindow[] {
 	const windows: RawQuotaWindow[] = [];
 	const root = asRecord(body);
 	const rateLimit = asRecord(root?.rate_limit) ?? asRecord(root?.rateLimits);
-	if (rateLimit !== undefined) {
-		const primary = asRecord(rateLimit.primary_window) ?? asRecord(rateLimit.primaryWindow);
-		if (primary !== undefined) {
-			const used = numberOrNull(primary.used ?? primary.current);
-			const limit = numberOrNull(primary.limit ?? primary.max);
-			const window =
-				used !== null && limit !== null
-					? ratioWindow("session", used, limit, primary.reset_at ?? primary.resetAt ?? primary.resetsAt)
-					: null;
+	if (rateLimit === undefined) return windows;
+
+	const pushWindow = (kind: string, raw: Record<string, unknown> | undefined): void => {
+		if (raw === undefined) return;
+		const usedPercent = numberOrNull(raw.used_percent ?? raw.usedPercent);
+		if (usedPercent !== null) {
+			const window = percentWindow(kind, usedPercent, raw.reset_at ?? raw.resetAt ?? raw.resetsAt);
 			if (window !== null) windows.push(window);
+			return;
 		}
-		const secondary = asRecord(rateLimit.secondary_window) ?? asRecord(rateLimit.secondaryWindow);
-		if (secondary !== undefined) {
-			const used = numberOrNull(secondary.used ?? secondary.current);
-			const limit = numberOrNull(secondary.limit ?? secondary.max);
-			const window =
-				used !== null && limit !== null
-					? ratioWindow("weekly", used, limit, secondary.reset_at ?? secondary.resetAt ?? secondary.resetsAt)
-					: null;
-			if (window !== null) windows.push(window);
-		}
-	}
+		const used = numberOrNull(raw.used ?? raw.current);
+		const limit = numberOrNull(raw.limit ?? raw.max);
+		const window =
+			used !== null && limit !== null
+				? ratioWindow(kind, used, limit, raw.reset_at ?? raw.resetAt ?? raw.resetsAt)
+				: null;
+		if (window !== null) windows.push(window);
+	};
+
+	pushWindow("session", asRecord(rateLimit.primary_window) ?? asRecord(rateLimit.primaryWindow));
+	pushWindow("weekly", asRecord(rateLimit.secondary_window) ?? asRecord(rateLimit.secondaryWindow));
 	return windows;
 }
 
@@ -155,22 +188,50 @@ export const codexWhamAdapter: AccountAdapter = {
 		const tokenRef = ctx.spec.apiKeyRef ?? CODEX_ACCESS_TOKEN_REF;
 		const token = await resolveCredential(ctx.credentials, tokenRef);
 		if (token === "") {
-			return { status: "not-configured", plan: "ChatGPT Subscription", missingCredentials: [tokenRef], windows: [] };
+			return {
+				status: "not-configured",
+				plan: "ChatGPT Subscription",
+				missingCredentials: [tokenRef],
+				windows: [],
+				diagnosticCode: "missing-credential",
+			};
+		}
+		const accountId = chatgptAccountIdFromAccessToken(token);
+		if (accountId === undefined) {
+			return {
+				status: "invalid-response",
+				plan: "ChatGPT Subscription",
+				windows: [],
+				diagnosticCode: "missing-chatgpt-account-id",
+			};
 		}
 		try {
 			const body = await requestJson(
 				CODEX_USAGE_URL,
 				{
-					headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+					headers: {
+						authorization: `Bearer ${token}`,
+						"chatgpt-account-id": accountId,
+						accept: "application/json",
+					},
 				},
 				ctx.deps,
 			);
 			const windows = parseCodexUsage(body);
 			const root = asRecord(body);
 			const plan = nonEmptyString(root?.plan ?? root?.subscription_plan) ?? "ChatGPT Subscription";
-			return { status: windows.length > 0 ? "ok" : "invalid-response", plan, windows };
+			if (windows.length === 0) {
+				return { status: "invalid-response", plan, windows, diagnosticCode: "invalid-response" };
+			}
+			return { status: "ok", plan, windows };
 		} catch (error) {
-			return { status: statusOfError(error), plan: "ChatGPT Subscription", windows: [] };
+			const status = statusOfError(error);
+			return {
+				status,
+				plan: "ChatGPT Subscription",
+				windows: [],
+				diagnosticCode: status === "unauthorized" ? "auth-error" : status,
+			};
 		}
 	},
 };
@@ -372,21 +433,86 @@ export const cursorSubscriptionAdapter: AccountAdapter = {
 //#endregion
 
 //#region grok subscription
-function parseGrokBilling(body: unknown): RawQuotaWindow[] {
+function nestedNumber(value: unknown): number | null {
+	return numberOrNull(asRecord(value)?.val ?? value);
+}
+
+/** Parse cli-chat-proxy `/v1/billing` (and compatible shapes). */
+export function parseGrokBilling(body: unknown): RawQuotaWindow[] {
 	const windows: RawQuotaWindow[] = [];
-	const config = asRecord(asRecord(body)?.config);
-	if (config !== undefined) {
-		const monthlyLimit = numberOrNull(asRecord(config.monthlyLimit)?.val ?? config.monthlyLimit);
-		const used = numberOrNull(asRecord(config.used)?.val ?? config.used);
-		if (monthlyLimit !== null && used !== null && monthlyLimit > 0) {
-			const usedPercent = round1(clampPercent((used / monthlyLimit) * 100) ?? 0);
-			windows.push({ kind: "monthly", usedPercent, remainingPercent: round1(100 - usedPercent) });
-		}
+	const root = asRecord(body);
+	const config = asRecord(root?.config) ?? root;
+	if (config === undefined) return windows;
+	const monthlyLimit = nestedNumber(config.monthlyLimit ?? config.monthly_limit ?? config.limit);
+	const used = nestedNumber(config.used ?? config.usedCredits ?? config.used_credits);
+	if (monthlyLimit !== null && used !== null && monthlyLimit > 0) {
+		const usedPercent = round1(clampPercent((used / monthlyLimit) * 100) ?? 0);
+		windows.push({ kind: "monthly", usedPercent, remainingPercent: round1(100 - usedPercent) });
+		return windows;
+	}
+	const remaining = nestedNumber(config.remaining ?? config.remainingCredits ?? config.remaining_credits);
+	if (monthlyLimit !== null && remaining !== null && monthlyLimit > 0) {
+		const usedPercent = round1(clampPercent(((monthlyLimit - remaining) / monthlyLimit) * 100) ?? 0);
+		windows.push({ kind: "monthly", usedPercent, remainingPercent: round1(100 - usedPercent) });
 	}
 	return windows;
 }
 
-/** Grok subscription billing via the CLI chat proxy. */
+/**
+ * Parse Token Monitor-style Grok Build credits (`GetGrokCreditsConfig` / REST).
+ * Accepts remaining+limit or used+limit without requiring Electron CLI spawn.
+ */
+export function parseGrokCredits(body: unknown): RawQuotaWindow[] {
+	const windows: RawQuotaWindow[] = [];
+	const root = asRecord(body);
+	const config =
+		asRecord(root?.config) ?? asRecord(root?.credits) ?? asRecord(root?.creditConfig) ?? asRecord(root?.result) ?? root;
+	if (config === undefined) return windows;
+	const limit = nestedNumber(
+		config.monthlyLimit ?? config.monthly_limit ?? config.limit ?? config.total ?? config.totalCredits,
+	);
+	const remaining = nestedNumber(
+		config.remaining ?? config.remainingCredits ?? config.remaining_credits ?? config.creditsRemaining,
+	);
+	const used = nestedNumber(config.used ?? config.usedCredits ?? config.used_credits);
+	if (limit !== null && remaining !== null && limit > 0) {
+		const usedPercent = round1(clampPercent(((limit - remaining) / limit) * 100) ?? 0);
+		windows.push({ kind: "monthly", usedPercent, remainingPercent: round1(100 - usedPercent) });
+		return windows;
+	}
+	if (limit !== null && used !== null && limit > 0) {
+		const usedPercent = round1(clampPercent((used / limit) * 100) ?? 0);
+		windows.push({ kind: "monthly", usedPercent, remainingPercent: round1(100 - usedPercent) });
+	}
+	return windows;
+}
+
+function grokPlanOf(body: unknown): string {
+	const root = asRecord(body);
+	return (
+		nonEmptyString(root?.subscription_tier_display ?? root?.tier ?? root?.plan ?? asRecord(root?.config)?.tier) ??
+		"Grok Build"
+	);
+}
+
+async function fetchGrokCredits(token: string, deps: AccountDeps | undefined): Promise<unknown> {
+	return requestJson(
+		GROK_CREDITS_URL,
+		{
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${token}`,
+				accept: "application/json",
+				"content-type": "application/json",
+				"connect-protocol-version": "1",
+			},
+			body: JSON.stringify({}),
+		},
+		deps,
+	);
+}
+
+/** Grok subscription: CLI billing first, then grok.com credits REST fallback. */
 export const grokSubscriptionAdapter: AccountAdapter = {
 	id: "grok-subscription",
 	mode: "subscription",
@@ -394,8 +520,16 @@ export const grokSubscriptionAdapter: AccountAdapter = {
 		const tokenRef = ctx.spec.apiKeyRef ?? GROK_TOKEN_REF;
 		const token = await resolveCredential(ctx.credentials, tokenRef);
 		if (token === "") {
-			return { status: "not-configured", plan: "Grok Build", missingCredentials: [tokenRef], windows: [] };
+			return {
+				status: "not-configured",
+				plan: "Grok Build",
+				missingCredentials: [tokenRef],
+				windows: [],
+				diagnosticCode: "missing-credential",
+			};
 		}
+		let plan = "Grok Build";
+		let billingError: ReturnType<typeof statusOfError> | undefined;
 		try {
 			const body = await requestJson(
 				GROK_BILLING_URL,
@@ -408,12 +542,30 @@ export const grokSubscriptionAdapter: AccountAdapter = {
 				},
 				ctx.deps,
 			);
+			plan = grokPlanOf(body);
 			const windows = parseGrokBilling(body);
-			const root = asRecord(body);
-			const tier = nonEmptyString(root?.subscription_tier_display ?? root?.tier) ?? "Grok Build";
-			return { status: windows.length > 0 ? "ok" : "invalid-response", plan: tier, windows };
+			if (windows.length > 0) return { status: "ok", plan, windows };
 		} catch (error) {
-			return { status: statusOfError(error), plan: "Grok Build", windows: [] };
+			billingError = statusOfError(error);
+			if (billingError === "unauthorized") {
+				return { status: "unauthorized", plan, windows: [], diagnosticCode: "auth-error" };
+			}
+		}
+		try {
+			const creditsBody = await fetchGrokCredits(token, ctx.deps);
+			plan = grokPlanOf(creditsBody) !== "Grok Build" ? grokPlanOf(creditsBody) : plan;
+			const windows = parseGrokCredits(creditsBody);
+			if (windows.length > 0) return { status: "ok", plan, windows };
+			return { status: "invalid-response", plan, windows: [], diagnosticCode: "invalid-response" };
+		} catch (error) {
+			const status = statusOfError(error);
+			return {
+				status: billingError ?? status,
+				plan,
+				windows: [],
+				diagnosticCode:
+					status === "unauthorized" || billingError === "unauthorized" ? "auth-error" : (billingError ?? status),
+			};
 		}
 	},
 };
