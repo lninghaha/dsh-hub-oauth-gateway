@@ -86,8 +86,13 @@ export class GrokBuildSession {
 	private listingError: string | undefined;
 	private readonly cacheFile: string;
 	private onCatalogChange: (() => void) | undefined;
+	private onCredentialChange: (() => void) | undefined;
 
-	constructor(store: GrokBuildCredentialStore = new GrokBuildCredentialStore(), onCatalogChange?: () => void) {
+	constructor(
+		store: GrokBuildCredentialStore = new GrokBuildCredentialStore(),
+		onCatalogChange?: () => void,
+		onCredentialChange?: () => void,
+	) {
 		this.store = store;
 		this.cacheFile = modelsCachePath();
 		this.baselineCatalog = grokBuildBaselineModels();
@@ -96,6 +101,7 @@ export class GrokBuildSession {
 		this.models = createModels({ credentials: store });
 		this.models.setProvider(xaiProvider());
 		this.onCatalogChange = onCatalogChange;
+		this.onCredentialChange = onCredentialChange;
 	}
 
 	/** Secret-free listing diagnostic from the last refresh. */
@@ -170,6 +176,11 @@ export class GrokBuildSession {
 		}
 	}
 
+	/** Notify listeners that the stored OAuth credential changed (login / import / logout). */
+	notifyCredentialChange(): void {
+		this.onCredentialChange?.();
+	}
+
 	async setSelectedModels(ids: readonly string[]): Promise<void> {
 		const unique = [...new Set(ids.filter((id) => id.length > 0))];
 		this.selectedIds = unique.length === 0 ? undefined : unique;
@@ -199,6 +210,7 @@ export class GrokBuildSession {
 			// Credential deletion may succeed before cache cleanup fails. Always
 			// refresh discovery so an open selector cannot retain stale models.
 			this.onCatalogChange?.();
+			this.onCredentialChange?.();
 		}
 	}
 

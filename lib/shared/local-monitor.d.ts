@@ -14,9 +14,9 @@ export declare const LocalAuthToolKindSchema: z.ZodEnum<{
 export type LocalAuthToolKind = z.infer<typeof LocalAuthToolKindSchema>;
 export declare const LocalAuthCliStateSchema: z.ZodEnum<{
     unavailable: "unavailable";
-    expired: "expired";
-    "signed-in": "signed-in";
     "signed-out": "signed-out";
+    "signed-in": "signed-in";
+    expired: "expired";
 }>;
 export type LocalAuthCliState = z.infer<typeof LocalAuthCliStateSchema>;
 export declare const LocalAuthCliStatusSchema: z.ZodObject<{
@@ -29,15 +29,15 @@ export declare const LocalAuthCliStatusSchema: z.ZodObject<{
     displayPath: z.ZodString;
     state: z.ZodEnum<{
         unavailable: "unavailable";
-        expired: "expired";
-        "signed-in": "signed-in";
         "signed-out": "signed-out";
+        "signed-in": "signed-in";
+        expired: "expired";
     }>;
     expiresAt: z.ZodNullable<z.ZodNumber>;
     hasRefreshToken: z.ZodBoolean;
     reason: z.ZodNullable<z.ZodEnum<{
-        missing: "missing";
         too_large: "too_large";
+        missing: "missing";
         unsafe: "unsafe";
         invalid: "invalid";
     }>>;
@@ -68,15 +68,15 @@ export declare const LocalAuthDataSchema: z.ZodObject<{
         displayPath: z.ZodString;
         state: z.ZodEnum<{
             unavailable: "unavailable";
-            expired: "expired";
-            "signed-in": "signed-in";
             "signed-out": "signed-out";
+            "signed-in": "signed-in";
+            expired: "expired";
         }>;
         expiresAt: z.ZodNullable<z.ZodNumber>;
         hasRefreshToken: z.ZodBoolean;
         reason: z.ZodNullable<z.ZodEnum<{
-            missing: "missing";
             too_large: "too_large";
+            missing: "missing";
             unsafe: "unsafe";
             invalid: "invalid";
         }>>;
@@ -110,15 +110,15 @@ export declare const LocalAuthResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         displayPath: z.ZodString;
         state: z.ZodEnum<{
             unavailable: "unavailable";
-            expired: "expired";
-            "signed-in": "signed-in";
             "signed-out": "signed-out";
+            "signed-in": "signed-in";
+            expired: "expired";
         }>;
         expiresAt: z.ZodNullable<z.ZodNumber>;
         hasRefreshToken: z.ZodBoolean;
         reason: z.ZodNullable<z.ZodEnum<{
-            missing: "missing";
             too_large: "too_large";
+            missing: "missing";
             unsafe: "unsafe";
             invalid: "invalid";
         }>>;

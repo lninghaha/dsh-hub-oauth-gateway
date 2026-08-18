@@ -350,6 +350,8 @@ export interface CodingOAuthRuntime {
 	readonly subscriptions: readonly OAuthProviderSession[];
 	readCodexUsage(options?: { force?: boolean; signal?: AbortSignal }): Promise<unknown>;
 	currentCapabilities(): ReturnType<CapabilityRuntimeState["current"]>;
+	/** Register a listener for OAuth login / logout / CLI import (quota refresh). */
+	onCredentialChange(listener: () => void): () => void;
 }
 
 /**
@@ -370,6 +372,17 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		},
 		"dsh-coding-subscription-oauth: startup lifetime",
 	);
+	const credentialChangeListeners = new Set<() => void>();
+	const emitCredentialChange = (): void => {
+		if (!active) return;
+		for (const listener of credentialChangeListeners) {
+			try {
+				listener();
+			} catch {
+				logger.warn("an OAuth credential-change listener failed");
+			}
+		}
+	};
 	let invalidateOptionalAuthState = (): void => undefined;
 	const notifyCatalogChange = (): void => {
 		if (!active) return;
@@ -382,13 +395,19 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			logger.warn(error);
 		}
 	};
-	const grok = new GrokBuildSession(new GrokBuildCredentialStore(), notifyCatalogChange);
+	const grok = new GrokBuildSession(new GrokBuildCredentialStore(), notifyCatalogChange, emitCredentialChange);
 	const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map(
 		(definition) =>
-			new OAuthProviderSession(definition, () => {
-				if (definition.nativeProviderId === CODEX_PI_PROVIDER) invalidateOptionalAuthState();
-				notifyCatalogChange();
-			}),
+			new OAuthProviderSession(
+				definition,
+				() => {
+					if (definition.nativeProviderId === CODEX_PI_PROVIDER) invalidateOptionalAuthState();
+					notifyCatalogChange();
+				},
+				undefined,
+				undefined,
+				emitCredentialChange,
+			),
 	);
 	const codex = requireSubscription(subscriptions, CODEX_PI_PROVIDER);
 	const codexAuth = codexAuthFromSession(codex);
@@ -498,6 +517,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			onImported: (event) => {
 				if (event.kind === "codex") invalidateOptionalAuthState();
 				notifyCatalogChange();
+				emitCredentialChange();
 			},
 		});
 	});
@@ -610,5 +630,11 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		subscriptions,
 		readCodexUsage: (options) => usage.read(options),
 		currentCapabilities: () => runtime.current(),
+		onCredentialChange(listener) {
+			credentialChangeListeners.add(listener);
+			return () => {
+				credentialChangeListeners.delete(listener);
+			};
+		},
 	};
 }

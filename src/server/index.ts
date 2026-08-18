@@ -1,6 +1,11 @@
 import type { UsageQuery } from "../shared/domain.js";
 import { defaultUserPreferences } from "../shared/preferences.js";
 import { validateAccountConfig } from "./accounts/config.js";
+import {
+	createOAuthQuotaCredentialBridge,
+	OAUTH_QUOTA_ACCOUNT_IDS,
+	oauthTokenSourceFromRuntime,
+} from "./accounts/oauth-credential-bridge.js";
 import { AccountAdapterRegistry } from "./accounts/registry.js";
 import { AccountSnapshotRepository } from "./accounts/repository.js";
 import { AccountService } from "./accounts/service.js";
@@ -185,8 +190,12 @@ export async function apply(
 			? {}
 			: { oauthClientIds: { copilot: config.oauthDevice.copilotClientId } }),
 	};
+	const accountCredentials =
+		codingOAuthRuntime === undefined
+			? credentials
+			: createOAuthQuotaCredentialBridge(credentials, oauthTokenSourceFromRuntime(codingOAuthRuntime));
 	const accountService = new AccountService({
-		credentials,
+		credentials: accountCredentials,
 		getProviders: () => configuredProviders(settings),
 		config: accountConfig,
 		repository: accountSnapshots,
@@ -196,6 +205,18 @@ export async function apply(
 		deps: accountDeps,
 	});
 	await accountService.specs();
+	if (codingOAuthRuntime !== undefined) {
+		const refreshOAuthQuotas = (): void => {
+			void accountService.refresh([...OAUTH_QUOTA_ACCOUNT_IDS]).catch(() => {
+				ctx.logger.warn("usage-stats: OAuth quota refresh failed (details redacted)");
+			});
+		};
+		refreshOAuthQuotas();
+		ctx.effect(
+			() => codingOAuthRuntime.onCredentialChange(refreshOAuthQuotas),
+			"usage-stats: refresh quotas after OAuth credential change",
+		);
+	}
 	const providersApi = {
 		list: async () =>
 			collectProvidersData({

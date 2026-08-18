@@ -14,7 +14,14 @@ describe("overlay height contract", () => {
 		expect(css).toMatch(/\.dus-modal\.is-dashboard\s*\{[^}]*max-height:\s*min\(860px/s);
 		expect(css).not.toMatch(/\.dus-modal\.is-peek\s*\{[^}]*height:\s*min\(760px/s);
 		expect(css).toMatch(/\.dus-dashboard\.is-peek-layout\s*\{[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/s);
-		expect(css).toMatch(/\.dus-account-grid\.is-compact\s*\{[^}]*max-height:\s*240px/s);
+		expect(css).toMatch(/\.dus-account-grid\.is-compact\s*\{[^}]*max-height:\s*320px/s);
 		expect(css).toMatch(/\.dus-settings\s*\{[^}]*max-width:\s*780px/s);
+	});
+
+	it("keeps peek KPI cards compact in a single four-column row", () => {
+		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4/s);
+		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-card\s*\{[^}]*min-height:\s*0/s);
+		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-value\s*\{[^}]*font-size:\s*clamp\(15px/s);
+		expect(css).toMatch(/\.dus-status\s*\{[^}]*text-transform:\s*none/s);
 	});
 });
