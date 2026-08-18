@@ -12,7 +12,6 @@ import {
 } from "../../shared/preferences.js";
 import { usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
-import { SETTINGS_TABS } from "../settings-tabs.js";
 import {
 	useAccountsQuery,
 	useCredentialImportMutation,
@@ -28,6 +27,7 @@ import {
 	useSetCredentialMutation,
 	useUnsetCredentialMutation,
 } from "../queries.js";
+import { SETTINGS_TABS } from "../settings-tabs.js";
 import { ProviderManagement } from "./ProviderManagement.js";
 
 type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;

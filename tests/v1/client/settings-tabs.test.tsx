@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen } from "@testing-library/react";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsSection } from "../../../src/client/components/SettingsSection.js";
@@ -8,7 +9,9 @@ import { en } from "../../../src/client/locales.js";
 import { defaultUserPreferences } from "../../../src/shared/preferences.js";
 
 vi.mock("../../../src/client/queries.js", async () => {
-	const actual = await vi.importActual<typeof import("../../../src/client/queries.js")>("../../../src/client/queries.js");
+	const actual = await vi.importActual<typeof import("../../../src/client/queries.js")>(
+		"../../../src/client/queries.js",
+	);
 	return {
 		...actual,
 		usePreferencesQuery: () => ({

@@ -1,10 +1,10 @@
 import { Modal } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { OverviewData, UsageAlert } from "../../shared/contracts.js";
 import type { UsageMetric } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
-import { defaultUserPreferences, effectiveModules, type DashboardModuleId } from "../../shared/preferences.js";
+import { type DashboardModuleId, defaultUserPreferences, effectiveModules } from "../../shared/preferences.js";
 import { UsageStatsApiError } from "../api.js";
 import { usageUiController, useUsageUi } from "../controller.js";
 import {
@@ -399,9 +399,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 							</span>
 						</div>
 						{series.error !== null ? (
-							<div className="dus-error">
-								{t("dashboard.error", { message: errorMessage(t, series.error) ?? "" })}
-							</div>
+							<div className="dus-error">{t("dashboard.error", { message: errorMessage(t, series.error) ?? "" })}</div>
 						) : seriesData === null ? (
 							<div className="dus-chart-empty">{t("dashboard.loading")}</div>
 						) : (
@@ -466,7 +464,9 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 	};
 
 	const activeTabModules =
-		resolvedDashboardTab === null ? [] : modulesForDashboardTab(resolvedDashboardTab).filter((id) => modules.includes(id));
+		resolvedDashboardTab === null
+			? []
+			: modulesForDashboardTab(resolvedDashboardTab).filter((id) => modules.includes(id));
 
 	return (
 		<div className="dus-overlay-root">
