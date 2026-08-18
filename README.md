@@ -26,7 +26,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 - **CSV / JSON 导出**：遵循当前过滤条件；可隐藏会话标识，CSV 自动防御电子表格公式注入。
 - **中英文界面**：复用 DSH UI、locale、layout、settings、sidebar 和 slots 服务。
 
-产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md) 与 [`docs/research/token-monitor.md`](docs/research/token-monitor.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。
+产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)、[`docs/research/token-monitor.md`](docs/research/token-monitor.md) 与 [`docs/research/token-monitor-supplement-proposal.md`](docs/research/token-monitor-supplement-proposal.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 要求 / Requirements
 

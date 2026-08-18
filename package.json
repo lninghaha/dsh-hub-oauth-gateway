@@ -50,7 +50,8 @@
     "docs/configuration.md",
     "docs/migration-v1.md",
     "docs/research/usage-analytics-landscape.md",
-    "docs/research/token-monitor.md"
+    "docs/research/token-monitor.md",
+    "docs/research/token-monitor-supplement-proposal.md"
   ],
   "type": "module",
   "main": "lib/index.js",

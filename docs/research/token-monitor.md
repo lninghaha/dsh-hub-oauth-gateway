@@ -97,12 +97,17 @@ Token Monitor 是跨 30+ AI 编程工具的 **Electron 本地小窗 + 可选多�
 
 ## 建议的落地顺序（实现时）
 
+详细波次、验收标准、供应商缺口与 adapter 规格见  
+[`token-monitor-supplement-proposal.md`](./token-monitor-supplement-proposal.md)。
+
+摘要：
+
 1. Dashboard：日热力图 + streak（只读，复用现有日桶）。  
 2. 模块开关/排序（预设仍作默认模板）。  
 3. 订阅费用账本 + 回本 tooltip。  
 4. 导出日序列；视需求再做目录自动导出。  
-5. 额度自适应刷新 + lastGood 回归测试。  
-6. 多账号 profile 模型（破坏面较大，单独 minor）。
+5. 新增 `volcengine-coding-plan`、`zai-team-plan`；多 profile + lastGood 加固。  
+6. 额度自适应刷新；Antigravity 只读探测（不接管 OAuth）；Ollama 等 cookie 类仅 opt-in。
 
 每一步都应附回归测试；涉及账户刷新与导出的变更需含负向/对抗用例（空快照覆盖、路径穿越、凭据不入库）。
 
