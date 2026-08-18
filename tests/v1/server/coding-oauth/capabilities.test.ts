@@ -12,7 +12,7 @@ describe("coding OAuth capability defaults", () => {
 	it("keeps every optional flag off when YAML omits capabilities", () => {
 		const parsed = RuntimeConfigSchema.parse({});
 		expect(parsed.codingOAuth.capabilities).toBeUndefined();
-		const resolved = resolveCapabilitySettings(parsed.codingOAuth.capabilities);
+		const resolved = resolveCapabilitySettings();
 		expect(capabilityFlags(resolved)).toEqual({
 			codexSearch: false,
 			codexImages: false,

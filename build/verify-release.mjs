@@ -64,10 +64,7 @@ assert.match(clientSource.slice(0, 500), /window\.__ModuleLoader__\.load/);
 assert.equal((clientSource.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length, 1);
 assert.match(clientSource, /["']dsh-hub-oauth-gateway["']/);
 
-const SETTINGS_HTTP_MARKERS = [
-	"/plugins/dsh-grok-build/oauth/status",
-	"/plugins/dsh-grok-build/capabilities",
-];
+const SETTINGS_HTTP_MARKERS = ["/plugins/dsh-grok-build/oauth/status", "/plugins/dsh-grok-build/capabilities"];
 for (const marker of SETTINGS_HTTP_MARKERS) {
 	assert.ok(serverSource.includes(marker), `server bundle is missing Settings HTTP path ${marker}`);
 	assert.ok(clientSource.includes(marker), `client bundle is missing Settings HTTP path ${marker}`);

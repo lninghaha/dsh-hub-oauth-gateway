@@ -18,20 +18,7 @@ describe("local coding OAuth gateway defaults", () => {
 	});
 
 	it("does not listen when start is called while disabled", async () => {
-		const started = await startCodingOAuthGateway({
-			config: { enabled: false, port: 19_180 },
-			backend: {
-				listModels: async () => {
-					throw new Error("disabled gateway must not consult the backend");
-				},
-				stream: async function* () {
-					throw new Error("disabled gateway must not stream");
-				},
-				streamText: async function* () {
-					throw new Error("disabled gateway must not stream text");
-				},
-			},
-		});
+		const started = await startCodingOAuthGateway({ config: { enabled: false, port: 19_180 } });
 		expect(started).toBeUndefined();
 	});
 });
