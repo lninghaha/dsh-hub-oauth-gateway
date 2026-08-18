@@ -49,7 +49,9 @@
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/migration-v1.md",
-    "docs/research/usage-analytics-landscape.md"
+    "docs/research/usage-analytics-landscape.md",
+    "docs/research/token-monitor.md",
+    "docs/research/token-monitor-supplement-proposal.md"
   ],
   "type": "module",
   "main": "lib/index.js",
@@ -181,11 +183,6 @@
     },
     "@deepseek-ai/dsh-tools": {
       "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "@earendil-works/pi-ai": "0.84.2"
     }
   },
   "license": "MIT AND Apache-2.0"
