@@ -8,6 +8,13 @@
 Status of this tree: **Wave 1 (`1.2.0`) landed on branch `cursor/wave1-usage-ux-1be7` / PR #5.**  
 OAuth / gateway work remains parallel WIP on `main` and must not be fused into a Wave 2 usage release.
 
+> **2026-08 update (1.6.0)**: the coding-subscription OAuth module is merged into
+> `src/server/coding-oauth/` and now ships its settings UI (Accounts / Gateway /
+> Capabilities tabs) inside this plugin's settings section; the token-monitor-style
+> local auth snapshot and cross-tool usage scan landed as the opt-in
+> `localMonitor` / `localUsage` subsystem (`src/server/local-monitor/`, schema v4).
+> The rest of this document remains a Wave-1-era snapshot.
+
 ## 1. Repository identity
 
 | Item | Value |

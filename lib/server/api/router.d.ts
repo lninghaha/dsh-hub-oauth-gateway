@@ -3,6 +3,8 @@ import { type UsageAlert } from "../../shared/contracts.js";
 import type { AccountSnapshot } from "../../shared/domain.js";
 import type { ProvidersData } from "../../shared/providers.js";
 import type { FeesRepository } from "../fees/repository.js";
+import type { LocalAuthSnapshot } from "../local-monitor/auth-status.js";
+import type { LocalUsageAggregateRow } from "../local-monitor/repository.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageQueryService } from "../usage/query.js";
@@ -30,6 +32,27 @@ export interface ApiFreshness {
     partial: boolean;
     warnings: readonly string[];
 }
+export interface LocalAuthApiService {
+    snapshot(): Promise<LocalAuthSnapshot>;
+}
+export interface LocalUsageApiService {
+    tools(): readonly {
+        toolId: string;
+        displayName: string;
+        available: boolean;
+    }[];
+    aggregate(fromDay: string, toDay: string): readonly LocalUsageAggregateRow[];
+    stats(): {
+        files: number;
+        lastScanAt: number | null;
+    };
+    scan(): Promise<{
+        scannedAt: number;
+        files: number;
+        events: number;
+        skipped: number;
+    }>;
+}
 export interface UsageStatsApiDependencies {
     readonly logger: UsageStatsLogger;
     readonly projection: UsageProjectionApiService;
@@ -44,6 +67,8 @@ export interface UsageStatsApiDependencies {
     readonly alerts?: {
         list(): Promise<readonly UsageAlert[]>;
     } | undefined;
+    readonly localAuth?: LocalAuthApiService | undefined;
+    readonly localUsage?: LocalUsageApiService | undefined;
     freshness(): ApiFreshness;
     now?(): number;
 }

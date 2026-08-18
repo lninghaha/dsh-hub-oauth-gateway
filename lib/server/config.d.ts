@@ -50,6 +50,16 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             rateLimit: z.ZodDefault<z.ZodNumber>;
         }, z.core.$strict>>;
     }, z.core.$strict>>;
+    localMonitor: z.ZodDefault<z.ZodObject<{
+        enabled: z.ZodDefault<z.ZodBoolean>;
+    }, z.core.$strict>>;
+    localUsage: z.ZodDefault<z.ZodObject<{
+        enabled: z.ZodDefault<z.ZodBoolean>;
+        intervalMinutes: z.ZodDefault<z.ZodNumber>;
+        maxFileBytes: z.ZodDefault<z.ZodNumber>;
+        maxTotalBytes: z.ZodDefault<z.ZodNumber>;
+        retentionDays: z.ZodDefault<z.ZodNumber>;
+    }, z.core.$strict>>;
     debug: z.ZodDefault<z.ZodBoolean>;
 }, z.core.$strict>, z.ZodTransform<{
     accounts: {};
@@ -98,6 +108,16 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             apiKey?: string | undefined;
         } | undefined;
     };
+    localMonitor: {
+        enabled: boolean;
+    };
+    localUsage: {
+        enabled: boolean;
+        intervalMinutes: number;
+        maxFileBytes: number;
+        maxTotalBytes: number;
+        retentionDays: number;
+    };
     debug: boolean;
 }, {
     refresh: {
@@ -144,6 +164,16 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             rateLimit: number;
             apiKey?: string | undefined;
         } | undefined;
+    };
+    localMonitor: {
+        enabled: boolean;
+    };
+    localUsage: {
+        enabled: boolean;
+        intervalMinutes: number;
+        maxFileBytes: number;
+        maxTotalBytes: number;
+        retentionDays: number;
     };
     debug: boolean;
     accounts?: unknown;

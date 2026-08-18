@@ -20,6 +20,7 @@ export declare const DashboardModuleIdSchema: z.ZodEnum<{
     heatmap: "heatmap";
     trend: "trend";
     breakdown: "breakdown";
+    local: "local";
 }>;
 export type DashboardModuleId = z.infer<typeof DashboardModuleIdSchema>;
 export declare const ALL_DASHBOARD_MODULES: readonly DashboardModuleId[];
@@ -69,6 +70,7 @@ export declare const UserPreferencesSchema: z.ZodObject<{
                 heatmap: "heatmap";
                 trend: "trend";
                 breakdown: "breakdown";
+                local: "local";
             }>>;
             hidden: z.ZodArray<z.ZodEnum<{
                 accounts: "accounts";
@@ -77,6 +79,7 @@ export declare const UserPreferencesSchema: z.ZodObject<{
                 heatmap: "heatmap";
                 trend: "trend";
                 breakdown: "breakdown";
+                local: "local";
             }>>;
         }, z.core.$strict>>;
         modulesCustomized: z.ZodDefault<z.ZodBoolean>;
