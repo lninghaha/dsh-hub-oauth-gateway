@@ -70,6 +70,14 @@ npx --yes dsh-hub-oauth-gateway-install --check
 
 未发布改动、需要跟 GitHub `main`、或本仓库开发冒烟时，再使用 Git 引用或本地路径，例如 `github:lninghaha/dsh-hub-oauth-gateway` 或 `"$PWD"`（见下文验证节）。
 
+也可以从 [GitHub Releases](https://github.com/lninghaha/dsh-hub-oauth-gateway/releases) 下载该版本附带的 `dsh-hub-oauth-gateway-<version>.tgz`，交给 Agent 或本地直接安装（无需再构建）：
+
+```bash
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.6.0.tgz
+```
+
+正式发版时每个 GitHub Release **必须**附带与 npm 包一致的该 `.tgz` 资产（见 [`AGENTS.md`](AGENTS.md) §8）。
+
 兼容安装器会原子替换 `~/.dsh/profiles/node_modules/dsh-hub-oauth-gateway`，并幂等维护 `profiles/web/cordis.patch.yml`。包目录和 Cordis patch 会一起备份到最终校验完成；任一步失败都会完整回滚。如果检测到 `dsh.profile.bundles` 已注册本插件，或 web profile 清单无法严格解析，它会拒绝修改并要求改用插件管理器，避免 bundle 与手工 Cordis entry 重复挂载。
 
 安装或升级后需要由用户自行选择时机重启 Web：

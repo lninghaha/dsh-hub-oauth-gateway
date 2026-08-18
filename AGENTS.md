@@ -7,7 +7,7 @@
 - 开始和结束时检查 `git status`，识别并保留用户已有修改；不得回滚、覆盖、暂存或格式化无关文件。
 - 禁止使用 `git reset --hard`、`git clean -fdx`、强制推送等破坏性命令。
 - 未经用户明确要求，不得执行 `git commit`、`git push`、创建或移动 tag、创建 GitHub Release、`npm publish` 等外部写操作。
-- **npm 发布例外见第 8 节**：即使操作者要求发布，Agent 也不得在云环境代为完成 npm 认证或执行 `npm publish`；必须给出可在云终端由操作者本人执行的命令。
+- **npm / GitHub 发版例外见第 8 节**：即使操作者要求发布，Agent 也不得在云环境代为完成 npm 认证、`npm publish`、或创建带资产的 GitHub Release；必须给出可在云终端由操作者本人执行的命令。GitHub Release **必须**附带 `dsh-hub-oauth-gateway-<version>.tgz`，供用户下载后直接交给 Agent 安装。
 - 修改范围必须与当前任务直接相关。不要借机新增 CI、模板、发布脚本、Dockerfile、治理文档或重构其他模块；确有必要时先说明并征得用户同意。
 
 ## 2. 开源发布与隐私边界
@@ -105,20 +105,23 @@
 - 对用户本机实例，Agent 应明确提示“尚未重启，当前运行实例仍使用旧代码”，除非用户明确要求代为重启。
 - 用户完成重启并明确要求检查后，Agent 可以执行只读状态、HTTP、bundle 和 API 健康检查。
 
-## 8. npm 发布（由操作者在云终端执行）
+## 8. 发版上架（由操作者在云终端执行）
 
-Cursor Cloud Agent **无法**在云环境完成 npm 认证（无可用交互登录、默认无 `NPM_TOKEN` / `NODE_AUTH_TOKEN`、不得把真实 token 写入聊天或 Git）。因此：
+Cursor Cloud Agent **无法**可靠完成 npm / GitHub 发版所需的认证与外部写操作（无默认 `NPM_TOKEN`、`gh` 对 Agent 侧为只读或不具备代发权限、不得把真实 token 写入聊天或 Git）。因此：
 
-- Agent **禁止**执行 `npm login` / `npm adduser` / `npm publish`，也禁止代写含真实 token 的 `~/.npmrc`。
-- Agent **可以**跑门禁与打包审阅：`pnpm run check`、`pnpm run release:inspect`、`pnpm run release:pack`（本地 `output/*.tgz`，不发布）。
-- **每当操作者要求发布版本**（含“发 npm”“publish”“打正式包并上架”等），Agent **必须**在回复中给出可直接粘贴到 **云平台终端** 执行的完整命令，且：
+- Agent **禁止**执行 `npm login` / `npm adduser` / `npm publish`，禁止代写含真实 token 的 `~/.npmrc`，也 **禁止**代为创建/上传 GitHub Release 资产。
+- Agent **可以**跑门禁与本地打包：`pnpm run check`、`pnpm run release:inspect`、`pnpm run release:pack`（写出 `output/dsh-hub-oauth-gateway-<version>.tgz`，不发布）。
+- **每当操作者要求发布版本**（含“发 npm”“publish”“打正式包并上架”“发 GitHub Release”等），Agent **必须**在回复中给出可直接粘贴到 **云平台终端** 执行的完整命令，且：
   - 包含 `cd /workspace`（或当时仓库根目录）；
   - 包含把合规 Node 放到 PATH 最前（见 `.nvmrc`，例如 `export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"`）；
   - 用 `package.json` 的实际 `name@version` 填版本号，不用过期示例；
   - 认证步骤只写占位符（如 `$NPM_TOKEN`），**不得**索要或回显真实 token；
-  - 发布后给出 `npm view` 核对命令。
+  - npm 发布后给出 `npm view` 核对命令；
+  - **GitHub Release 必须附带**与该版本一致的 npm 包 tarball：`output/dsh-hub-oauth-gateway-<version>.tgz`（由 `pnpm run release:pack` 生成），以便用户下载后直接交给 Agent / `dsh plugin add <tarball路径>` 安装，无需再从源码构建。
 
-推荐命令模板（Agent 按当前版本替换 `<version>`）：
+### 8.1 npm 发布命令模板
+
+（Agent 按当前版本替换 `<version>`）
 
 ```bash
 cd /workspace
@@ -139,6 +142,56 @@ npm view dsh-hub-oauth-gateway version
 npm view dsh-hub-oauth-gateway dist-tags
 ```
 
+### 8.2 GitHub Release（必须附带 `.tgz`）
+
+每个正式版本的 GitHub Release（tag `v<version>`）**必须**上传资产：
+
+- 文件名：`dsh-hub-oauth-gateway-<version>.tgz`
+- 来源：同一提交上 `pnpm run release:pack` 的产物（与 npm 上架内容一致）
+- 用途：用户下载后可直接交给 Agent，例如  
+  `dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-<version>.tgz`  
+  （安装后仍须用户自行 `dsh-web restart`）
+
+推荐命令模板（在 `main` 已包含该版本、且 npm 已上架或即将上架时）：
+
+```bash
+cd /workspace
+export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
+
+git checkout main
+git pull origin main
+
+pnpm run release:pack
+ls -lh /workspace/output/dsh-hub-oauth-gateway-<version>.tgz
+
+# 若本地尚无 annotated tag：
+git tag -a v<version> -m "v<version>"
+git push origin v<version>
+
+# 创建 Release 并附带可安装 tarball（notes 可改用 CHANGELOG 摘录）
+gh release create "v<version>" \
+  "/workspace/output/dsh-hub-oauth-gateway-<version>.tgz" \
+  --title "v<version>" \
+  --notes-file CHANGELOG.md \
+  --latest
+
+gh release view "v<version>"
+gh release download "v<version>" -p "dsh-hub-oauth-gateway-<version>.tgz" -D /tmp --clobber
+ls -lh "/tmp/dsh-hub-oauth-gateway-<version>.tgz"
+```
+
+若 Release 已存在但漏传资产，用上传补齐（不要另起一个不含 `.tgz` 的“空”Release）：
+
+```bash
+cd /workspace
+export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
+pnpm run release:pack
+gh release upload "v<version>" \
+  "/workspace/output/dsh-hub-oauth-gateway-<version>.tgz" \
+  --clobber
+gh release view "v<version>"
+```
+
 仅本地打 tarball、不上架时：
 
 ```bash
@@ -147,5 +200,3 @@ export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
 pnpm run release:pack
 ls -lh /workspace/output/dsh-hub-oauth-gateway-<version>.tgz
 ```
-
-annotated tag `v<version>` 的创建与推送同样由操作者在确认发布成功后自行执行（建议在 `main` 已包含该版本之后）。

@@ -270,16 +270,21 @@ separate from external writes.
 6. Confirm the changelog version, package version, bundle banner, and tag will
    all be identical.
 7. Only after explicit human approval, commit, create annotated tag
-   `v<version>`, push, publish to the intended npm registry, and create release
-   notes from the changelog.
-8. Verify the registry/release metadata and installation path after publishing.
+   `v<version>`, push, publish to the intended npm registry, create a GitHub
+   Release whose assets **must** include
+   `dsh-hub-oauth-gateway-<version>.tgz` (from `pnpm run release:pack`, same
+   bytes users would install via npm), and create release notes from the
+   changelog. The tarball lets users download a ready-to-install package and
+   hand it to an Agent (`dsh plugin --profile web add <tarball>`).
+8. Verify the registry/release metadata, that the Release asset is present, and
+   the installation path after publishing.
 
-**Cloud Agent npm publish:** Agents cannot complete npm authentication in Cursor
-Cloud (no interactive login, no default `NPM_TOKEN`). When a maintainer asks to
-publish, the Agent must **not** run `npm publish` / `npm login`; it must give
-copy-paste cloud-terminal commands (including `cd /workspace`, Node PATH from
-`.nvmrc`, optional `pnpm run check` / `release:inspect`, `npm publish`, and
-`npm view` verification) for the maintainer to run. Tokens stay in the
+**Cloud Agent publication:** Agents cannot complete npm authentication or create
+GitHub Releases with assets in Cursor Cloud. When a maintainer asks to publish,
+the Agent must **not** run `npm publish` / `npm login` / `gh release create`; it
+must give copy-paste cloud-terminal commands (including `cd /workspace`, Node
+PATH from `.nvmrc`, `pnpm run release:pack`, `npm publish`, and
+`gh release create … dsh-hub-oauth-gateway-<version>.tgz`). Tokens stay in the
 operator's shell or secrets store—never in chat, Git, or logs. See
 [`AGENTS.md`](../AGENTS.md) §8.
 
@@ -308,6 +313,9 @@ Before an external release, verify all of the following:
       a lifecycle script.
 - [ ] Publishing target, package name, version, tag, and release notes have
       been reviewed by a human.
+- [ ] The GitHub Release for `v<version>` attaches
+      `dsh-hub-oauth-gateway-<version>.tgz` from `pnpm run release:pack` (same
+      installable package users would get from npm).
 
 If a secret may have been exposed, stop the release, revoke/rotate it, remove
 it from pending changes and artifacts, and follow `SECURITY.md`. Rewriting Git
