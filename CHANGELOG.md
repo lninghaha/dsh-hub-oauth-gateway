@@ -7,6 +7,18 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Added
+
+- Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),
+  CLI Pull, optional Codex/Imagine capabilities, and the opt-in local API gateway
+  into this plugin. Compatibility routes, credential files, and CLI names are
+  preserved.
+- Add a unified provider catalog at `GET /api/usage-stats/v1/providers` and a
+  Settings provider-management view with independent connection, auth, model, and
+  quota states.
+
+## 1.5.1
+
 ### Changed
 
 - Verification policy: Docker sandbox is no longer required. Agents and
@@ -20,15 +32,6 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   (`dsh plugin add dsh-hub-oauth-gateway` /
   `npx dsh-hub-oauth-gateway-install`); GitHub refs and local paths remain for
   unreleased or development smoke installs.
-### Added
-
-- Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),
-  CLI Pull, optional Codex/Imagine capabilities, and the opt-in local API gateway
-  into this plugin. Compatibility routes, credential files, and CLI names are
-  preserved.
-- Add a unified provider catalog at `GET /api/usage-stats/v1/providers` and a
-  Settings provider-management view with independent connection, auth, model, and
-  quota states.
 
 ## 1.5.0
 

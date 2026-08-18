@@ -14,6 +14,8 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 >
 > **1.5.0**：完整仪表盘与 Settings → 用量中心改为顶部页签（一次只展示一块），Peek/仪表盘改为内容高度 + `max-height`，缩短瀑布流。
 >
+> **1.5.1**：公开安装说明改为优先推荐 npm 包名与 `npx dsh-hub-oauth-gateway-install`；验证改为云环境 `pnpm` + 隔离 DSH 冒烟（不再强制 Docker sandbox）。
+>
 > **路线图 / Roadmap**：在用量中心之外，本仓库计划整合编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与 API 网关能力；这些功能尚未发布。
 
 ## 功能 / Highlights
