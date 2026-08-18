@@ -36,6 +36,7 @@ import {
 import { AccountGrid } from "./AccountGrid.js";
 import { ActivityHeatmap } from "./ActivityHeatmap.js";
 import { BreakdownTable } from "./BreakdownTable.js";
+import { LocalMonitorSection } from "./LocalMonitorSection.js";
 import { UsageChart } from "./UsageChart.js";
 
 type UsageOverlayProps = PropsLocale<"usage-stats">;
@@ -428,6 +429,8 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						/>
 					</section>
 				);
+			case "local":
+				return <LocalMonitorSection t={t} key="local" />;
 			case "breakdown":
 				return (
 					<section className="dus-section dus-breakdown-section" key="breakdown">

@@ -53,6 +53,16 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             rateLimit: import("zod").ZodDefault<import("zod").ZodNumber>;
         }, import("zod/v4/core").$strict>>;
     }, import("zod/v4/core").$strict>>;
+    localMonitor: import("zod").ZodDefault<import("zod").ZodObject<{
+        enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
+    }, import("zod/v4/core").$strict>>;
+    localUsage: import("zod").ZodDefault<import("zod").ZodObject<{
+        enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
+        intervalMinutes: import("zod").ZodDefault<import("zod").ZodNumber>;
+        maxFileBytes: import("zod").ZodDefault<import("zod").ZodNumber>;
+        maxTotalBytes: import("zod").ZodDefault<import("zod").ZodNumber>;
+        retentionDays: import("zod").ZodDefault<import("zod").ZodNumber>;
+    }, import("zod/v4/core").$strict>>;
     debug: import("zod").ZodDefault<import("zod").ZodBoolean>;
 }, import("zod/v4/core").$strict>, import("zod").ZodTransform<{
     accounts: {};
@@ -101,6 +111,16 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             apiKey?: string | undefined;
         } | undefined;
     };
+    localMonitor: {
+        enabled: boolean;
+    };
+    localUsage: {
+        enabled: boolean;
+        intervalMinutes: number;
+        maxFileBytes: number;
+        maxTotalBytes: number;
+        retentionDays: number;
+    };
     debug: boolean;
 }, {
     refresh: {
@@ -147,6 +167,16 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             rateLimit: number;
             apiKey?: string | undefined;
         } | undefined;
+    };
+    localMonitor: {
+        enabled: boolean;
+    };
+    localUsage: {
+        enabled: boolean;
+        intervalMinutes: number;
+        maxFileBytes: number;
+        maxTotalBytes: number;
+        retentionDays: number;
     };
     debug: boolean;
     accounts?: unknown;

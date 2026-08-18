@@ -691,7 +691,7 @@ function recordBody(body: unknown): Record<string, unknown> {
 }
 
 function providerSlug(body: unknown): CodingOAuthProviderSlug {
-	const provider = recordBody(body)["provider"];
+	const provider = recordBody(body).provider;
 	if (provider === "grok" || provider === "codex" || provider === "kimi" || provider === "claude") return provider;
 	throw new Error("provider must be one of grok, codex, kimi, or claude");
 }
@@ -774,11 +774,11 @@ export function registerCodingOAuthRoutes(
 						const slug = providerSlug(body);
 						const value = recordBody(body);
 						if (slug === "grok") {
-							const method: GrokBuildLoginMethod = value["method"] === "device" ? "device" : "pkce";
+							const method: GrokBuildLoginMethod = value.method === "device" ? "device" : "pkce";
 							return json(res, 200, await grok.signIn(method));
 						}
 						const auth = subscription(slug);
-						const requested = value["method"];
+						const requested = value.method;
 						const method: SubscriptionLoginMethod =
 							requested === "browser" || requested === "device"
 								? requested
@@ -798,7 +798,7 @@ export function registerCodingOAuthRoutes(
 					try {
 						const body = await readJsonRequest(req);
 						const slug = providerSlug(body);
-						const code = recordBody(body)["code"];
+						const code = recordBody(body).code;
 						if (typeof code !== "string" || code.trim().length === 0) {
 							return json(res, 400, { error: "code must be a non-empty string" });
 						}
@@ -836,7 +836,7 @@ export function registerCodingOAuthRoutes(
 					try {
 						const body = await readJsonRequest(req);
 						const slug = providerSlug(body);
-						const selected = recordBody(body)["selected"];
+						const selected = recordBody(body).selected;
 						if (!Array.isArray(selected) || selected.some((id) => typeof id !== "string")) {
 							return json(res, 400, { error: "selected must be an array of model ids" });
 						}

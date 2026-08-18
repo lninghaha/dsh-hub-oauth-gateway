@@ -1,12 +1,13 @@
 import type { DashboardModuleId } from "../shared/preferences.js";
 
-export type DashboardTabId = "overview" | "activity" | "accounts" | "breakdown";
+export type DashboardTabId = "overview" | "activity" | "accounts" | "breakdown" | "local";
 
 export const DASHBOARD_TAB_ORDER: readonly DashboardTabId[] = Object.freeze([
 	"overview",
 	"activity",
 	"accounts",
 	"breakdown",
+	"local",
 ]);
 
 const TAB_MODULES: Readonly<Record<DashboardTabId, readonly DashboardModuleId[]>> = {
@@ -14,6 +15,7 @@ const TAB_MODULES: Readonly<Record<DashboardTabId, readonly DashboardModuleId[]>
 	activity: ["heatmap", "trend"],
 	accounts: ["accounts"],
 	breakdown: ["breakdown"],
+	local: ["local"],
 };
 
 export function modulesForDashboardTab(tab: DashboardTabId): readonly DashboardModuleId[] {

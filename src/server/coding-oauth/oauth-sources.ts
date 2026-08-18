@@ -285,7 +285,7 @@ export function oauthSourceProviderId(kind: OAuthSourceKind): string {
 export function resolveOAuthSourcePath(kind: OAuthSourceKind, options: OAuthSourcePathOptions = {}): string {
 	const spec = SOURCE_SPECS[kind];
 	const env = options.env ?? process.env;
-	const home = options.home ?? nonEmptyString(env["HOME"]) ?? homedir();
+	const home = options.home ?? nonEmptyString(env.HOME) ?? homedir();
 	const override = nonEmptyString(env[spec.envHome]);
 	const base = override ?? join(home, spec.defaultDir);
 	return resolve(base, spec.relativeFile);
@@ -425,20 +425,20 @@ export function parseGrokCliAuthDocument(text: string): OAuthSourceCredential {
  */
 export function parseCodexCliAuthDocument(text: string): OAuthSourceCredential {
 	const value = parseJsonObject(text, "codex CLI auth document");
-	if (nonEmptyString(value["OPENAI_API_KEY"]) !== undefined) {
+	if (nonEmptyString(value.OPENAI_API_KEY) !== undefined) {
 		throw new OAuthSourceError("invalid_document", "codex CLI auth document is an API key, not an OAuth session");
 	}
-	const mode = nonEmptyString(value["auth_mode"]);
+	const mode = nonEmptyString(value.auth_mode);
 	if (mode === "apikey" || mode === "api_key") {
 		throw new OAuthSourceError("invalid_document", "codex CLI auth document is an API key, not an OAuth session");
 	}
-	const tokens = value["tokens"];
+	const tokens = value.tokens;
 	if (!isRecord(tokens)) {
 		throw new OAuthSourceError("invalid_document", "codex CLI auth document does not contain a tokens object");
 	}
-	const access = nonEmptyString(tokens["access_token"]);
-	const refresh = nonEmptyString(tokens["refresh_token"]);
-	const idToken = nonEmptyString(tokens["id_token"]);
+	const access = nonEmptyString(tokens.access_token);
+	const refresh = nonEmptyString(tokens.refresh_token);
+	const idToken = nonEmptyString(tokens.id_token);
 	if (access === undefined || refresh === undefined || idToken === undefined) {
 		throw new OAuthSourceError(
 			"invalid_document",
@@ -450,18 +450,16 @@ export function parseCodexCliAuthDocument(text: string): OAuthSourceCredential {
 		throw new OAuthSourceError("invalid_document", "codex CLI auth document tokens do not contain a JWT exp claim");
 	}
 	const accountId =
-		nonEmptyString(tokens["account_id"]) ??
-		nonEmptyString(value["account_id"]) ??
-		chatgptAccountIdFromAccessJwt(access);
+		nonEmptyString(tokens.account_id) ?? nonEmptyString(value.account_id) ?? chatgptAccountIdFromAccessJwt(access);
 	return credentialOf(access, refresh, expires, accountId);
 }
 
 /** Kimi Code CLI document. Snake_case `access_token` / `refresh_token` / `expires_at` seconds. */
 export function parseKimiCliAuthDocument(text: string): OAuthSourceCredential {
 	const value = parseJsonObject(text, "kimi CLI auth document");
-	const access = nonEmptyString(value["access_token"]);
-	const refresh = nonEmptyString(value["refresh_token"]);
-	const expiresAt = value["expires_at"];
+	const access = nonEmptyString(value.access_token);
+	const refresh = nonEmptyString(value.refresh_token);
+	const expiresAt = value.expires_at;
 	if (access === undefined || refresh === undefined) {
 		throw new OAuthSourceError(
 			"invalid_document",
@@ -471,20 +469,20 @@ export function parseKimiCliAuthDocument(text: string): OAuthSourceCredential {
 	if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt) || expiresAt <= 0) {
 		throw new OAuthSourceError("invalid_document", "kimi CLI auth document expires_at must be positive Unix seconds");
 	}
-	const accountId = nonEmptyString(value["user_id"]);
+	const accountId = nonEmptyString(value.user_id);
 	return credentialOf(access, refresh, expiresAt * 1000, accountId);
 }
 
 /** Claude Code CLI document. `claudeAiOauth` camelCase `accessToken` / `refreshToken` / `expiresAt` ms. */
 export function parseClaudeCliAuthDocument(text: string): OAuthSourceCredential {
 	const value = parseJsonObject(text, "claude CLI auth document");
-	const nested = value["claudeAiOauth"];
+	const nested = value.claudeAiOauth;
 	if (!isRecord(nested)) {
 		throw new OAuthSourceError("invalid_document", "claude CLI auth document does not contain claudeAiOauth");
 	}
-	const access = nonEmptyString(nested["accessToken"]);
-	const refresh = nonEmptyString(nested["refreshToken"]);
-	const expiresAt = nested["expiresAt"];
+	const access = nonEmptyString(nested.accessToken);
+	const refresh = nonEmptyString(nested.refreshToken);
+	const expiresAt = nested.expiresAt;
 	if (access === undefined || refresh === undefined) {
 		throw new OAuthSourceError(
 			"invalid_document",
@@ -497,7 +495,7 @@ export function parseClaudeCliAuthDocument(text: string): OAuthSourceCredential 
 			"claude CLI auth document expiresAt must be a positive Unix millisecond value",
 		);
 	}
-	const accountId = nonEmptyString(nested["accountId"]) ?? nonEmptyString(nested["account_id"]);
+	const accountId = nonEmptyString(nested.accountId) ?? nonEmptyString(nested.account_id);
 	return credentialOf(access, refresh, expiresAt, accountId);
 }
 
@@ -830,20 +828,20 @@ function credentialWarnings(credential: OAuthSourceCredential, conflict: OAuthIm
 }
 
 function grokOidcEntry(record: Record<string, unknown>, mapKey?: string): OAuthSourceCredential | undefined {
-	const access = nonEmptyString(record["key"]);
-	const refresh = nonEmptyString(record["refresh_token"]);
+	const access = nonEmptyString(record.key);
+	const refresh = nonEmptyString(record.refresh_token);
 	if (access === undefined || refresh === undefined) return undefined;
-	const issuer = nonEmptyString(record["oidc_issuer"]) ?? "";
+	const issuer = nonEmptyString(record.oidc_issuer) ?? "";
 	// Exact normalized origin/host match. Substring checks accept
 	// `auth.x.ai.evil.example` and similar spoofs and were replaced.
 	const matchesIssuer = issuer !== "" && isApprovedGrokIssuerValue(issuer);
 	const matchesKey = mapKey !== undefined && isApprovedGrokIssuerValue(mapKey);
 	if (!matchesIssuer && !matchesKey) return undefined;
-	const expiresAt = nonEmptyString(record["expires_at"]);
+	const expiresAt = nonEmptyString(record.expires_at);
 	if (expiresAt === undefined) return undefined;
 	const expires = parseRfc3339(expiresAt);
 	if (expires === undefined) return undefined;
-	return credentialOf(access, refresh, expires, nonEmptyString(record["user_id"]));
+	return credentialOf(access, refresh, expires, nonEmptyString(record.user_id));
 }
 
 function latestGrokCredential(mapped: readonly OAuthSourceCredential[]): OAuthSourceCredential | undefined {
@@ -861,19 +859,19 @@ function parseStoredOAuthCredentialDocument(text: string): OAuthSourceCredential
 	} catch {
 		return undefined;
 	}
-	if (!isRecord(value) || value["version"] !== 1) return undefined;
+	if (!isRecord(value) || value.version !== 1) return undefined;
 	if (Object.keys(value).some((key) => key !== "version" && key !== "credential")) return undefined;
-	const raw = value["credential"];
+	const raw = value.credential;
 	if (!isRecord(raw)) return undefined;
 	const allowed = new Set(["type", "access", "refresh", "expires", "accountId"]);
 	if (Object.keys(raw).some((key) => !allowed.has(key))) return undefined;
-	if (raw["type"] !== "oauth") return undefined;
-	const access = nonEmptyString(raw["access"]);
-	const refresh = nonEmptyString(raw["refresh"]);
-	const expires = raw["expires"];
+	if (raw.type !== "oauth") return undefined;
+	const access = nonEmptyString(raw.access);
+	const refresh = nonEmptyString(raw.refresh);
+	const expires = raw.expires;
 	if (access === undefined || refresh === undefined) return undefined;
 	if (typeof expires !== "number" || !Number.isFinite(expires) || expires <= 0) return undefined;
-	const accountId = raw["accountId"];
+	const accountId = raw.accountId;
 	if (accountId !== undefined && (typeof accountId !== "string" || accountId.length === 0)) return undefined;
 	return credentialOf(access, refresh, expires, typeof accountId === "string" ? accountId : undefined);
 }
@@ -942,7 +940,7 @@ function jwtPayload(token: string): Record<string, unknown> | undefined {
 function jwtExpMs(token: string): number | undefined {
 	const payload = jwtPayload(token);
 	if (payload === undefined) return undefined;
-	const exp = payload["exp"];
+	const exp = payload.exp;
 	if (typeof exp !== "number" || !Number.isFinite(exp) || exp <= 0) return undefined;
 	return exp * 1000;
 }
@@ -952,7 +950,7 @@ function chatgptAccountIdFromAccessJwt(access: string): string | undefined {
 	if (payload === undefined) return undefined;
 	const auth = payload[OPENAI_AUTH_CLAIM];
 	if (!isRecord(auth)) return undefined;
-	return nonEmptyString(auth["chatgpt_account_id"]);
+	return nonEmptyString(auth.chatgpt_account_id);
 }
 
 function assertSafeStats(stats: Stats, role: "source" | "destination", fromLstat: boolean): void {

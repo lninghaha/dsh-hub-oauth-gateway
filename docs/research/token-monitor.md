@@ -86,9 +86,11 @@ Token Monitor 是跨 30+ AI 编程工具的 **Electron 本地小窗 + 可选多�
 | Discord Rich Presence | 外发用量摘要，隐私与范围不适配 |
 | models.dev 自动扫价 + 汇率自动换算 | 我们坚持用户显式价格与覆盖率 |
 | 按需打开 transcript 做逐 prompt / 工具调用明细 | 易滑向 prompt/response 暴露；本插件刻意排除 tracing |
-| 跨 Claude/Codex/Cursor/… 日志嗅探 | 超出 DSH 插件职责；与 tokscale 赛道重复 |
+| ~~跨 Claude/Codex/Cursor/… 日志嗅探~~ | **1.6.0 决策变更**：用户明确要求 token-monitor 式本机监控。以严格防护落地为 `localUsage`（默认关闭）：仅提取时间/模型/Token 计数、硬化读（符号链接/属主/常规文件校验 + 字节预算）、SQLite 只存按日聚合且游标为路径 SHA-256、扫描仅走后台调度或显式 mutation。Cursor 等需要 IDE 数据库的工具仍不覆盖。 |
 | 菜单栏排版作曲家 / 悬浮泡泡 / 全局快捷键 | 桌面壳能力，宿主是 DSH Web |
 | WSL `\\wsl$` 扫描 | Windows 桌面场景；DSH 本机进程不需要 |
+
+> 1.6.0 同步落地「本机认证监控」（`localMonitor`，默认关闭）：复用 OAuth 拉取的白名单硬化读，只读输出各官方 CLI 的登录态/到期/刷新能力与本插件 OAuth 会话状态，不输出令牌本体。
 
 ## 对现有文档的启示
 

@@ -269,6 +269,34 @@ Integrated coding-subscription OAuth owner. Keep this enabled after cutover so G
 
 Do not enable this owner in the same Cordis process as a live `dsh-coding-subscription-oauth` bundle. The two implementations share routes, settings, and credential files.
 
+The coding OAuth settings UI lives under **Settings → Usage Center → 订阅账号 / 网关 / 能力** (Subscriptions / Gateway / Capabilities tabs): per-provider sign-in cards (device code, browser PKCE, or pasted redirect), model selection, the allowlisted CLI credential pull wizard, gateway enable/port/key lifecycle, and the seven default-off capability switches.
+
+## `localMonitor`
+
+Token-monitor-style read-only snapshot of local CLI authentication. Default off.
+
+```yaml
+localMonitor:
+  enabled: false
+```
+
+When enabled, `GET /api/usage-stats/v1/local/auth` and the dashboard **本机 / Local** tab show, for each allowlisted official CLI (Grok, Codex, Kimi, Claude): sign-in state, token expiry, refresh-token presence, and a client-safe `~/...` display path — plus this plugin's own stored OAuth sessions. Reads reuse the OAuth-import hardened reader (no symlinks, owner-only regular files, permission and size checks). No token material, account ids, or absolute paths ever leave the process.
+
+## `localUsage`
+
+Opt-in cross-tool local usage scan (token-monitor style). Default off; scans run only on the background scheduler or an explicit `POST /api/usage-stats/v1/local/usage/scan` — never on page loads.
+
+```yaml
+localUsage:
+  enabled: false
+  intervalMinutes: 30      # 5..1440
+  maxFileBytes: 8388608    # per-file read budget
+  maxTotalBytes: 268435456 # per-run read budget
+  retentionDays: 400
+```
+
+Parsers exist for Claude Code (`~/.claude/projects`), Codex CLI (`~/.codex/sessions`), Kimi Code (`~/.kimi*/sessions`), and OpenCode (`~/.local/share/opencode/storage`). Only timestamps, model ids, and token counters are extracted; message content is never read into an event. Cursors are keyed by the SHA-256 of the file path (no absolute paths in SQLite), and per-file daily aggregates make log rotation exact instead of double counted. Aggregates are served by `GET /api/usage-stats/v1/local/usage` and shown on the dashboard **本机 / Local** tab.
+
 ## `debug`
 
 When `true`, emits a single initialization debug message. It does not enable credential, prompt, response, local-path, or raw-provider logging.

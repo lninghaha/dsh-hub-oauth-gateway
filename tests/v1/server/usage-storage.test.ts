@@ -248,7 +248,7 @@ describe("SQLite usage projection", () => {
 		}
 	});
 
-	it("upgrades schema v1 databases to v3 with account_fees and profile_id", async () => {
+	it("upgrades schema v1 databases to v4 with account_fees, profile_id, and local usage tables", async () => {
 		const directory = await mkdtemp(join(process.cwd(), "output", "database-v1-upgrade-"));
 		const path = join(directory, "v1.sqlite");
 		try {
@@ -269,7 +269,7 @@ describe("SQLite usage projection", () => {
 			const upgraded = await UsageDatabase.open(path);
 			try {
 				const version = (upgraded.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
-				expect(version).toBe(3);
+				expect(version).toBe(4);
 				const tables = (
 					upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'account_fees'").get() as
 						| { name: string }
@@ -280,6 +280,12 @@ describe("SQLite usage projection", () => {
 					name: string;
 				}>;
 				expect(columns.some((column) => column.name === "profile_id")).toBe(true);
+				const localTables = upgraded
+					.prepare(
+						"SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('local_usage_files', 'local_usage_file_days') ORDER BY name",
+					)
+					.all() as unknown as Array<{ name: string }>;
+				expect(localTables.map((table) => table.name)).toEqual(["local_usage_file_days", "local_usage_files"]);
 			} finally {
 				upgraded.close();
 			}

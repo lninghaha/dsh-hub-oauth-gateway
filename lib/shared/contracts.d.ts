@@ -20,6 +20,9 @@ export declare const API_PATHS: Readonly<{
     oauthDevicePoll: "/api/usage-stats/v1/oauth/device/poll";
     export: "/api/usage-stats/v1/export";
     health: "/api/usage-stats/v1/health";
+    localAuth: "/api/usage-stats/v1/local/auth";
+    localUsage: "/api/usage-stats/v1/local/usage";
+    localUsageScan: "/api/usage-stats/v1/local/usage/scan";
 }>;
 export declare const ExportLayoutSchema: z.ZodEnum<{
     daily: "daily";

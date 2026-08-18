@@ -15,15 +15,39 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   update related docs in the release change set (`AGENTS.md`,
   `docs/00-project-rules.md`, `CONTRIBUTING.md`).
 
+## 1.6.0
+
 ### Added
 
 - Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),
   CLI Pull, optional Codex/Imagine capabilities, and the opt-in local API gateway
   into this plugin. Compatibility routes, credential files, and CLI names are
   preserved.
+- Settings → Usage Center gains 订阅账号 / 网关 / 能力 (Subscriptions / Gateway /
+  Capabilities) tabs: per-provider OAuth sign-in cards (device code, browser
+  PKCE, pasted redirect), model selection, the allowlisted CLI credential pull
+  wizard, gateway enable/port/Bearer-key lifecycle, and the seven default-off
+  capability switches with revision-checked writes.
+- Token-monitor-style local monitoring, both default off: `localMonitor.enabled`
+  serves a read-only local CLI authentication snapshot (sign-in state, token
+  expiry, refresh presence) plus this plugin's own OAuth sessions;
+  `localUsage.enabled` incrementally scans Claude Code / Codex CLI / Kimi Code /
+  OpenCode local logs into SQLite daily aggregates (schema v4), extracted with
+  hardened reads and byte budgets. New endpoints: `GET /local/auth`,
+  `GET /local/usage`, `POST /local/usage/scan`. The dashboard gains a
+  本机 / Local tab.
 - Add a unified provider catalog at `GET /api/usage-stats/v1/providers` and a
   Settings provider-management view with independent connection, auth, model, and
   quota states.
+
+### Changed
+
+- The settings and dashboard visual layer now consumes the official DSH theme
+  alias tokens (`--dsw-alias-*`) and the platform settings row geometry (flat
+  16px rows, 36px capsule controls), following the host light/dark theme
+  instead of a private dark-only palette.
+- Fix pre-existing biome violations in the merged coding-oauth module so the
+  full `check:next` gate passes on the integrated tree.
 
 ## 1.5.1
 

@@ -279,7 +279,11 @@ Release alone do not finish a release.
 6. Confirm the changelog version, package version, bundle banner, and tag will
    all be identical.
 7. Only after explicit human approval: commit, push, create annotated tag
-   `v<version>`, and create GitHub release notes from the changelog.
+   `v<version>`, and create a GitHub Release whose assets **must** include
+   `dsh-hub-oauth-gateway-<version>.tgz` (from `pnpm run release:pack`, same
+   bytes users would install via npm), with release notes from the changelog.
+   The tarball lets users download a ready-to-install package and hand it to an
+   Agent (`dsh plugin --profile web add <tarball>`).
 8. **npm publish is mandatory** and is run by the maintainer in the **Cursor
    Cloud terminal** (OTP / 2FA). Agents must **not** execute `npm publish`;
    they must paste a complete command block (nvm Node switch +
@@ -298,9 +302,18 @@ Release alone do not finish a release.
    ```
 
 9. After publish, verify `npm view dsh-hub-oauth-gateway version` matches the
-   tag and `package.json`, and that the documented install path
-   (`dsh plugin add dsh-hub-oauth-gateway` / `npx dsh-hub-oauth-gateway-install`)
-   resolves to that version.
+   tag and `package.json`, that the GitHub Release asset is present, and that
+   the documented install path (`dsh plugin add dsh-hub-oauth-gateway` /
+   `npx dsh-hub-oauth-gateway-install`) resolves to that version.
+
+**Cloud Agent publication:** Agents cannot complete npm authentication or create
+GitHub Releases with assets in Cursor Cloud. When a maintainer asks to publish,
+the Agent must **not** run `npm publish` / `npm login` / `gh release create`; it
+must give copy-paste cloud-terminal commands (including `cd /workspace`, Node
+PATH from `.nvmrc`, `pnpm run release:pack`, `npm publish`, and
+`gh release create … dsh-hub-oauth-gateway-<version>.tgz`). Tokens stay in the
+operator's shell or secrets store—never in chat, Git, or logs. See
+[`AGENTS.md`](../AGENTS.md) §8.
 
 Release helpers may build, inspect, and export a local tarball under `output/`;
 they must never bump a version, commit, tag, push, publish, or read user
@@ -330,6 +343,9 @@ Before an external release, verify all of the following:
       been reviewed by a human.
 - [ ] Public npm publish of the same version completed; `npm view` matches
       tag / `package.json` (Git tag alone is not enough).
+- [ ] The GitHub Release for `v<version>` attaches
+      `dsh-hub-oauth-gateway-<version>.tgz` from `pnpm run release:pack` (same
+      installable package users would get from npm).
 - [ ] Install and release docs updated in the same release change set.
 
 If a secret may have been exposed, stop the release, revoke/rotate it, remove

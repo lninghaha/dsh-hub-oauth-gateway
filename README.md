@@ -16,12 +16,12 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 >
 > **1.5.1**：公开安装说明改为优先推荐 npm 包名与 `npx dsh-hub-oauth-gateway-install`；验证改为云环境 `pnpm` + 隔离 DSH 冒烟（不再强制 Docker sandbox）。
 >
-> **路线图 / Roadmap**：在用量中心之外，本仓库计划整合编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与 API 网关能力；这些功能尚未发布。
+> **1.6.0**：编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与可选本地 API 网关正式并入本插件：设置页新增 订阅账号 / 网关 / 能力 三个标签，支持 Grok Build（SuperGrok / X Premium）、ChatGPT Plus/Pro Codex、Kimi Code、Claude Pro/Max 的 OAuth 登录与模型挂接；新增 token-monitor 风格的本机监控（默认关闭）：只读本机 CLI 认证快照与跨工具本地用量扫描。
 
 ## 功能 / Highlights
 
 - **Quick Peek + Full Dashboard**：侧栏快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
-- **设置页签**：Settings → 用量中心拆成显示 / 供应商 / 费用 / 凭据四个顶部标签，缩短瀑布流滚动。
+- **设置页签**：Settings → 用量中心拆成显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用 / 凭据七个顶部标签，缩短瀑布流滚动。
 - **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
 - **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
 - **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
@@ -31,6 +31,11 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 - **账户与配额**：内置余额/订阅适配器（含 Volcengine Coding Plan、Z.ai Team、多 profile），统一显示余额、额度窗口、重置时间、陈旧/上次成功状态和健康提醒。
 - **本地软提醒**：低配额、每日估算成本、账户异常；提醒不向外发送，也不实施硬阻断。
 - **CSV / JSON 导出**：过滤结果、日序列 CSV、打包 JSON；可隐藏会话标识，CSV 自动防御电子表格公式注入；费用账本不进入默认导出。
+- **订阅 OAuth 登录**：在 设置 → 订阅账号 完成 Grok Build、Codex、Kimi Code、Claude Code 的 OAuth 授权（设备码/浏览器/PKCE 粘贴），登录后对应模型直接进入 DSH 模型选择器（标注 OAuth）；支持从本机官方 CLI 凭据单向拉取（发现 → 预览 → 确认）。
+- **可选本地 API 网关**：默认关闭的回环 OpenAI/Anthropic 兼容服务（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`），复用已登录会话，Bearer 密钥可显示/轮换；仅供本机工具使用。
+- **可选能力开关**：Codex 搜索/图像/用量/Fast 与 Grok Imagine 图像/视频默认全部关闭，在 设置 → 能力 中逐项打开并立即生效。
+- **本机认证监控（默认关闭）**：`localMonitor.enabled: true` 后，仪表盘「本机」页签只读展示白名单内官方 CLI（Grok/Codex/Kimi/Claude）的登录态、令牌到期与刷新能力，以及本插件保存的 OAuth 会话；不读取任何令牌内容。
+- **跨工具本机用量（默认关闭）**：`localUsage.enabled: true` 后，增量扫描 Claude Code / Codex CLI / Kimi Code / OpenCode 的本机会话日志，只提取时间、模型与 Token 计数（硬化读、字节预算、SQLite 聚合），绝不读取对话内容。
 - **中英文界面**：复用 DSH UI、locale、layout、settings、sidebar 和 slots 服务。
 
 产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。
@@ -65,6 +70,14 @@ npx --yes dsh-hub-oauth-gateway-install --check
 
 未发布改动、需要跟 GitHub `main`、或本仓库开发冒烟时，再使用 Git 引用或本地路径，例如 `github:lninghaha/dsh-hub-oauth-gateway` 或 `"$PWD"`（见下文验证节）。
 
+也可以从 [GitHub Releases](https://github.com/lninghaha/dsh-hub-oauth-gateway/releases) 下载该版本附带的 `dsh-hub-oauth-gateway-<version>.tgz`，交给 Agent 或本地直接安装（无需再构建）：
+
+```bash
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.6.0.tgz
+```
+
+正式发版时每个 GitHub Release **必须**附带与 npm 包一致的该 `.tgz` 资产（见 [`AGENTS.md`](AGENTS.md) §8）。
+
 兼容安装器会原子替换 `~/.dsh/profiles/node_modules/dsh-hub-oauth-gateway`，并幂等维护 `profiles/web/cordis.patch.yml`。包目录和 Cordis patch 会一起备份到最终校验完成；任一步失败都会完整回滚。如果检测到 `dsh.profile.bundles` 已注册本插件，或 web profile 清单无法严格解析，它会拒绝修改并要求改用插件管理器，避免 bundle 与手工 Cordis entry 重复挂载。
 
 安装或升级后需要由用户自行选择时机重启 Web：
@@ -84,10 +97,13 @@ systemctl --user restart dsh-web.service
 ## 使用 / Usage
 
 1. 点击侧栏底部的 Usage Center，打开 Quick Peek。
-2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细，并选择时间范围、指标和 provider/model 维度。
+2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细 / 本机，并选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
-4. 在 **Settings → Usage Center** 用顶部页签调整显示、供应商、费用与凭据/价格。
-5. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
+4. 在 **Settings → Usage Center** 用顶部页签调整显示、订阅账号、网关、能力、供应商、费用与凭据/价格。
+5. 在 **订阅账号** 页签登录 Grok Build / Codex / Kimi Code / Claude Code：远程或无头环境优先设备码；浏览器/PKCE 登录可粘贴授权码或完整回调地址。登录成功后模型选择器会自动列出对应 `(OAuth)` 路由。
+6. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
+
+CLI 等价入口：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-build` 为同一命令的别名）。
 
 ## 运行配置 / Runtime configuration
 
@@ -115,6 +131,18 @@ systemctl --user restart dsh-web.service
         # 可选。只填你自己控制或明确信任的 GitHub OAuth App 公共 client ID。
         oauthDevice:
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
+        # 编码订阅 OAuth（默认启用；disable 仅用于隔离测试）
+        codingOAuth:
+          enabled: true
+          # proxy: http://127.0.0.1:7890   # 仅代理审核过的订阅域名
+          # proxyKimi: false               # Kimi 中国流量默认直连
+          # gateway: { enabled: false, bind: 127.0.0.1, port: 18080 }
+        # token-monitor 风格本机监控（默认全部关闭）
+        localMonitor:
+          enabled: false   # 只读本机 CLI 认证快照
+        localUsage:
+          enabled: false   # 跨工具本地用量扫描（硬化读 + 字节预算）
+          intervalMinutes: 30
 ```
 
 完整字段、monitor 示例与网络策略见 [`docs/configuration.md`](docs/configuration.md)。

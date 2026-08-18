@@ -115,7 +115,7 @@ function parseServiceTiers(value: unknown): string[] {
 			typeof item === "string"
 				? optionalNonEmptyString(item)
 				: isRecord(item)
-					? optionalNonEmptyString(item["id"])
+					? optionalNonEmptyString(item.id)
 					: undefined;
 		if (id === undefined || seen.has(id)) continue;
 		seen.add(id);
@@ -127,16 +127,16 @@ function parseServiceTiers(value: unknown): string[] {
 /** Parse the live models envelope. Unknown shapes yield an empty catalog, never a hardcoded fallback. */
 export function parseCodexModelCapabilities(value: unknown): CodexModelCapability[] {
 	if (!isRecord(value)) return [];
-	const raw = value["models"];
+	const raw = value.models;
 	if (!Array.isArray(raw)) return [];
 	const models: CodexModelCapability[] = [];
 	const seen = new Set<string>();
 	for (const item of raw) {
 		if (!isRecord(item)) continue;
-		const id = optionalNonEmptyString(item["slug"]) ?? optionalNonEmptyString(item["id"]);
+		const id = optionalNonEmptyString(item.slug) ?? optionalNonEmptyString(item.id);
 		if (id === undefined || seen.has(id)) continue;
 		seen.add(id);
-		models.push({ id, serviceTiers: parseServiceTiers(item["service_tiers"]) });
+		models.push({ id, serviceTiers: parseServiceTiers(item.service_tiers) });
 	}
 	return models;
 }
@@ -154,10 +154,10 @@ export function codexRoutingHint(modelId: string, tier = DEFAULT_CODEX_SERVICE_T
 
 function modelIdOf(payload: unknown, model: unknown): string | undefined {
 	if (isRecord(model)) {
-		const id = optionalNonEmptyString(model["id"]);
+		const id = optionalNonEmptyString(model.id);
 		if (id !== undefined) return id;
 	}
-	return isRecord(payload) ? optionalNonEmptyString(payload["model"]) : undefined;
+	return isRecord(payload) ? optionalNonEmptyString(payload.model) : undefined;
 }
 
 function isFastEligible(options: CodexFastRoutingOptions | undefined, modelId: string): boolean {
@@ -185,7 +185,7 @@ export function composeCodexFastOnPayload(
 		if (!isRecord(body)) return next;
 		const modelId = modelIdOf(body, model);
 		if (modelId === undefined || !isFastEligible(options, modelId)) return next;
-		if (optionalNonEmptyString(body["service_tier"]) !== undefined) return next;
+		if (optionalNonEmptyString(body.service_tier) !== undefined) return next;
 		return { ...body, service_tier: serviceTier };
 	};
 }

@@ -78,14 +78,14 @@ export interface GrokBuildOAuthParams {
 export function resolveOAuthParams(overrides: Partial<GrokBuildOAuthParams> = {}): GrokBuildOAuthParams {
 	const env = process.env;
 	return {
-		issuer: overrides.issuer ?? env["GROK_OAUTH2_ISSUER"] ?? GROK_BUILD_OAUTH_ISSUER,
-		clientId: overrides.clientId ?? env["GROK_OAUTH2_CLIENT_ID"] ?? GROK_BUILD_OAUTH_CLIENT_ID,
-		scope: overrides.scope ?? env["GROK_OAUTH2_SCOPES"] ?? GROK_BUILD_OAUTH_SCOPE,
+		issuer: overrides.issuer ?? env.GROK_OAUTH2_ISSUER ?? GROK_BUILD_OAUTH_ISSUER,
+		clientId: overrides.clientId ?? env.GROK_OAUTH2_CLIENT_ID ?? GROK_BUILD_OAUTH_CLIENT_ID,
+		scope: overrides.scope ?? env.GROK_OAUTH2_SCOPES ?? GROK_BUILD_OAUTH_SCOPE,
 		port:
 			overrides.port ??
-			(env["GROK_OAUTH2_PORT"] !== undefined ? Number(env["GROK_OAUTH2_PORT"]) : GROK_BUILD_OAUTH_DEFAULT_PORT),
-		...((overrides.referrer ?? env["GROK_OAUTH2_REFERRER"]) !== undefined
-			? { referrer: (overrides.referrer ?? env["GROK_OAUTH2_REFERRER"]) as string }
+			(env.GROK_OAUTH2_PORT !== undefined ? Number(env.GROK_OAUTH2_PORT) : GROK_BUILD_OAUTH_DEFAULT_PORT),
+		...((overrides.referrer ?? env.GROK_OAUTH2_REFERRER) !== undefined
+			? { referrer: (overrides.referrer ?? env.GROK_OAUTH2_REFERRER) as string }
 			: {}),
 	};
 }

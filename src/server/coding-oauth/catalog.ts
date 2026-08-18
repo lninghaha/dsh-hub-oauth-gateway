@@ -32,10 +32,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function listingRows(body: unknown): unknown[] {
 	return Array.isArray(body)
 		? body
-		: isRecord(body) && Array.isArray(body["data"])
-			? body["data"]
-			: isRecord(body) && Array.isArray(body["models"])
-				? body["models"]
+		: isRecord(body) && Array.isArray(body.data)
+			? body.data
+			: isRecord(body) && Array.isArray(body.models)
+				? body.models
 				: [];
 }
 
@@ -55,8 +55,8 @@ export function thinkingLevelMapFromLiveEfforts(efforts: unknown): ThinkingLevel
 	let sawOffered = false;
 	for (const row of efforts) {
 		if (!isRecord(row)) continue;
-		const id = typeof row["id"] === "string" ? row["id"] : typeof row["value"] === "string" ? row["value"] : "";
-		const value = typeof row["value"] === "string" && row["value"].length > 0 ? row["value"] : id;
+		const id = typeof row.id === "string" ? row.id : typeof row.value === "string" ? row.value : "";
+		const value = typeof row.value === "string" && row.value.length > 0 ? row.value : id;
 		if (!isPiThinkingLevel(id) || id === "off" || value.length === 0) continue;
 		offered[id] = value;
 		sawOffered = true;
@@ -72,21 +72,21 @@ export function thinkingLevelMapFromLiveEfforts(efforts: unknown): ThinkingLevel
 
 function parseLiveRow(row: unknown): LiveModelDescriptor | undefined {
 	if (typeof row === "string" && row.length > 0) return { id: row };
-	if (!isRecord(row) || typeof row["id"] !== "string" || row["id"].length === 0) return undefined;
-	const descriptor: LiveModelDescriptor = { id: row["id"] };
-	if (typeof row["name"] === "string" && row["name"].length > 0) descriptor.name = row["name"];
-	const contextWindow = row["context_window"] ?? row["contextWindow"];
+	if (!isRecord(row) || typeof row.id !== "string" || row.id.length === 0) return undefined;
+	const descriptor: LiveModelDescriptor = { id: row.id };
+	if (typeof row.name === "string" && row.name.length > 0) descriptor.name = row.name;
+	const contextWindow = row.context_window ?? row.contextWindow;
 	if (typeof contextWindow === "number" && Number.isFinite(contextWindow) && contextWindow > 0) {
 		descriptor.contextWindow = contextWindow;
 	}
-	if (row["supports_reasoning_effort"] === false) {
+	if (row.supports_reasoning_effort === false) {
 		descriptor.reasoning = false;
 	} else {
-		const thinkingLevelMap = thinkingLevelMapFromLiveEfforts(row["reasoning_efforts"]);
+		const thinkingLevelMap = thinkingLevelMapFromLiveEfforts(row.reasoning_efforts);
 		if (thinkingLevelMap !== undefined) {
 			descriptor.reasoning = true;
 			descriptor.thinkingLevelMap = thinkingLevelMap;
-		} else if (row["supports_reasoning_effort"] === true) {
+		} else if (row.supports_reasoning_effort === true) {
 			descriptor.reasoning = true;
 		}
 	}
@@ -250,7 +250,7 @@ export async function fetchLiveModels(accessToken: string, signal?: AbortSignal)
 		throw new Error(`Grok Build model listing returned invalid JSON (HTTP ${response.status})`);
 	}
 	if (!response.ok) {
-		const code = isRecord(body) && typeof body["error"] === "string" ? body["error"] : undefined;
+		const code = isRecord(body) && typeof body.error === "string" ? body.error : undefined;
 		throw new Error(
 			`Grok Build model listing failed (HTTP ${response.status})${code === undefined ? "" : `: ${code}`}`,
 		);

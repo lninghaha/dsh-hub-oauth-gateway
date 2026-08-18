@@ -128,6 +128,19 @@ Calendar ranges and buckets use the configured IANA timezone, including DST tran
 
 Session grouping is disabled unless the privacy preference explicitly enables identifiers. When disabled, both breakdown keys and labels are anonymized.
 
+## Coding-subscription OAuth subsystem
+
+The `src/server/coding-oauth/` tree integrates the `dsh-coding-subscription-oauth` package (Apache-2.0 attribution preserved; see `docs/oauth-provenance.md`). It registers the LLM routes `grok-build`, `codex-oauth`, `kimi-code-oauth`, and `claude-code-oauth` through `ctx.llm.registerAdapter`, so signed-in subscription accounts appear in the DSH model picker marked `(OAuth)`. Grok Build uses first-party PKCE plus device-code login against `auth.x.ai` and streams from `cli-chat-proxy.grok.com`; Codex/Kimi/Claude reuse the pi-ai provider-native OAuth and refresh protocols. Credentials live in owner-only `0600` files under `${DSH_HOME}` and are never returned by any HTTP status, log, or UI surface.
+
+The settings UI (Settings → Usage Center → 订阅账号/网关/能力 tabs) talks to the plugin-owned same-origin routes under `/plugins/dsh-grok-build/*`: `oauth/status|login|code|cancel|logout|models` for the login state machines, `oauth/sources(+preview|commit|cancel)` for the two-phase allowlisted CLI credential pull, `gateway(+reveal|rotate)` for the opt-in loopback API gateway (`/v1/chat/completions`, `/v1/responses`, `/v1/messages` on a separate `node:http` listener, default off), and `capabilities` for the seven default-off optional capability switches with revision-based compare-and-swap writes. Every one of these routes requires a trusted loopback same-origin request; mutations additionally require a JSON body.
+
+## Local monitor subsystem
+
+`src/server/local-monitor/` adds the token-monitor-style local surfaces, both opt-in:
+
+- **Authentication snapshot** (`localMonitor.enabled`): reuses the OAuth-import allowlist and hardened reader to report each official CLI's sign-in state, token expiry, and refresh-token presence, alongside this plugin's own stored OAuth sessions. Only secret-free status crosses the API boundary.
+- **Cross-tool usage scan** (`localUsage.enabled`): an incremental scanner walks Claude Code, Codex CLI, Kimi Code, and OpenCode log roots with symlink/owner/regular-file checks and per-file/per-run byte budgets. Parsers extract only timestamps, model ids, and token counters. SQLite schema v4 stores per-file daily aggregates keyed by the SHA-256 of the file path, so rotation replaces a file's contribution exactly and no absolute path is ever persisted. Scans run on the scheduler or an explicit `POST /local/usage/scan`; `GET /local/usage` reads aggregates only.
+
 ## Client architecture
 
 The source client uses React 18, TanStack Query, Zod validation, and uPlot. The build emits one classic script wrapped in:
@@ -145,6 +158,8 @@ Presentation state is split between:
 - server-backed user preferences;
 - ephemeral overlay/filter state;
 - cached, schema-validated API queries.
+
+The visual layer consumes the official DSH theme alias tokens (`--dsw-alias-*`) and the platform settings row geometry (flat 16px rows, 36px capsule controls), so the plugin follows the host light/dark theme instead of shipping a private palette. Settings controls use the shared `controls.tsx` row/toggle/select primitives; the coding OAuth tabs share the same language.
 
 Optional account, alert, series, or breakdown failures degrade their own sections rather than blanking the dashboard.
 

@@ -45,8 +45,8 @@ function parseCache(text: string): string[] | undefined {
 	}
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
 	const document = value as Record<string, unknown>;
-	if (document["version"] !== MODELS_CACHE_VERSION) return undefined;
-	const selected = parseIdList(document["selected"]);
+	if (document.version !== MODELS_CACHE_VERSION) return undefined;
+	const selected = parseIdList(document.selected);
 	return selected.length === 0 ? undefined : selected;
 }
 

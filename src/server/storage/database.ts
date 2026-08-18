@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
 const APPLICATION_ID = 0x44555331;
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const SQLITE_HEADER = Buffer.from("SQLite format 3\0", "utf8");
 
 const KNOWN_TABLES = new Set([
@@ -16,6 +16,8 @@ const KNOWN_TABLES = new Set([
 	"alert_state",
 	"migration_state",
 	"account_fees",
+	"local_usage_files",
+	"local_usage_file_days",
 ]);
 
 async function createDatabaseFile(path: string): Promise<void> {
@@ -231,6 +233,33 @@ function migrateToVersionThree(db: DatabaseSync): void {
 	}
 }
 
+function migrateToVersionFour(db: DatabaseSync): void {
+	db.exec(`
+		CREATE TABLE local_usage_files (
+			file_hash TEXT PRIMARY KEY,
+			tool_id TEXT NOT NULL,
+			size INTEGER NOT NULL CHECK (size >= 0),
+			mtime INTEGER NOT NULL CHECK (mtime >= 0),
+			next_offset INTEGER NOT NULL CHECK (next_offset >= 0),
+			scanned_at INTEGER NOT NULL CHECK (scanned_at >= 0)
+		) STRICT;
+
+		CREATE TABLE local_usage_file_days (
+			file_hash TEXT NOT NULL REFERENCES local_usage_files(file_hash) ON DELETE CASCADE,
+			model_id TEXT NOT NULL,
+			day TEXT NOT NULL,
+			input_tokens INTEGER NOT NULL CHECK (input_tokens >= 0),
+			output_tokens INTEGER NOT NULL CHECK (output_tokens >= 0),
+			cache_read_tokens INTEGER NOT NULL CHECK (cache_read_tokens >= 0),
+			cache_write_tokens INTEGER NOT NULL CHECK (cache_write_tokens >= 0),
+			requests INTEGER NOT NULL CHECK (requests >= 0),
+			PRIMARY KEY (file_hash, model_id, day)
+		) STRICT;
+
+		CREATE INDEX local_usage_file_days_day_idx ON local_usage_file_days (day);
+	`);
+}
+
 function migrate(db: DatabaseSync, fromVersion: number): void {
 	if (fromVersion === SCHEMA_VERSION) return;
 	db.exec("BEGIN IMMEDIATE");
@@ -238,6 +267,7 @@ function migrate(db: DatabaseSync, fromVersion: number): void {
 		if (fromVersion < 1) migrateToVersionOne(db);
 		if (fromVersion < 2) migrateToVersionTwo(db);
 		if (fromVersion < 3) migrateToVersionThree(db);
+		if (fromVersion < 4) migrateToVersionFour(db);
 		db.exec(`PRAGMA application_id = ${APPLICATION_ID}`);
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 		db.exec("COMMIT");

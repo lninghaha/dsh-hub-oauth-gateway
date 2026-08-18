@@ -106,7 +106,7 @@ export function chatgptAccountIdFromAccessToken(accessToken: string): string | u
 		if (!isRecord(payload)) return undefined;
 		const auth = payload[OPENAI_AUTH_CLAIM];
 		if (!isRecord(auth)) return undefined;
-		return optionalNonEmptyString(auth["chatgpt_account_id"]);
+		return optionalNonEmptyString(auth.chatgpt_account_id);
 	} catch {
 		return undefined;
 	}
@@ -155,14 +155,14 @@ export function providerDetail(value: unknown): string | undefined {
 		return trimmed.length === 0 ? undefined : safeMessage(trimmed);
 	}
 	if (!isRecord(value)) return undefined;
-	const error = value["error"];
+	const error = value.error;
 	const raw =
 		typeof error === "string"
 			? error
-			: isRecord(error) && typeof error["message"] === "string"
-				? error["message"]
-				: typeof value["message"] === "string"
-					? value["message"]
+			: isRecord(error) && typeof error.message === "string"
+				? error.message
+				: typeof value.message === "string"
+					? value.message
 					: undefined;
 	return raw === undefined ? undefined : safeMessage(raw);
 }

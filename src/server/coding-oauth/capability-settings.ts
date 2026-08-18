@@ -304,16 +304,16 @@ export function normalizeCapabilitySettingsPatch(input?: unknown): CapabilitySet
 		videoArtifactTtlMs?: number;
 	} = {};
 	const flags = input as Record<string, unknown>;
-	assignFlag(patch, "codexSearch", flags["codexSearch"]);
-	assignFlag(patch, "codexImages", flags["codexImages"]);
-	assignFlag(patch, "codexImageEdits", flags["codexImageEdits"]);
-	assignFlag(patch, "codexUsage", flags["codexUsage"]);
-	assignFlag(patch, "codexFast", flags["codexFast"]);
-	assignFlag(patch, "grokImagineImage", flags["grokImagineImage"]);
-	assignFlag(patch, "grokImagineVideo", flags["grokImagineVideo"]);
-	assignLimit(patch, "searchResults", flags["searchResults"]);
-	assignLimit(patch, "imageCount", flags["imageCount"]);
-	assignLimit(patch, "videoArtifactTtlMs", flags["videoArtifactTtlMs"]);
+	assignFlag(patch, "codexSearch", flags.codexSearch);
+	assignFlag(patch, "codexImages", flags.codexImages);
+	assignFlag(patch, "codexImageEdits", flags.codexImageEdits);
+	assignFlag(patch, "codexUsage", flags.codexUsage);
+	assignFlag(patch, "codexFast", flags.codexFast);
+	assignFlag(patch, "grokImagineImage", flags.grokImagineImage);
+	assignFlag(patch, "grokImagineVideo", flags.grokImagineVideo);
+	assignLimit(patch, "searchResults", flags.searchResults);
+	assignLimit(patch, "imageCount", flags.imageCount);
+	assignLimit(patch, "videoArtifactTtlMs", flags.videoArtifactTtlMs);
 	return Object.freeze(patch);
 }
 
@@ -495,18 +495,19 @@ export class CapabilitySettingsController {
 		}
 		const normalized = normalizeCapabilitySettingsPatch(input);
 		if (mode === "update" && !hasOwnKeys(normalized)) return current;
-		const settings = this.settings!;
+		const settings = this.settings;
+		if (settings === undefined) throw new CapabilitySettingsReadOnlyError("absent");
 		try {
 			if (mode === "update") {
 				if (typeof settings.update === "function") {
 					await settings.update(CAPABILITY_SETTINGS_NAMESPACE, { ...normalized }, expectedRevision);
 				} else {
-					await this.scope!.update({ ...normalized });
+					await this.scope?.update({ ...normalized });
 				}
 			} else if (typeof settings.replace === "function") {
 				await settings.replace(CAPABILITY_SETTINGS_NAMESPACE, { ...normalized }, expectedRevision);
 			} else {
-				await this.scope!.replace({ ...normalized });
+				await this.scope?.replace({ ...normalized });
 			}
 		} catch (error) {
 			throw toConflictError(error) ?? error;

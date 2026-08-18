@@ -135,11 +135,11 @@ export function assertCodexImageCapableRoute(route: CodexImageRoute | undefined)
 function isImageAttachmentRef(value: unknown): value is ImageAttachmentRef {
 	return (
 		isRecord(value) &&
-		typeof value["attachmentId"] === "string" &&
-		typeof value["mediaType"] === "string" &&
-		typeof value["bytes"] === "number" &&
-		typeof value["width"] === "number" &&
-		typeof value["height"] === "number"
+		typeof value.attachmentId === "string" &&
+		typeof value.mediaType === "string" &&
+		typeof value.bytes === "number" &&
+		typeof value.width === "number" &&
+		typeof value.height === "number"
 	);
 }
 
@@ -153,8 +153,8 @@ export function collectCanonicalImageRefs(messages: readonly CodexDerivedMessage
 		const content = message.content;
 		if (!Array.isArray(content)) continue;
 		for (const block of content) {
-			if (!isRecord(block) || block["type"] !== "image" || !isImageAttachmentRef(block["attachment"])) continue;
-			const ref = block["attachment"];
+			if (!isRecord(block) || block.type !== "image" || !isImageAttachmentRef(block.attachment)) continue;
+			const ref = block.attachment;
 			const id = String(ref.attachmentId);
 			if (!refs.has(id)) refs.set(id, ref);
 		}
@@ -344,7 +344,7 @@ async function prepareRequest(
 		response_format: CODEX_IMAGE_RESPONSE_FORMAT,
 	};
 	if (storedReferences.length > 0) {
-		body["images"] = storedReferences.map((stored) => ({ image_url: dataUrl(stored) }));
+		body.images = storedReferences.map((stored) => ({ image_url: dataUrl(stored) }));
 	}
 	return {
 		operation: storedReferences.length === 0 ? "generate" : "edit",
@@ -361,7 +361,7 @@ async function persistEnvelope(
 	payload: unknown,
 	createdAt: number,
 ): Promise<CodexImageResult> {
-	if (!isRecord(payload) || !Array.isArray(payload["data"])) {
+	if (!isRecord(payload) || !Array.isArray(payload.data)) {
 		throw new LlmError("Codex image response was missing a data array", "SERVER");
 	}
 	const warnings: CodexImageWarning[] = [];
@@ -370,7 +370,7 @@ async function persistEnvelope(
 	const referenceBytes = prepared.storedReferences.reduce((sum, item) => sum + item.data.byteLength, 0);
 	let acceptedBytes = referenceBytes;
 	const maxGenerated = Math.max(0, limits.maxImagesPerMessage - prepared.references.length);
-	for (const [index, item] of payload["data"].entries()) {
+	for (const [index, item] of payload.data.entries()) {
 		if (images.length >= maxGenerated) {
 			warnings.push({
 				index,
@@ -379,11 +379,11 @@ async function persistEnvelope(
 			});
 			continue;
 		}
-		if (!isRecord(item) || typeof item["b64_json"] !== "string" || item["b64_json"].length === 0) {
+		if (!isRecord(item) || typeof item.b64_json !== "string" || item.b64_json.length === 0) {
 			warnings.push({ index, code: "IMAGE_DATA_MISSING", message: "Only b64_json image items are accepted." });
 			continue;
 		}
-		const encoded = item["b64_json"];
+		const encoded = item.b64_json;
 		const estimated = estimateDecodedBase64Bytes(encoded);
 		if (estimated === undefined || estimated > limits.maxImageBytes) {
 			warnings.push({

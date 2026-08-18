@@ -102,7 +102,7 @@ describe("user preferences", () => {
 	it("applies preset module templates until the layout is customized", () => {
 		const base = defaultUserPreferences("UTC");
 		const cost = applyPresetToPreferences(base, "cost");
-		expect(effectiveModules(cost)).toEqual(["kpi", "heatmap", "trend", "accounts", "breakdown"]);
+		expect(effectiveModules(cost)).toEqual(["kpi", "heatmap", "trend", "accounts", "breakdown", "local"]);
 		const customized = {
 			...cost,
 			display: {
@@ -116,7 +116,7 @@ describe("user preferences", () => {
 		};
 		const afterPreset = applyPresetToPreferences(customized, "minimal");
 		expect(afterPreset.display.preset).toBe("minimal");
-		expect(effectiveModules(afterPreset)).toEqual(["kpi", "trend", "accounts", "breakdown"]);
+		expect(effectiveModules(afterPreset)).toEqual(["kpi", "trend", "accounts", "breakdown", "local"]);
 		expect(effectiveModules(resetModulesToPreset(afterPreset))).toEqual(["kpi"]);
 	});
 });

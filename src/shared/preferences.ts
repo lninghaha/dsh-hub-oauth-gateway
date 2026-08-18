@@ -20,7 +20,7 @@ export type DashboardPreset = z.infer<typeof DashboardPresetSchema>;
 export const SidebarMetricSchema = z.enum(["todayTokens", "todayCost", "lowestQuota", "alerts"]);
 export type SidebarMetric = z.infer<typeof SidebarMetricSchema>;
 
-export const DashboardModuleIdSchema = z.enum(["kpi", "heatmap", "trend", "accounts", "alerts", "breakdown"]);
+export const DashboardModuleIdSchema = z.enum(["kpi", "heatmap", "trend", "accounts", "alerts", "breakdown", "local"]);
 export type DashboardModuleId = z.infer<typeof DashboardModuleIdSchema>;
 
 export const ALL_DASHBOARD_MODULES: readonly DashboardModuleId[] = Object.freeze([
@@ -30,6 +30,7 @@ export const ALL_DASHBOARD_MODULES: readonly DashboardModuleId[] = Object.freeze
 	"accounts",
 	"alerts",
 	"breakdown",
+	"local",
 ]);
 
 export function modulesForPreset(preset: DashboardPreset): {
@@ -42,7 +43,7 @@ export function modulesForPreset(preset: DashboardPreset): {
 			: preset === "quota"
 				? ["kpi", "accounts", "alerts"]
 				: preset === "cost"
-					? ["kpi", "heatmap", "trend", "accounts", "breakdown"]
+					? ["kpi", "heatmap", "trend", "accounts", "breakdown", "local"]
 					: [...ALL_DASHBOARD_MODULES];
 	return {
 		order: [...ALL_DASHBOARD_MODULES],
