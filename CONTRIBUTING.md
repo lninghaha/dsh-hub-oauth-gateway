@@ -150,9 +150,10 @@ Maintainers perform releases according to
 
 - A release **must** publish the same SemVer to public npm; a Git tag / GitHub
   Release without npm is incomplete.
-- Agents prepare the version, docs, gates, tag, and GitHub Release, then give
-  the maintainer **cloud-terminal** commands for `npm publish` (nvm Node + OTP).
-  Agents do not run `npm publish` themselves.
+- Agents prepare the version, docs, gates, tag, pack, and GitHub Release (with
+  `dsh-hub-oauth-gateway-<version>.tgz`). The maintainer only runs three cloud
+  terminal commands: `cd` → `npm login` → `pnpm run release:publish`. Agents do
+  not run `npm login` / `npm publish`, and must not paste longer publish scripts.
 - Every GitHub Release for a version **must** attach
   `dsh-hub-oauth-gateway-<version>.tgz` so users can download a ready-to-install
   package and hand it to an Agent (see [`docs/00-project-rules.md`](docs/00-project-rules.md) §8).

@@ -7,6 +7,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Narrow maintainer npm handoff to exactly three cloud-terminal commands
+  (`cd` → `npm login` → `pnpm run release:publish`). Agents complete gates,
+  pack, tag, and the GitHub Release with `.tgz`; they must not paste longer
+  nvm/`gh` publish scripts. Added `scripts/release-publish.mjs` /
+  `pnpm run release:publish`.
+
 ## 1.6.1
 
 ### Changed

@@ -284,37 +284,35 @@ Release alone do not finish a release.
    bytes users would install via npm), with release notes from the changelog.
    The tarball lets users download a ready-to-install package and hand it to an
    Agent (`dsh plugin --profile web add <tarball>`).
-8. **npm publish is mandatory** and is run by the maintainer in the **Cursor
-   Cloud terminal** (OTP / 2FA). Agents must **not** execute `npm publish`;
-   they must paste a complete command block (nvm Node switch +
-   `npm publish --access public --otp=<code>` + `npm view` check) for the
-   maintainer to run. Example shape:
+8. **npm publish is mandatory** and is the **only** step that requires the
+   maintainer’s interactive cloud-terminal copy-paste. After the Agent finishes
+   gates, tag, pack, and the GitHub Release (with
+   `dsh-hub-oauth-gateway-<version>.tgz`), the maintainer runs **exactly three**
+   commands (repo root may differ; cloud default is `/workspace`):
 
    ```bash
-   export NVM_DIR="$HOME/.nvm"
-   . "$NVM_DIR/nvm.sh"
-   nvm use --delete-prefix "$(cat .nvmrc)" --silent
-   export PATH="$NVM_DIR/versions/node/v$(cat .nvmrc)/bin:$PATH"
-   hash -r
-   node -v
-   npm publish --access public --otp=<6-digit-code>
-   npm view dsh-hub-oauth-gateway version
+   cd /workspace
+   npm login --registry https://registry.npmjs.org/
+   pnpm run release:publish
    ```
+
+   Agents must **not** run `npm login` / `npm publish`, and must **not** paste
+   longer nvm/`PATH`/`gh`/`release:pack` blocks for the maintainer to copy.
+   `pnpm run release:publish` prefers `.nvmrc` via nvm, runs `release:inspect`,
+   then `npm publish` (OTP stays in the terminal).
 
 9. After publish, verify `npm view dsh-hub-oauth-gateway version` matches the
    tag and `package.json`, that the GitHub Release asset is present, and that
    the documented install path (`dsh plugin add dsh-hub-oauth-gateway` /
    `npx dsh-hub-oauth-gateway-install`) resolves to that version.
 
-**Cloud Agent publication:** Agents cannot complete npm authentication or create
-GitHub Releases with assets in Cursor Cloud. When a maintainer asks to publish,
-the Agent must **not** run `npm publish` / `npm login` / `gh release create`; it
-must give copy-paste cloud-terminal commands (including `cd /workspace`, Node
-PATH from `.nvmrc`, `pnpm run release:pack`, `npm publish`, and
-`gh release create … dsh-hub-oauth-gateway-<version>.tgz`). Tokens stay in the
-operator's shell or secrets store—never in chat, Git, or logs. See §8 in this
-document (the repository root `AGENTS.md` is the Agent workspace copy and is not
-published in the npm package).
+**Cloud Agent publication:** Agents prepare the release end-to-end except npm
+authentication and `npm publish`. When a maintainer asks to publish, the Agent
+runs gates, pack, tag, and `gh release create|upload` (Release **must** attach
+`dsh-hub-oauth-gateway-<version>.tgz`), then replies with **only** the three
+commands in step 8. Tokens and OTP stay in the operator's shell—never in chat,
+Git, or logs. See §8 in this document (the repository root `AGENTS.md` is the
+Agent workspace copy and is not published in the npm package).
 
 Release helpers may build, inspect, and export a local tarball under `output/`;
 they must never bump a version, commit, tag, push, publish, or read user

@@ -7,8 +7,8 @@
 - 开始和结束时检查 `git status`，识别并保留用户已有修改；不得回滚、覆盖、暂存或格式化无关文件。
 - 禁止使用 `git reset --hard`、`git clean -fdx`、强制推送等破坏性命令。
 - 未经用户明确要求，不得执行 `git commit`、`git push`、创建或移动 tag、创建 GitHub Release、`npm publish` 等外部写操作。
-- **`npm publish` 一律由用户在云终端执行**（需 OTP / 2FA）。Agent **不得**代跑 `npm publish`；发版时须给出可复制的完整命令（含 nvm Node 切换），由用户粘贴执行。
-- **npm / GitHub 发版细节见第 8 节**：即使操作者要求发布，Agent 也不得在云环境代为完成 npm 认证、`npm publish`、或创建带资产的 GitHub Release；必须给出可在云终端由操作者本人执行的命令。GitHub Release **必须**附带 `dsh-hub-oauth-gateway-<version>.tgz`，供用户下载后直接交给 Agent 安装。
+- **`npm login` / `npm publish` 一律由用户在云终端执行**（容器销毁后需重新登录；publish 需 OTP / 2FA）。Agent **不得**代跑二者，也不得代写含真实 token 的 `~/.npmrc`。
+- **发版时操作者只负责三条命令**（见第 8 节）：`cd` → `npm login` → `pnpm run release:publish`。其余 Agent 能做的全部做完（门禁、打包、提交、推送、tag、带 `.tgz` 的 GitHub Release、`npm view` 核对等）。回复里给操作者的复制内容**仅这三条**，不得夹带 nvm/PATH/`gh`/`release:pack` 长脚本。
 - 修改范围必须与当前任务直接相关。不要借机新增 CI、模板、发布脚本、Dockerfile、治理文档或重构其他模块；确有必要时先说明并征得用户同意。
 
 ## 2. 开源发布与隐私边界
@@ -88,25 +88,17 @@ Agent 在用户明确要求发版时的职责：
 
 1. 准备版本：`CHANGELOG` 从 Unreleased 移入目标版本、`package.json` / `lib` banner / `build/verify-release.mjs` 等版本元数据一致。
 2. **发版阶段及时更新相关文档**：安装说明（README / migration）、规则与贡献指南中与版本或安装契约相关的段落、用户可见中英文文案；不得把文档拖到发版之后再补。
-3. 云环境跑通 `pnpm run check` 与 `pnpm run release:inspect`（Node 须满足 `.nvmrc` / engines）。
-4. 在获准后：提交、推送、`v<version>` annotated tag、GitHub Release（changelog 摘要）。
-5. **向用户给出云终端 npm 发布命令**（须先切到 nvm Node，避免 `/exec-daemon/node` 22.14），例如：
+3. 云环境跑通 `pnpm run check` 与 `pnpm run release:inspect`（Node 须满足 `.nvmrc` / engines）；需要时做隔离 DSH 冒烟。
+4. 在获准后：提交、推送、`v<version>` annotated tag、`pnpm run release:pack`，并**由 Agent 创建**附带 `dsh-hub-oauth-gateway-<version>.tgz` 的 GitHub Release（changelog 摘要）。
+5. **向用户只给出以下三条可复制命令**（仓库根按实际路径替换；默认云工作区为 `/workspace`），不得再附带其它发布脚本：
 
    ```bash
    cd /workspace
-   export NVM_DIR="$HOME/.nvm"
-   . "$NVM_DIR/nvm.sh"
-   nvm use --delete-prefix $(cat .nvmrc) --silent
-   export PATH="$NVM_DIR/versions/node/v$(cat .nvmrc)/bin:$PATH"
-   hash -r
-   node -v
-   git checkout main && git pull origin main
-   npm whoami
-   npm publish --access public --otp=<6位验证码>
-   npm view dsh-hub-oauth-gateway version
+   npm login --registry https://registry.npmjs.org/
+   pnpm run release:publish
    ```
 
-6. 用户执行后，Agent 用 `npm view` 核对 registry 版本与 tag / `package.json` 一致，并在回复中确认；不一致则不得声称发版完成。
+6. 用户执行后，Agent 用 `npm view` 核对 registry 版本与 tag / `package.json` / Release 资产一致，并在回复中确认；不一致则不得声称发版完成。
 
 ## 6. 安全不变量
 
@@ -134,44 +126,29 @@ Agent 在用户明确要求发版时的职责：
 - 对用户本机实例，Agent 应明确提示“尚未重启，当前运行实例仍使用旧代码”，除非用户明确要求代为重启。
 - 用户完成重启并明确要求检查后，Agent 可以执行只读状态、HTTP、bundle 和 API 健康检查。
 
-## 8. 发版上架（由操作者在云终端执行）
+## 8. 发版上架（操作者只跑三条命令）
 
-Cursor Cloud Agent **无法**可靠完成 npm / GitHub 发版所需的认证与外部写操作（无默认 `NPM_TOKEN`、`gh` 对 Agent 侧为只读或不具备代发权限、不得把真实 token 写入聊天或 Git）。因此：
+npm 需要交互式登录与 2FA，**且云容器销毁后需重新 `npm login`**，因此：
 
-- Agent **禁止**执行 `npm login` / `npm adduser` / `npm publish`，禁止代写含真实 token 的 `~/.npmrc`，也 **禁止**代为创建/上传 GitHub Release 资产。
-- Agent **可以**跑门禁与本地打包：`pnpm run check`、`pnpm run release:inspect`、`pnpm run release:pack`（写出 `output/dsh-hub-oauth-gateway-<version>.tgz`，不发布）。
-- **每当操作者要求发布版本**（含“发 npm”“publish”“打正式包并上架”“发 GitHub Release”等），Agent **必须**在回复中给出可直接粘贴到 **云平台终端** 执行的完整命令，且：
-  - 包含 `cd /workspace`（或当时仓库根目录）；
-  - 包含把合规 Node 放到 PATH 最前（见 `.nvmrc`，例如 `export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"`）；
-  - 用 `package.json` 的实际 `name@version` 填版本号，不用过期示例；
-  - 认证步骤只写占位符（如 `$NPM_TOKEN`），**不得**索要或回显真实 token；
-  - npm 发布后给出 `npm view` 核对命令；
-  - **GitHub Release 必须附带**与该版本一致的 npm 包 tarball：`output/dsh-hub-oauth-gateway-<version>.tgz`（由 `pnpm run release:pack` 生成），以便用户下载后直接交给 Agent / `dsh plugin add <tarball路径>` 安装，无需再从源码构建。
+- Agent **禁止**执行 `npm login` / `npm adduser` / `npm publish`，禁止代写含真实 token 的 `~/.npmrc`，**不得**向聊天索要或回显真实 token / OTP。
+- Agent **必须**自行完成其能力范围内的发版工作：`pnpm run check`、`pnpm run release:inspect`、`pnpm run release:pack`、提交/推送、annotated tag、`gh release create|upload`（Release **必须**附带 `dsh-hub-oauth-gateway-<version>.tgz`）、发布后的 `npm view` 核对。
+- **每当操作者要求发布版本**（含“发 npm”“publish”“打正式包并上架”“合并发版”等），Agent 在准备工作完成后，回复里给操作者的复制内容**只能是下面三条**（路径按仓库根替换）：
 
-### 8.1 npm 发布命令模板
-
-（Agent 按当前版本替换 `<version>`）
+### 8.1 操作者三条命令（唯一复制模板）
 
 ```bash
 cd /workspace
-export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
-node -v && pnpm -v
-
-# 操作者自行完成认证（二选一；勿把 token 贴进聊天）
-# export NPM_TOKEN='…' && printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > ~/.npmrc && chmod 600 ~/.npmrc
-# 或：npm login --registry https://registry.npmjs.org/
-npm whoami --registry https://registry.npmjs.org/
-
-pnpm run check
-pnpm run release:inspect
-
-npm publish --access public --registry https://registry.npmjs.org/
-
-npm view dsh-hub-oauth-gateway version
-npm view dsh-hub-oauth-gateway dist-tags
+npm login --registry https://registry.npmjs.org/
+pnpm run release:publish
 ```
 
-### 8.2 GitHub Release（必须附带 `.tgz`）
+说明：
+
+- `pnpm run release:publish` 会优先切到 `.nvmrc` 对应 nvm Node，再跑 `release:inspect` + `npm publish`，并打印 `npm view` 结果；OTP 在终端交互输入，勿贴进聊天。
+- Agent **不得**再附带 nvm/`PATH`/`whoami`/`gh release`/`release:pack` 等长命令块让操作者复制。
+- 若 `release:publish` 因 Node 版本失败，Agent 先在自己会话修好环境，再让操作者重跑第 3 条，而不是把 PATH 说明塞进复制清单。
+
+### 8.2 GitHub Release（必须附带 `.tgz`，由 Agent 执行）
 
 每个正式版本的 GitHub Release（tag `v<version>`）**必须**上传资产：
 
@@ -181,51 +158,10 @@ npm view dsh-hub-oauth-gateway dist-tags
   `dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-<version>.tgz`  
   （安装后仍须用户自行 `dsh-web restart`）
 
-推荐命令模板（在 `main` 已包含该版本、且 npm 已上架或即将上架时）：
+Agent 在操作者跑 npm 之前或之后创建/补齐 Release（tag 已存在则 `gh release create`；已存在但漏资产则 `gh release upload --clobber`）。**不要**把这些 `gh` 命令交给操作者复制。
+
+仅需本地 tarball、不上架时，Agent 自己执行：
 
 ```bash
-cd /workspace
-export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
-
-git checkout main
-git pull origin main
-
 pnpm run release:pack
-ls -lh /workspace/output/dsh-hub-oauth-gateway-<version>.tgz
-
-# 若本地尚无 annotated tag：
-git tag -a v<version> -m "v<version>"
-git push origin v<version>
-
-# 创建 Release 并附带可安装 tarball（notes 可改用 CHANGELOG 摘录）
-gh release create "v<version>" \
-  "/workspace/output/dsh-hub-oauth-gateway-<version>.tgz" \
-  --title "v<version>" \
-  --notes-file CHANGELOG.md \
-  --latest
-
-gh release view "v<version>"
-gh release download "v<version>" -p "dsh-hub-oauth-gateway-<version>.tgz" -D /tmp --clobber
-ls -lh "/tmp/dsh-hub-oauth-gateway-<version>.tgz"
-```
-
-若 Release 已存在但漏传资产，用上传补齐（不要另起一个不含 `.tgz` 的“空”Release）：
-
-```bash
-cd /workspace
-export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
-pnpm run release:pack
-gh release upload "v<version>" \
-  "/workspace/output/dsh-hub-oauth-gateway-<version>.tgz" \
-  --clobber
-gh release view "v<version>"
-```
-
-仅本地打 tarball、不上架时：
-
-```bash
-cd /workspace
-export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
-pnpm run release:pack
-ls -lh /workspace/output/dsh-hub-oauth-gateway-<version>.tgz
 ```
