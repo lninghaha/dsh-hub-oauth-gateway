@@ -6,6 +6,7 @@
 
 - 开始和结束时检查 `git status`，识别并保留用户已有修改；不得回滚、覆盖、暂存或格式化无关文件。
 - 禁止使用 `git reset --hard`、`git clean -fdx`、强制推送等破坏性命令。
+- **未经用户明确要求，禁止自主创建 git 分支**（含 `git checkout -b`、远程建分支、为 Cloud Agent / PR 模板自动开 `cursor/*` 分支）。默认在用户指定或当前已有分支上工作；若必须新分支才能继续，先说明原因并等待用户同意。
 - 未经用户明确要求，不得执行 `git commit`、`git push`、创建或移动 tag、创建 GitHub Release、`npm publish` 等外部写操作。
 - **`npm login` / `npm publish` 一律由用户在云终端执行**（容器销毁后需重新登录；publish 需 OTP / 2FA）。Agent **不得**代跑二者，也不得代写含真实 token 的 `~/.npmrc`。
 - **发版时操作者只负责三条命令**（见第 8 节）：`cd` → `npm login` → `pnpm run release:publish`。其余 Agent 能做的全部做完（门禁、打包、提交、推送、tag、带 `.tgz` 的 GitHub Release、`npm view` 核对等）。回复里给操作者的复制内容**仅这三条**，不得夹带 nvm/PATH/`gh`/`release:pack` 长脚本。
