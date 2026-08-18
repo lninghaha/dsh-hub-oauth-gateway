@@ -34,8 +34,8 @@ export const API_PATHS = Object.freeze({
 export const ExportLayoutSchema = z.enum(["filtered", "daily", "bundle"]);
 export type ExportLayout = z.infer<typeof ExportLayoutSchema>;
 
-export { FeesDataSchema };
 export type { AccountFeeRecord, FeesData } from "./fees.js";
+export { FeesDataSchema };
 
 export const ApiMetaSchema = z
 	.object({

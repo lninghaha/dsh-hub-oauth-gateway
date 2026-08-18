@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -132,6 +132,21 @@ try {
 	assert.equal(installed.dsh?.bundle?.patch, "./cordis.patch.yml");
 	assert.match(await readFile(join(target, "cordis.patch.yml"), "utf8"), /^\s+name:\s*dsh-hub-oauth-gateway\s*$/m);
 	assert.equal(await readFile(join(target, "lib", "index.js"), "utf8").then((text) => text.length > 1000), true);
+	const workspaceModules = join(dirname(dirname(fileURLToPath(import.meta.url))), "node_modules");
+	const installedModules = join(target, "node_modules");
+	for (const name of Object.keys(installed.peerDependencies ?? {})) {
+		if (name === "@deepseek-ai/dsh-tools") continue;
+		const source = join(workspaceModules, name);
+		const destination = join(installedModules, name);
+		try {
+			await access(source);
+		} catch {
+			continue;
+		}
+		await mkdir(dirname(destination), { recursive: true });
+		await rm(destination, { recursive: true, force: true });
+		await symlink(source, destination, "dir");
+	}
 	const plugin = await import(`${pathToFileURL(join(target, "lib", "index.js")).href}?isolated=${Date.now()}`);
 	assert.equal(plugin.name, "usage-stats");
 	assert.equal(typeof plugin.apply, "function");

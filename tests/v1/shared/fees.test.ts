@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+	type AccountFeeRecord,
 	AccountFeeRecordSchema,
 	monthlyEquivalent,
 	paybackMultiplier,
-	type AccountFeeRecord,
 } from "../../../src/shared/fees.js";
 
 function fee(overrides: Partial<AccountFeeRecord> = {}): AccountFeeRecord {

@@ -268,14 +268,12 @@ describe("SQLite usage projection", () => {
 			});
 			const upgraded = await UsageDatabase.open(path);
 			try {
-				const version = (
-					upgraded.prepare("PRAGMA user_version").get() as { user_version: number }
-				).user_version;
+				const version = (upgraded.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
 				expect(version).toBe(2);
 				const tables = (
-					upgraded
-						.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'account_fees'")
-						.get() as { name: string } | undefined
+					upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'account_fees'").get() as
+						| { name: string }
+						| undefined
 				)?.name;
 				expect(tables).toBe("account_fees");
 			} finally {

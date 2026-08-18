@@ -12,10 +12,10 @@ import {
 	PricingDataSchema,
 	SeriesDataSchema,
 } from "../shared/contracts.js";
-import { ProvidersDataSchema } from "../shared/providers.js";
 import type { PriceRule } from "../shared/domain.js";
 import type { FeesData } from "../shared/fees.js";
 import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
+import { ProvidersDataSchema } from "../shared/providers.js";
 import { fetchApi, mutateApi } from "./api.js";
 import { queryString, type ResolvedUsageQuery } from "./range.js";
 

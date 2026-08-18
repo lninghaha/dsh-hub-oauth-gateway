@@ -19,10 +19,7 @@ function weekdayOf(dateKey: string): number {
 	return new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, day ?? 1)).getUTCDay();
 }
 
-function dayValue(
-	day: { tokens: number; cost: number | null; requests: number },
-	metric: string,
-): number {
+function dayValue(day: { tokens: number; cost: number | null; requests: number }, metric: string): number {
 	if (metric === "estimatedCost") return day.cost ?? 0;
 	if (metric === "requests") return day.requests;
 	return day.tokens;

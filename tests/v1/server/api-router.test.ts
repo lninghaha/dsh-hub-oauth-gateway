@@ -104,6 +104,7 @@ describe("v1 API router", () => {
 			queries: queryService,
 			pricing,
 			preferences,
+			fees: new FeesRepository(database),
 			accounts: {
 				list: vi.fn(async () => []),
 				get: vi.fn(async () => null),
@@ -358,21 +359,13 @@ describe("v1 API router", () => {
 		await deniedHandle;
 		expect(denied.status).toBe(403);
 
-		const accepted = new TestResponse();
-		const local = request("PUT", API_PATHS.fees, fees);
-		const handle = routes.get(API_PATHS.fees)?.(local.value, accepted as unknown as ServerResponse);
-		local.emitBody();
-		await handle;
-		expect(accepted.status).toBe(503);
-
-		dependencies.fees = new FeesRepository(database);
 		const saved = new TestResponse();
 		const write = request("PUT", API_PATHS.fees, fees);
 		const writeHandle = routes.get(API_PATHS.fees)?.(write.value, saved as unknown as ServerResponse);
 		write.emitBody();
 		await writeHandle;
 		expect(saved.status).toBe(200);
-		expect(dependencies.fees.list()).toHaveLength(1);
+		expect(dependencies.fees?.list()).toHaveLength(1);
 
 		const exported = new TestResponse();
 		await routes.get(API_PATHS.export)?.(

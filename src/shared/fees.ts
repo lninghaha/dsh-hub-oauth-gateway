@@ -58,7 +58,9 @@ export function monthlyEquivalent(fee: AccountFeeRecord, today = new Date()): nu
 	const year = today.getFullYear();
 	const month = today.getMonth() + 1;
 	const prefix = `${year}-${String(month).padStart(2, "0")}-`;
-	const fromTopups = fee.topups.filter((entry) => entry.date.startsWith(prefix)).reduce((sum, entry) => sum + entry.amount, 0);
+	const fromTopups = fee.topups
+		.filter((entry) => entry.date.startsWith(prefix))
+		.reduce((sum, entry) => sum + entry.amount, 0);
 	if (fee.topups.length > 0) return fromTopups;
 	return fee.amount;
 }

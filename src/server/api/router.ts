@@ -10,7 +10,6 @@ import {
 	type PricingData,
 	type UsageAlert,
 } from "../../shared/contracts.js";
-import type { ProvidersData } from "../../shared/providers.js";
 import type { AccountSnapshot, PriceRule, UsageQuery } from "../../shared/domain.js";
 import {
 	CurrencyCodeSchema,
@@ -22,6 +21,7 @@ import {
 } from "../../shared/domain.js";
 import { FeesDataSchema } from "../../shared/fees.js";
 import { UserPreferencesSchema } from "../../shared/preferences.js";
+import type { ProvidersData } from "../../shared/providers.js";
 import type { FeesRepository } from "../fees/repository.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
@@ -301,7 +301,7 @@ export function registerV1Routes(
 						metric,
 						weekStartsOn: preferences.display.weekStartsOn,
 						streakMinTokens: preferences.display.streakMinTokens,
-						now: dependencies.now?.(),
+						...(dependencies.now === undefined ? {} : { now: dependencies.now() }),
 						providers,
 						models,
 					}),

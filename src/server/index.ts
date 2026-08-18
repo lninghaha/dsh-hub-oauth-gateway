@@ -11,18 +11,18 @@ import { type ApiFreshness, registerV1Routes } from "./api/router.js";
 import { applyCodingOAuth, type CodingOAuthRuntime } from "./coding-oauth/compose.js";
 import { DEFAULT_RUNTIME_CONFIG, type RuntimeConfig, RuntimeConfigSchema } from "./config.js";
 import type { UsageStatsHostContext } from "./context.js";
+import { FeesRepository } from "./fees/repository.js";
 import { configuredProviders } from "./host/providers.js";
 import { DshSessionInventory } from "./host/session-inventory.js";
 import { migrateLegacyPreferences, migrateLegacyUsageCache } from "./migration.js";
 import { PricingRepository } from "./pricing/repository.js";
-import { FeesRepository } from "./fees/repository.js";
+import { collectProvidersData } from "./providers/catalog.js";
 import { startRefreshScheduler } from "./scheduler.js";
 import { PreferencesRepository } from "./settings/repository.js";
 import { UsageDatabase } from "./storage/database.js";
 import { usageDatabasePath } from "./storage/path.js";
 import { UsageQueryService } from "./usage/query.js";
 import { UsageRepository } from "./usage/repository.js";
-import { collectProvidersData } from "./providers/catalog.js";
 import { UsageProjectionService } from "./usage/service.js";
 import { bucketKey, bucketTimestamp } from "./usage/time.js";
 
@@ -80,8 +80,10 @@ export async function apply(
 						...(config.codingOAuth.retryPolicy === undefined
 							? {}
 							: { retryPolicy: config.codingOAuth.retryPolicy as never }),
-						...(config.codingOAuth.capabilities === undefined ? {} : { capabilities: config.codingOAuth.capabilities }),
-						...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway }),
+						...(config.codingOAuth.capabilities === undefined
+							? {}
+							: { capabilities: config.codingOAuth.capabilities as never }),
+						...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway as never }),
 					},
 				);
 			} catch (error) {

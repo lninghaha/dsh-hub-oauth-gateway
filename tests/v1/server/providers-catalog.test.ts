@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { collectProvidersData } from "../../../src/server/providers/catalog.js";
 import type { AccountSnapshot } from "../../../src/shared/domain.js";
 import { ProvidersDataSchema } from "../../../src/shared/providers.js";
-import { collectProvidersData } from "../../../src/server/providers/catalog.js";
 
 function snapshot(overrides: Partial<AccountSnapshot> = {}): AccountSnapshot {
 	return {

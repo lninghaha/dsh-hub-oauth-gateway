@@ -6,8 +6,8 @@ import type { AccountFeeRecord, FeeInterval, FeeKind } from "../../shared/fees.j
 import type { UserPreferences } from "../../shared/preferences.js";
 import {
 	applyPresetToPreferences,
-	defaultUserPreferences,
 	type DashboardModuleId,
+	defaultUserPreferences,
 	resetModulesToPreset,
 } from "../../shared/preferences.js";
 import { usageUiController } from "../controller.js";
@@ -66,9 +66,7 @@ function PreferenceEditor({
 				<Field label={t("settings.preset")}>
 					<select
 						value={display.preset}
-						onChange={(event) =>
-							onChange(applyPresetToPreferences(draft, event.target.value as typeof display.preset))
-						}
+						onChange={(event) => onChange(applyPresetToPreferences(draft, event.target.value as typeof display.preset))}
 					>
 						<option value="minimal">{t("preset.minimal")}</option>
 						<option value="quota">{t("preset.quota")}</option>
@@ -540,9 +538,7 @@ function FeesEditor({ t, currency }: { readonly t: Translate; readonly currency:
 	}, [initialized, query.data]);
 	const update = (index: number, patch: Partial<AccountFeeRecord>): void =>
 		setFees((current) =>
-			current.map((fee, position) =>
-				position === index ? { ...fee, ...patch, updatedAt: Date.now() } : fee,
-			),
+			current.map((fee, position) => (position === index ? { ...fee, ...patch, updatedAt: Date.now() } : fee)),
 		);
 	return (
 		<div className="dus-settings-card">

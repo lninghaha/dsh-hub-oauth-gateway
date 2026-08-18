@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { access, cp, lstat, mkdir, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -100,6 +100,30 @@ async function readOptional(path) {
 	}
 }
 
+async function linkPeerModules(root) {
+	const peers = Object.keys(sourcePackage.peerDependencies ?? {});
+	const sourceModules = join(sourceRoot, "node_modules");
+	const destinationRoot = join(root, "node_modules");
+	for (const name of peers) {
+		if (name === "@deepseek-ai/dsh-tools") continue;
+		const source = join(sourceModules, name);
+		const destination = join(destinationRoot, name);
+		try {
+			await access(source);
+		} catch {
+			continue;
+		}
+		await mkdir(dirname(destination), { recursive: true });
+		try {
+			const existing = await lstat(destination);
+			if (existing.isSymbolicLink() || existing.isDirectory()) await rm(destination, { recursive: true, force: true });
+		} catch {
+			// destination may not exist yet
+		}
+		await symlink(source, destination, "dir");
+	}
+}
+
 async function validatePackageRoot(root) {
 	const installedRaw = await readOptional(join(root, "package.json"));
 	if (installedRaw === null) throw new Error(`package manifest is missing from ${root}`);
@@ -115,6 +139,7 @@ async function validatePackageRoot(root) {
 	}
 	const serverPath = join(root, "lib", "index.js");
 	if ((await readOptional(serverPath)) === null) throw new Error(`server bundle is missing from ${root}`);
+	await linkPeerModules(root);
 	const plugin = await import(`${pathToFileURL(serverPath).href}?installer=${Date.now()}`);
 	if (plugin.name !== "usage-stats" || typeof plugin.apply !== "function") {
 		throw new Error(`server plugin contract validation failed in ${root}`);

@@ -276,7 +276,8 @@ export const en = {
 	"settings.baseCurrency": "Base currency",
 	"settings.streakMinTokens": "Streak minimum tokens",
 	"settings.modules": "Dashboard modules",
-	"settings.modulesHint": "Toggle visibility and reorder. After customization, presets no longer overwrite module layout; reset to apply the current preset.",
+	"settings.modulesHint":
+		"Toggle visibility and reorder. After customization, presets no longer overwrite module layout; reset to apply the current preset.",
 	"settings.resetModules": "Reset to current preset",
 	"settings.moveUp": "Move up",
 	"settings.moveDown": "Move down",
@@ -293,10 +294,12 @@ export const en = {
 	"settings.saving": "Saving…",
 	"settings.saved": "Settings saved",
 	"settings.fees": "Subscription & top-up fees",
-	"settings.feesIntro": "Local ledger for payback display only; never included in default exports. Payback requires matching base currency and priced monthly cost coverage.",
+	"settings.feesIntro":
+		"Local ledger for payback display only; never included in default exports. Payback requires matching base currency and priced monthly cost coverage.",
 	"settings.feesSaved": "Fee ledger saved",
 	"settings.credentials": "Providers and credentials",
-	"settings.credentialsIntro": "Connection state is assembled on the local server. Credential values, device codes, and raw provider payloads are never returned to the browser.",
+	"settings.credentialsIntro":
+		"Connection state is assembled on the local server. Credential values, device codes, and raw provider payloads are never returned to the browser.",
 	"fees.kind": "Kind",
 	"fees.subscription": "Subscription",
 	"fees.topup": "Top-up",

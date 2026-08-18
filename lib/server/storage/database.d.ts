@@ -7,5 +7,5 @@ export declare class UsageDatabase {
     transaction<T>(operation: () => T): T;
     close(): void;
 }
-export declare const USAGE_DATABASE_SCHEMA_VERSION = 1;
+export declare const USAGE_DATABASE_SCHEMA_VERSION = 2;
 //# sourceMappingURL=database.d.ts.map

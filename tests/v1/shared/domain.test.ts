@@ -84,8 +84,12 @@ describe("user preferences", () => {
 
 	it("fills Wave 1 module defaults when older preference payloads omit them", () => {
 		const preferences = defaultUserPreferences("UTC");
-		const { modules: _modules, modulesCustomized: _customized, streakMinTokens: _streak, ...legacyDisplay } =
-			preferences.display;
+		const {
+			modules: _modules,
+			modulesCustomized: _customized,
+			streakMinTokens: _streak,
+			...legacyDisplay
+		} = preferences.display;
 		const parsed = UserPreferencesSchema.parse({
 			...preferences,
 			display: legacyDisplay,

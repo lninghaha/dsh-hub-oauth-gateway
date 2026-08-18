@@ -1,15 +1,19 @@
 import { z } from "zod";
+import { FeesDataSchema } from "./fees.js";
 export declare const API_BASE = "/api/usage-stats/v1";
 export declare const API_PATHS: Readonly<{
     overview: "/api/usage-stats/v1/overview";
     series: "/api/usage-stats/v1/series";
     breakdown: "/api/usage-stats/v1/breakdown";
+    activity: "/api/usage-stats/v1/activity";
     accounts: "/api/usage-stats/v1/accounts";
     account: "/api/usage-stats/v1/account";
+    providers: "/api/usage-stats/v1/providers";
     refresh: "/api/usage-stats/v1/refresh";
     settings: "/api/usage-stats/v1/settings";
     pricing: "/api/usage-stats/v1/pricing";
     alerts: "/api/usage-stats/v1/alerts";
+    fees: "/api/usage-stats/v1/fees";
     credentials: "/api/usage-stats/v1/credentials";
     credentialImport: "/api/usage-stats/v1/credentials/import";
     oauthDevice: "/api/usage-stats/v1/oauth/device";
@@ -17,6 +21,14 @@ export declare const API_PATHS: Readonly<{
     export: "/api/usage-stats/v1/export";
     health: "/api/usage-stats/v1/health";
 }>;
+export declare const ExportLayoutSchema: z.ZodEnum<{
+    daily: "daily";
+    filtered: "filtered";
+    bundle: "bundle";
+}>;
+export type ExportLayout = z.infer<typeof ExportLayoutSchema>;
+export type { AccountFeeRecord, FeesData } from "./fees.js";
+export { FeesDataSchema };
 export declare const ApiMetaSchema: z.ZodObject<{
     schemaVersion: z.ZodLiteral<1>;
     generatedAt: z.ZodNumber;
@@ -292,4 +304,45 @@ export declare const PricingDataSchema: z.ZodObject<{
     catalogUpdatedAt: z.ZodNullable<z.ZodNumber>;
 }, z.core.$strict>;
 export type PricingData = z.infer<typeof PricingDataSchema>;
+export declare const ActivityDaySchema: z.ZodObject<{
+    date: z.ZodString;
+    tokens: z.ZodNumber;
+    cost: z.ZodNullable<z.ZodNumber>;
+    requests: z.ZodNumber;
+    hasData: z.ZodBoolean;
+}, z.core.$strict>;
+export declare const ActivityDataSchema: z.ZodObject<{
+    metric: z.ZodEnum<{
+        tokens: "tokens";
+        requests: "requests";
+        estimatedCost: "estimatedCost";
+        cacheHitRate: "cacheHitRate";
+    }>;
+    days: z.ZodArray<z.ZodObject<{
+        date: z.ZodString;
+        tokens: z.ZodNumber;
+        cost: z.ZodNullable<z.ZodNumber>;
+        requests: z.ZodNumber;
+        hasData: z.ZodBoolean;
+    }, z.core.$strict>>;
+    streak: z.ZodNumber;
+    longestStreak: z.ZodNumber;
+    weekStartsOn: z.ZodUnion<readonly [z.ZodLiteral<0>, z.ZodLiteral<1>, z.ZodLiteral<6>]>;
+    streakMinTokens: z.ZodNumber;
+}, z.core.$strict>;
+export type ActivityData = z.infer<typeof ActivityDataSchema>;
+export type ActivityDay = z.infer<typeof ActivityDaySchema>;
+export declare const DailyExportRowSchema: z.ZodObject<{
+    date: z.ZodString;
+    provider: z.ZodString;
+    inputTokens: z.ZodNumber;
+    outputTokens: z.ZodNumber;
+    cacheReadTokens: z.ZodNumber;
+    cacheWriteTokens: z.ZodNumber;
+    requests: z.ZodNumber;
+    estimatedCost: z.ZodNullable<z.ZodNumber>;
+    currency: z.ZodString;
+    priceCoverage: z.ZodNumber;
+}, z.core.$strict>;
+export type DailyExportRow = z.infer<typeof DailyExportRowSchema>;
 //# sourceMappingURL=contracts.d.ts.map

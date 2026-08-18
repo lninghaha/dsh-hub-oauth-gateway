@@ -445,6 +445,8 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 									)}
 								</section>
 							);
+						default:
+							return null;
 					}
 				})
 			: null;

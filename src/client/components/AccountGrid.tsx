@@ -1,6 +1,6 @@
+import type { AccountSnapshot, QuotaWindow } from "../../shared/domain.js";
 import type { AccountFeeRecord } from "../../shared/fees.js";
 import { monthlyEquivalent, paybackMultiplier } from "../../shared/fees.js";
-import type { AccountSnapshot, QuotaWindow } from "../../shared/domain.js";
 import { formatCurrency, formatDurationUntil, formatNumber } from "../format.js";
 import type { Translate } from "../locales.js";
 
@@ -134,10 +134,7 @@ export function AccountGrid({
 		<div className={`dus-account-grid${compact ? " is-compact" : ""}`}>
 			{visible.map((account) => {
 				const fee = feeByProvider.get(account.providerId);
-				const tip =
-					fee === undefined || t === undefined
-						? null
-						: feeTooltip(fee, monthEstimatedCost, baseCurrency, t);
+				const tip = fee === undefined || t === undefined ? null : feeTooltip(fee, monthEstimatedCost, baseCurrency, t);
 				return (
 					<article
 						className={`dus-account-card${selectedProviderId === account.providerId ? " is-selected" : ""}`}
