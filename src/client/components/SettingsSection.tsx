@@ -84,6 +84,26 @@ function PreferenceEditor({
 					}
 				/>
 				<SettingsRow
+					title={t("settings.entryMode")}
+					hint={t("settings.entryModeHint")}
+					control={
+						<SelectPill
+							ariaLabel={t("settings.entryMode")}
+							value={display.entryMode}
+							onChange={(value) =>
+								onChange({
+									...draft,
+									display: { ...display, entryMode: value as typeof display.entryMode },
+								})
+							}
+							options={[
+								{ value: "floating", label: t("settings.entryMode.floating") },
+								{ value: "sidebar", label: t("settings.entryMode.sidebar") },
+							]}
+						/>
+					}
+				/>
+				<SettingsRow
 					title={t("settings.sidebarMetric")}
 					control={
 						<SelectPill
@@ -869,16 +889,28 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					<h2>{t("settings.title")}</h2>
 					<p>{t("settings.intro")}</p>
 				</div>
-				<button
-					type="button"
-					className="dus-secondary-button"
-					onClick={() => {
-						close();
-						usageUiController.openDashboard();
-					}}
-				>
-					{t("settings.preview")}
-				</button>
+				<div className="dus-settings-heading-actions">
+					<button
+						type="button"
+						className="dus-secondary-button"
+						onClick={() => {
+							close();
+							usageUiController.openPeek();
+						}}
+					>
+						{t("settings.openPeek")}
+					</button>
+					<button
+						type="button"
+						className="dus-secondary-button"
+						onClick={() => {
+							close();
+							usageUiController.openDashboard();
+						}}
+					>
+						{t("settings.preview")}
+					</button>
+				</div>
 			</div>
 			<nav className="dus-settings-tabs" aria-label={t("settings.title")}>
 				{SETTINGS_TABS.map((tab) => (

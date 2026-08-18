@@ -20,6 +20,18 @@ export type DashboardPreset = z.infer<typeof DashboardPresetSchema>;
 export const SidebarMetricSchema = z.enum(["todayTokens", "todayCost", "lowestQuota", "alerts"]);
 export type SidebarMetric = z.infer<typeof SidebarMetricSchema>;
 
+/** How the Usage Center surfaces its primary chrome entry. Extensible enum. */
+export const EntryModeSchema = z.enum(["sidebar", "floating"]);
+export type EntryMode = z.infer<typeof EntryModeSchema>;
+
+export const HudPositionSchema = z
+	.object({
+		left: z.number().finite(),
+		top: z.number().finite(),
+	})
+	.strict();
+export type HudPosition = z.infer<typeof HudPositionSchema>;
+
 export const DashboardModuleIdSchema = z.enum(["kpi", "heatmap", "trend", "accounts", "alerts", "breakdown", "local"]);
 export type DashboardModuleId = z.infer<typeof DashboardModuleIdSchema>;
 
@@ -80,6 +92,8 @@ export const UserPreferencesSchema = z
 			.object({
 				preset: DashboardPresetSchema,
 				sidebarMetric: SidebarMetricSchema,
+				entryMode: EntryModeSchema.default("floating"),
+				hudPosition: HudPositionSchema.nullable().default(null),
 				defaultRange: z.enum(["today", "7d", "30d", "month"]),
 				comparePrevious: z.boolean(),
 				density: z.enum(["compact", "comfortable"]),
@@ -136,6 +150,8 @@ export function defaultUserPreferences(timeZone = Intl.DateTimeFormat().resolved
 		display: {
 			preset: "analyst",
 			sidebarMetric: "todayTokens",
+			entryMode: "floating",
+			hudPosition: null,
 			defaultRange: "30d",
 			comparePrevious: true,
 			density: "comfortable",

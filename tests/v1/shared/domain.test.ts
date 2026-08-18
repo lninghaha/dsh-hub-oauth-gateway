@@ -99,6 +99,37 @@ describe("user preferences", () => {
 		expect(parsed.display.streakMinTokens).toBe(0);
 	});
 
+	it("defaults entryMode to floating and accepts persisted HUD coordinates", () => {
+		const preferences = defaultUserPreferences("UTC");
+		expect(preferences.display.entryMode).toBe("floating");
+		expect(preferences.display.hudPosition).toBeNull();
+		const { entryMode: _entryMode, hudPosition: _hudPosition, ...legacyDisplay } = preferences.display;
+		const parsed = UserPreferencesSchema.parse({
+			...preferences,
+			display: legacyDisplay,
+		});
+		expect(parsed.display.entryMode).toBe("floating");
+		expect(parsed.display.hudPosition).toBeNull();
+		const withHud = UserPreferencesSchema.parse({
+			...preferences,
+			display: {
+				...preferences.display,
+				entryMode: "sidebar",
+				hudPosition: { left: 12.5, top: 40 },
+			},
+		});
+		expect(withHud.display).toMatchObject({
+			entryMode: "sidebar",
+			hudPosition: { left: 12.5, top: 40 },
+		});
+		expect(() =>
+			UserPreferencesSchema.parse({
+				...preferences,
+				display: { ...preferences.display, entryMode: "hidden" },
+			}),
+		).toThrow();
+	});
+
 	it("applies preset module templates until the layout is customized", () => {
 		const base = defaultUserPreferences("UTC");
 		const cost = applyPresetToPreferences(base, "cost");

@@ -13,6 +13,17 @@ export declare const SidebarMetricSchema: z.ZodEnum<{
     alerts: "alerts";
 }>;
 export type SidebarMetric = z.infer<typeof SidebarMetricSchema>;
+/** How the Usage Center surfaces its primary chrome entry. Extensible enum. */
+export declare const EntryModeSchema: z.ZodEnum<{
+    sidebar: "sidebar";
+    floating: "floating";
+}>;
+export type EntryMode = z.infer<typeof EntryModeSchema>;
+export declare const HudPositionSchema: z.ZodObject<{
+    left: z.ZodNumber;
+    top: z.ZodNumber;
+}, z.core.$strict>;
+export type HudPosition = z.infer<typeof HudPositionSchema>;
 export declare const DashboardModuleIdSchema: z.ZodEnum<{
     accounts: "accounts";
     alerts: "alerts";
@@ -43,6 +54,14 @@ export declare const UserPreferencesSchema: z.ZodObject<{
             lowestQuota: "lowestQuota";
             alerts: "alerts";
         }>;
+        entryMode: z.ZodDefault<z.ZodEnum<{
+            sidebar: "sidebar";
+            floating: "floating";
+        }>>;
+        hudPosition: z.ZodDefault<z.ZodNullable<z.ZodObject<{
+            left: z.ZodNumber;
+            top: z.ZodNumber;
+        }, z.core.$strict>>>;
         defaultRange: z.ZodEnum<{
             month: "month";
             today: "today";

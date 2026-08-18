@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsSection } from "../../../src/client/components/SettingsSection.js";
 import { en } from "../../../src/client/locales.js";
 import { defaultUserPreferences } from "../../../src/shared/preferences.js";
@@ -75,6 +75,10 @@ function renderSettings(): void {
 }
 
 describe("settings section tabs", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -89,5 +93,12 @@ describe("settings section tabs", () => {
 		expect(document.querySelector('[data-settings-tab="display"]')).toBeNull();
 		expect(document.querySelector('[data-settings-tab="providers"]')).toBeTruthy();
 		expect(screen.getByTestId("provider-management")).toBeTruthy();
+	});
+
+	it("exposes entry-mode control and heading fallbacks for Peek and the dashboard", () => {
+		renderSettings();
+		expect(screen.getByText(en["settings.entryMode"])).toBeTruthy();
+		expect(screen.getByRole("button", { name: en["settings.openPeek"] })).toBeTruthy();
+		expect(screen.getByRole("button", { name: en["settings.preview"] })).toBeTruthy();
 	});
 });

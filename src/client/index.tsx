@@ -5,6 +5,7 @@ import type {} from "@deepseek-ai/dsh-client-ui-settings/client";
 import type {} from "@deepseek-ai/dsh-client-ui-sidebar/client";
 import type {} from "@deepseek-ai/dsh-client-ui-slots";
 import uplotStyles from "uplot/dist/uPlot.min.css";
+import { FloatingHud } from "./components/FloatingHud.js";
 import { SettingsSection } from "./components/SettingsSection.js";
 import { SidebarAction } from "./components/SidebarAction.js";
 import { UsageOverlay } from "./components/UsageOverlay.js";
@@ -24,6 +25,7 @@ export function apply(ctx: ClientContext): void {
 	ctx.effect(() => installStyle(`${uplotStyles}\n${styles}`), "usage-stats: styles");
 	ctx.effect(() => ctx.locale.register(LOCALE_NAMESPACE, { zh, en }), "usage-stats: dictionaries");
 
+	// Always register; SidebarAction returns null when entryMode !== "sidebar".
 	ctx.slots.inject("sidebar.footer.action", () =>
 		ctx.slots.register(
 			{ name: "sidebar.footer.action", id: "usage-stats", locale: LOCALE_NAMESPACE, order: 10 },
@@ -34,6 +36,12 @@ export function apply(ctx: ClientContext): void {
 		ctx.slots.register(
 			{ name: "shell.overlay", id: "usage-stats-overlay", locale: LOCALE_NAMESPACE, order: 30 },
 			UsageOverlay,
+		),
+	);
+	ctx.slots.inject("shell.overlay", () =>
+		ctx.slots.register(
+			{ name: "shell.overlay", id: "usage-stats-hud", locale: LOCALE_NAMESPACE, order: 25 },
+			FloatingHud,
 		),
 	);
 	ctx.slots.inject("settings.section", () =>
@@ -50,4 +58,4 @@ export function apply(ctx: ClientContext): void {
 	);
 }
 
-export { SettingsSection, SidebarAction, UsageOverlay };
+export { FloatingHud, SettingsSection, SidebarAction, UsageOverlay };

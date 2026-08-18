@@ -17,12 +17,14 @@ export function SidebarAction({ wide, t: rawTranslate }: SidebarActionProps) {
 		preferencesQuery.data?.ok === true
 			? preferencesQuery.data.data
 			: defaultUserPreferences(Intl.DateTimeFormat().resolvedOptions().timeZone);
+	const sidebarEnabled = preferences.display.entryMode === "sidebar";
 	const query = useMemo(() => {
 		const filters = filtersFromPreferences(preferences);
 		return resolveUsageQuery({ ...filters, range: "today", compare: false }, preferences.display.timeZone);
 	}, [preferences]);
-	const overview = useOverviewQuery(query);
-	const accounts = useAccountsQuery(preferences.display.sidebarMetric === "lowestQuota");
+	const overview = useOverviewQuery(query, sidebarEnabled);
+	const accounts = useAccountsQuery(sidebarEnabled && preferences.display.sidebarMetric === "lowestQuota");
+	if (!sidebarEnabled) return null;
 	const data = overview.data?.ok === true ? overview.data.data : null;
 	const metric = (() => {
 		if (data === null) return "—";

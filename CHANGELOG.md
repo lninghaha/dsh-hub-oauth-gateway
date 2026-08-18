@@ -7,6 +7,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Added
+
+- Display preference `entryMode` (`floating` default, or `sidebar`): floating
+  draggable HUD with today’s metric plus multi-account quota chips, or the
+  classic sidebar footer button. Settings always keeps Open Peek / Open full
+  dashboard. Sidebar mode stacks host footer actions vertically to avoid
+  crowding peer plugins.
+
 ### Changed
 
 - Narrow maintainer npm handoff to exactly three cloud-terminal commands

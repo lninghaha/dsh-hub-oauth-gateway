@@ -18,6 +18,13 @@ describe("overlay height contract", () => {
 		expect(css).toMatch(/\.dus-settings\s*\{[^}]*max-width:\s*780px/s);
 	});
 
+	it("stacks host footer actions when the sidebar entry is mounted and styles the floating HUD", () => {
+		expect(css).toMatch(/\.hHd-Xa_footerActions:has\(\.dus-sidebar-button\)\s*\{[^}]*flex-direction:\s*column/s);
+		expect(css).toMatch(/\.dus-hud\s*\{[^}]*position:\s*fixed/s);
+		expect(css).toMatch(/\.dus-hud\s*\{[^}]*pointer-events:\s*auto/s);
+		expect(css).toMatch(/\.dus-settings-heading-actions\s*\{[^}]*display:\s*flex/s);
+	});
+
 	it("keeps peek KPI cards compact in a single four-column row", () => {
 		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4/s);
 		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-card\s*\{[^}]*min-height:\s*0/s);
