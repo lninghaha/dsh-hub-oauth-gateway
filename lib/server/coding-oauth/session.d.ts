@@ -17,7 +17,8 @@ export declare class GrokBuildSession {
     private listingError;
     private readonly cacheFile;
     private onCatalogChange;
-    constructor(store?: GrokBuildCredentialStore, onCatalogChange?: () => void);
+    private onCredentialChange;
+    constructor(store?: GrokBuildCredentialStore, onCatalogChange?: () => void, onCredentialChange?: () => void);
     /** Secret-free listing diagnostic from the last refresh. */
     get catalogError(): string | undefined;
     get catalogSource(): CatalogSource;
@@ -28,6 +29,8 @@ export declare class GrokBuildSession {
     provider(): Provider;
     loadCachedCatalog(): Promise<void>;
     refreshLiveCatalog(signal?: AbortSignal): Promise<void>;
+    /** Notify listeners that the stored OAuth credential changed (login / import / logout). */
+    notifyCredentialChange(): void;
     setSelectedModels(ids: readonly string[]): Promise<void>;
     /**
      * Backdate the stored token's expiry so the next `getAuth()` refreshes.

@@ -65,6 +65,8 @@ export class OAuthProviderSession {
 	private readonly catalog: readonly Model<Api>[];
 	private readonly cacheFile: string;
 	private selectedIds: string[] | undefined;
+	private readonly onCatalogChange: (() => void) | undefined;
+	private readonly onCredentialChange: (() => void) | undefined;
 
 	constructor(
 		readonly definition: OAuthProviderDefinition,
@@ -75,17 +77,17 @@ export class OAuthProviderSession {
 			definition.route,
 		),
 		cacheFile: string = oauthModelsCachePath(definition.modelsCacheFilename),
+		onCredentialChange?: () => void,
 	) {
 		this.store = store;
 		this.cacheFile = resolve(cacheFile);
+		this.onCatalogChange = onCatalogChange;
+		this.onCredentialChange = onCredentialChange;
 		const provider = definition.providerFactory();
 		this.catalog = [...provider.getModels()];
 		this.models = createModels({ credentials: store });
 		this.models.setProvider(provider);
-		this.onCatalogChange = onCatalogChange;
 	}
-
-	private onCatalogChange: (() => void) | undefined;
 
 	availableModels(): Model<Api>[] {
 		return [...this.catalog];
@@ -133,6 +135,7 @@ export class OAuthProviderSession {
 	async login(interaction: AuthInteraction): Promise<Credential> {
 		const credential = await this.models.login(this.definition.nativeProviderId, "oauth", interaction);
 		this.onCatalogChange?.();
+		this.onCredentialChange?.();
 		return credential;
 	}
 
@@ -166,6 +169,7 @@ export class OAuthProviderSession {
 			// Credential deletion may succeed before cache cleanup fails. Always
 			// refresh discovery so an open selector cannot retain stale models.
 			this.onCatalogChange?.();
+			this.onCredentialChange?.();
 		}
 	}
 

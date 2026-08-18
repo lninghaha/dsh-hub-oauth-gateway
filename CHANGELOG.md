@@ -22,6 +22,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   pack, tag, and the GitHub Release with `.tgz`; they must not paste longer
   nvm/`gh` publish scripts. Added `scripts/release-publish.mjs` /
   `pnpm run release:publish`.
+- Bridge coding-oauth sessions into quota monitors: signed-in Grok Build /
+  Codex / Claude Code tokens satisfy `GROK_ACCESS_TOKEN` /
+  `CODEX_ACCESS_TOKEN` / `CLAUDE_OAUTH_TOKEN` when Harness refs are empty, and
+  login / CLI pull / startup refresh populate AccountService snapshots so Peek
+  and Providers show real quota windows instead of 未关联 / UNSUPPORTED.
+- Usage Peek KPIs use a compact single-row layout; account status chips are
+  localized; compact Peek hides empty unsupported / not-configured filler rows.
 
 ## 1.6.1
 

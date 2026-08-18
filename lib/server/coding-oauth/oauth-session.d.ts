@@ -17,8 +17,9 @@ export declare class OAuthProviderSession {
     private readonly catalog;
     private readonly cacheFile;
     private selectedIds;
-    constructor(definition: OAuthProviderDefinition, onCatalogChange?: () => void, store?: OAuthCredentialFileStore, cacheFile?: string);
-    private onCatalogChange;
+    private readonly onCatalogChange;
+    private readonly onCredentialChange;
+    constructor(definition: OAuthProviderDefinition, onCatalogChange?: () => void, store?: OAuthCredentialFileStore, cacheFile?: string, onCredentialChange?: () => void);
     availableModels(): Model<Api>[];
     selectedModelIds(): string[] | undefined;
     visibleModels(): Model<Api>[];

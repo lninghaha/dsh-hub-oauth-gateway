@@ -28,9 +28,9 @@ import { z } from "zod";
 export declare const ProviderConnectionSchema: z.ZodEnum<{
     unsupported: "unsupported";
     unavailable: "unavailable";
+    "signing-in": "signing-in";
     expired: "expired";
     connected: "connected";
-    "signing-in": "signing-in";
     "configured-failing": "configured-failing";
     "configured-unknown": "configured-unknown";
     unconfigured: "unconfigured";
@@ -188,9 +188,9 @@ export declare const ProviderRecordSchema: z.ZodObject<{
     connection: z.ZodEnum<{
         unsupported: "unsupported";
         unavailable: "unavailable";
+        "signing-in": "signing-in";
         expired: "expired";
         connected: "connected";
-        "signing-in": "signing-in";
         "configured-failing": "configured-failing";
         "configured-unknown": "configured-unknown";
         unconfigured: "unconfigured";
@@ -269,9 +269,9 @@ export declare const ProvidersDataSchema: z.ZodObject<{
         connection: z.ZodEnum<{
             unsupported: "unsupported";
             unavailable: "unavailable";
+            "signing-in": "signing-in";
             expired: "expired";
             connected: "connected";
-            "signing-in": "signing-in";
             "configured-failing": "configured-failing";
             "configured-unknown": "configured-unknown";
             unconfigured: "unconfigured";

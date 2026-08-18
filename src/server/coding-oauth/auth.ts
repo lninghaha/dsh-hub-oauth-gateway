@@ -59,9 +59,11 @@ export async function grokBuildAuthStatus(
 export async function loginGrokBuildSession(interaction: AuthInteraction, session: GrokBuildSession): Promise<void> {
 	await loginGrokBuild(interaction, session.store);
 	await session.refreshLiveCatalog();
+	session.notifyCredentialChange();
 }
 
 export async function importGrokBuildSession(session: GrokBuildSession, filename?: string): Promise<void> {
 	await importGrokBuildFromGrok(session.store, filename);
 	await session.refreshLiveCatalog();
+	session.notifyCredentialChange();
 }

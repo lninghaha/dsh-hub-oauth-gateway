@@ -74,12 +74,26 @@ function compactPriority(account: AccountSnapshot): number {
 	return 5;
 }
 
+function hasMeaningfulQuota(account: AccountSnapshot): boolean {
+	return account.balance !== null || account.windows.length > 0;
+}
+
 function compactAccounts(accounts: readonly AccountSnapshot[]): AccountSnapshot[] {
-	return accounts
+	const ranked = accounts
 		.map((account, index) => ({ account, index }))
 		.sort((left, right) => compactPriority(left.account) - compactPriority(right.account) || left.index - right.index)
-		.slice(0, 8)
 		.map(({ account }) => account);
+	const meaningful = ranked.filter(hasMeaningfulQuota);
+	if (meaningful.length > 0) {
+		const fillers = ranked.filter(
+			(account) =>
+				!hasMeaningfulQuota(account) && account.status !== "unsupported" && account.status !== "not-configured",
+		);
+		return [...meaningful, ...fillers].slice(0, 8);
+	}
+	return ranked
+		.filter((account) => account.status !== "unsupported" && account.status !== "not-configured")
+		.slice(0, 8);
 }
 
 function feeKey(providerId: string, profileId: string): string {
@@ -112,7 +126,8 @@ function feeTooltip(
 
 function statusLabel(account: AccountSnapshot, t: Translate | undefined): string {
 	if (account.stale) return t?.("status.stale") ?? "stale";
-	return account.status;
+	const key = `status.${account.status}` as Parameters<Translate>[0];
+	return t?.(key) ?? account.status;
 }
 
 function fetchedHint(account: AccountSnapshot, t: Translate | undefined): string | null {

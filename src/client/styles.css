@@ -902,7 +902,7 @@ body {
 }
 
 .dus-account-grid.is-compact {
-  max-height: 240px;
+  max-height: 320px;
 }
 
 .dus-account-card {
@@ -961,7 +961,8 @@ body {
   background: var(--dus-control);
   font-size: 8px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .dus-status.is-ok {
@@ -1306,15 +1307,31 @@ body {
 
 .dus-peek-content {
   display: grid;
-  gap: 13px;
+  gap: 10px;
 }
 
 .dus-modal.is-peek .dus-kpi-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dus-modal.is-peek .dus-kpi-card {
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.dus-modal.is-peek .dus-kpi-value {
+  margin-top: 6px;
+  font-size: clamp(15px, 1.6vw, 18px);
+}
+
+.dus-modal.is-peek .dus-kpi-delta {
+  margin-top: 4px;
+  font-size: 9px;
 }
 
 .dus-modal.is-peek .dus-dashboard-body {
-  padding-top: 16px;
+  padding-top: 12px;
 }
 
 .dus-loading,

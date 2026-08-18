@@ -71,4 +71,26 @@ describe("account quota cards", () => {
 		expect(compactGrid.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("25");
 		expect(compactGrid.queryByRole("button", { name: /Groq/i })).toBeNull();
 	});
+
+	it("localizes unsupported status and hides empty unsupported rows in compact peek", () => {
+		const unsupported: AccountSnapshot = {
+			...account,
+			providerId: "deepseek",
+			displayName: "DeepSeek",
+			status: "unsupported",
+			configured: false,
+			plan: "balance",
+			windows: [],
+			balance: null,
+		};
+		const ready = { ...account, providerId: "codex", displayName: "Codex" };
+		const t = (key: string) => (key === "status.unsupported" ? "不支持" : key);
+		const { container } = render(
+			<AccountGrid accounts={[unsupported, ready]} emptyLabel="Empty" compact t={t as never} />,
+		);
+		expect(within(container).getByRole("button", { name: /Codex/i })).toBeTruthy();
+		expect(within(container).queryByRole("button", { name: /DeepSeek/i })).toBeNull();
+		expect(within(container).queryByText("UNSUPPORTED")).toBeNull();
+		expect(within(container).queryByText("unsupported")).toBeNull();
+	});
 });

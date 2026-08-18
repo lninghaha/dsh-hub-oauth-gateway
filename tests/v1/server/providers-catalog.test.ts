@@ -74,4 +74,61 @@ describe("provider catalog", () => {
 		expect(data.providers[0]?.quotaState).toBe("unavailable");
 		expect(data.summary.needsAttention).toBe(1);
 	});
+
+	it("prefers quota-bearing grok snapshots over unsupported route-id matches", async () => {
+		const data = await collectProvidersData({
+			accounts: [
+				snapshot({
+					providerId: "grok-build",
+					displayName: "Grok Build route",
+					adapterId: null,
+					status: "unsupported",
+					configured: false,
+					balance: null,
+					windows: [],
+				}),
+				snapshot({
+					providerId: "grok",
+					displayName: "Grok",
+					adapterId: "grok-subscription",
+					mode: "subscription",
+					status: "ok",
+					configured: true,
+					balance: null,
+					windows: [
+						{
+							id: "session",
+							kind: "session",
+							label: "Session",
+							unit: "percent",
+							used: null,
+							remaining: null,
+							limit: null,
+							usedRatio: 0.4,
+							resetsAt: null,
+							rolling: true,
+						},
+					],
+				}),
+			],
+			codingOAuth: {
+				grok: {
+					store: {
+						read: async () => ({ type: "oauth", access: "x", refresh: "y", expires: Date.now() + 60_000 }),
+					},
+					availableModels: () => [{ id: "grok-3" }],
+					selectedModelIds: () => ["grok-3"],
+					models: { getAuth: async () => undefined },
+				},
+				subscriptions: [],
+				readCodexUsage: async () => ({}),
+				currentCapabilities: () => ({}),
+				onCredentialChange: () => () => undefined,
+			} as never,
+			now: () => 1_700_000_100_000,
+		});
+		const grok = data.providers.find((provider) => provider.id === "grok-build");
+		expect(grok?.quotaState).toBe("available");
+		expect(grok?.connection).toBe("connected");
+	});
 });
