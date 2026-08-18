@@ -180,6 +180,7 @@ function ProviderCard({
 	note,
 	status,
 	methods,
+	source,
 	t,
 }: {
 	readonly provider: CodingOAuthProviderSlug;
@@ -187,6 +188,7 @@ function ProviderCard({
 	readonly note: string;
 	readonly status: ProviderStatus;
 	readonly methods: readonly { id: string; label: string }[];
+	readonly source: OAuthSourceDiscovery | null;
 	readonly t: Translate;
 }) {
 	const login = useCodingOAuthLoginMutation();
@@ -255,6 +257,12 @@ function ProviderCard({
 							</div>
 						</>
 					) : null}
+					{source === null ? null : (
+						<div className="dus-oauth-card-pull">
+							<div className="dus-row-hint">{t("oauth.importInlineHint")}</div>
+							<CliPullRow source={source} t={t} />
+						</div>
+					)}
 				</div>
 			) : null}
 		</article>
@@ -365,6 +373,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 	const status = useCodingOAuthStatusQuery();
 	const sources = useOAuthSourcesQuery();
 	const data = status.data ?? null;
+	const sourceByKind = new Map((sources.data?.sources ?? []).map((source) => [source.kind, source]));
 	return (
 		<div className="dus-settings-stack" data-settings-tab="accounts">
 			<p className="dus-settings-hint">{t("oauth.accountsIntro")}</p>
@@ -386,6 +395,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 							{ id: "pkce", label: t("oauth.loginBrowser") },
 							{ id: "device", label: t("oauth.loginDevice") },
 						]}
+						source={sourceByKind.get("grok") ?? null}
 						t={t}
 					/>
 					{(["codex", "kimi", "claude"] as const).map((slug) => {
@@ -401,6 +411,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 									id: method,
 									label: method === "device" ? t("oauth.loginDevice") : t("oauth.loginBrowser"),
 								}))}
+								source={sourceByKind.get(slug) ?? null}
 								t={t}
 							/>
 						);
@@ -418,13 +429,6 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 							/>
 						</div>
 					</article>
-					<section className="dus-oauth-import">
-						<h3 className="dus-section-title">{t("oauth.importTitle")}</h3>
-						<p className="dus-settings-hint">{t("oauth.importHint")}</p>
-						{(sources.data?.sources ?? []).map((source) => (
-							<CliPullRow key={source.kind} source={source} t={t} />
-						))}
-					</section>
 				</>
 			)}
 		</div>

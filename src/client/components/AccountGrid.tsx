@@ -78,7 +78,7 @@ function compactAccounts(accounts: readonly AccountSnapshot[]): AccountSnapshot[
 	return accounts
 		.map((account, index) => ({ account, index }))
 		.sort((left, right) => compactPriority(left.account) - compactPriority(right.account) || left.index - right.index)
-		.slice(0, 4)
+		.slice(0, 8)
 		.map(({ account }) => account);
 }
 

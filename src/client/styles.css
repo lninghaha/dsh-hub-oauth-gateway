@@ -460,7 +460,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 16px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--dus-border);
 }
 
@@ -468,9 +468,9 @@ body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding-right: 48px;
+  padding-right: 16px;
 }
 
 .dus-row-title {
@@ -1476,6 +1476,14 @@ body {
   margin-top: 6px;
 }
 
+.dus-oauth-card-pull {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--dus-border);
+}
+
 .dus-oauth-source {
   display: grid;
   gap: 6px;
@@ -1525,6 +1533,101 @@ body {
 .dus-dashboard.is-density-compact .dus-account-card,
 .dus-settings.is-density-compact .dus-settings-card {
   padding: 9px;
+}
+
+.dus-settings.is-density-compact .dus-settings-card {
+  gap: 8px;
+}
+
+.dus-settings.is-density-compact .dus-settings-stack {
+  gap: 2px;
+}
+
+.dus-settings.is-density-compact .dus-row {
+  padding: 6px 0;
+}
+
+.dus-settings.is-density-compact .dus-provider-visibility {
+  gap: 0;
+}
+
+.dus-settings.is-density-compact .dus-module-editor {
+  gap: 4px;
+}
+
+.dus-settings.is-density-compact .dus-oauth-card-toggle {
+  padding: 9px 12px;
+}
+
+.dus-settings.is-density-compact .dus-oauth-card-body {
+  gap: 8px;
+  padding: 0 12px 10px;
+}
+
+.dus-provider-visibility {
+  display: grid;
+  gap: 0;
+  margin: 4px 0;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dus-provider-visibility .dus-row {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--dus-border);
+}
+
+.dus-provider-visibility .dus-row:last-child {
+  border-bottom: 0;
+}
+
+.dus-provider-visibility-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dus-provider-visibility-meta input[type="text"] {
+  min-width: 0;
+  flex: 1 1 120px;
+  height: 28px;
+  padding: 0 8px;
+}
+
+.dus-provider-visibility-meta input[type="color"] {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 2px;
+}
+
+.dus-provider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dus-provider-next {
+  margin: 0;
+  color: var(--dus-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dus-provider-group {
+  display: grid;
+  gap: 8px;
+}
+
+.dus-provider-group-title {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dus-muted);
 }
 
 @media (max-width: 1040px) {

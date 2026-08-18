@@ -9,6 +9,11 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ### Changed
 
+- Usage Center settings IA: drop the standalone Credentials tab; API key / Copilot
+  device auth live under Providers, custom pricing under Fees, and CLI pull sits
+  inside each Subscriptions card next to sign-in. Display rows are denser, account
+  visibility uses official toggles, Peek keeps up to eight prioritized quota cards,
+  and the Providers tab explains the next action per connection state.
 - Release process: a release is incomplete until the same SemVer is published
   to public npm; agents must hand cloud-terminal `npm publish` commands (nvm
   Node + OTP) to the maintainer instead of publishing themselves, and must

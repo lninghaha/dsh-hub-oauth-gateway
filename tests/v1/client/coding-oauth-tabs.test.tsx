@@ -139,15 +139,18 @@ describe("coding OAuth settings tabs", () => {
 		cleanup();
 	});
 
-	it("renders the accounts tab with all four providers and the CLI pull list", () => {
+	it("renders the accounts tab with all four providers and per-card CLI pull", () => {
 		renderWithClient(<AccountsTab t={t} />);
 		expect(document.querySelector('[data-oauth-provider="grok"]')).toBeTruthy();
 		expect(document.querySelector('[data-oauth-provider="codex"]')).toBeTruthy();
 		expect(document.querySelector('[data-oauth-provider="kimi"]')).toBeTruthy();
 		expect(document.querySelector('[data-oauth-provider="claude"]')).toBeTruthy();
 		expect(document.querySelector('[data-oauth-provider="antigravity"]')).toBeTruthy();
+		const claude = document.querySelector('[data-oauth-provider="claude"]');
+		expect(claude).toBeTruthy();
+		fireEvent.click(claude!.querySelector(".dus-oauth-card-toggle")!);
 		expect(document.querySelector('[data-oauth-source="claude"]')).toBeTruthy();
-		expect(screen.getByText(en["oauth.importTitle"])).toBeTruthy();
+		expect(screen.queryByText(en["oauth.importTitle"])).toBeNull();
 	});
 
 	it("expands a provider card and starts a login flow from its method buttons", () => {
