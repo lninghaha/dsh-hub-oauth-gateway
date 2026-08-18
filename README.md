@@ -16,6 +16,8 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 >
 > **1.5.1**：公开安装说明改为优先推荐 npm 包名与 `npx dsh-hub-oauth-gateway-install`；验证改为云环境 `pnpm` + 隔离 DSH 冒烟（不再强制 Docker sandbox）。
 >
+> **1.6.1**：用量中心设置信息架构优化——去掉独立「凭据」页签；订阅账号卡内嵌 CLI 拉取；供应商页可操作；显示设置更紧凑。发版须 npm 上架且 GitHub Release 附带 `.tgz`。
+>
 > **1.6.0**：编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与可选本地 API 网关正式并入本插件：设置页新增 订阅账号 / 网关 / 能力 三个标签，支持 Grok Build（SuperGrok / X Premium）、ChatGPT Plus/Pro Codex、Kimi Code、Claude Pro/Max 的 OAuth 登录与模型挂接；新增 token-monitor 风格的本机监控（默认关闭）：只读本机 CLI 认证快照与跨工具本地用量扫描。
 
 ## 功能 / Highlights
@@ -73,10 +75,10 @@ npx --yes dsh-hub-oauth-gateway-install --check
 也可以从 [GitHub Releases](https://github.com/lninghaha/dsh-hub-oauth-gateway/releases) 下载该版本附带的 `dsh-hub-oauth-gateway-<version>.tgz`，交给 Agent 或本地直接安装（无需再构建）：
 
 ```bash
-dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.6.0.tgz
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.6.1.tgz
 ```
 
-正式发版时每个 GitHub Release **必须**附带与 npm 包一致的该 `.tgz` 资产（见 [`AGENTS.md`](AGENTS.md) §8）。
+正式发版时每个 GitHub Release **必须**附带与 npm 包一致的该 `.tgz` 资产（见 [`docs/00-project-rules.md`](docs/00-project-rules.md) §8）。
 
 兼容安装器会原子替换 `~/.dsh/profiles/node_modules/dsh-hub-oauth-gateway`，并幂等维护 `profiles/web/cordis.patch.yml`。包目录和 Cordis patch 会一起备份到最终校验完成；任一步失败都会完整回滚。如果检测到 `dsh.profile.bundles` 已注册本插件，或 web profile 清单无法严格解析，它会拒绝修改并要求改用插件管理器，避免 bundle 与手工 Cordis entry 重复挂载。
 

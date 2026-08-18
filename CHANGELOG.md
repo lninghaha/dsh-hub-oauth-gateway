@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.6.1
+
 ### Changed
 
 - Usage Center settings IA: drop the standalone Credentials tab; API key / Copilot
@@ -18,7 +20,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   to public npm; agents must hand cloud-terminal `npm publish` commands (nvm
   Node + OTP) to the maintainer instead of publishing themselves, and must
   update related docs in the release change set (`AGENTS.md`,
-  `docs/00-project-rules.md`, `CONTRIBUTING.md`).
+  `docs/00-project-rules.md`, `CONTRIBUTING.md`). GitHub Releases must attach
+  `dsh-hub-oauth-gateway-<version>.tgz`.
 
 ## 1.6.0
 

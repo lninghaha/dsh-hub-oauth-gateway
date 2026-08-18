@@ -312,8 +312,9 @@ the Agent must **not** run `npm publish` / `npm login` / `gh release create`; it
 must give copy-paste cloud-terminal commands (including `cd /workspace`, Node
 PATH from `.nvmrc`, `pnpm run release:pack`, `npm publish`, and
 `gh release create … dsh-hub-oauth-gateway-<version>.tgz`). Tokens stay in the
-operator's shell or secrets store—never in chat, Git, or logs. See
-[`AGENTS.md`](../AGENTS.md) §8.
+operator's shell or secrets store—never in chat, Git, or logs. See §8 in this
+document (the repository root `AGENTS.md` is the Agent workspace copy and is not
+published in the npm package).
 
 Release helpers may build, inspect, and export a local tarball under `output/`;
 they must never bump a version, commit, tag, push, publish, or read user
