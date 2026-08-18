@@ -13,19 +13,21 @@ Credential files do not need to be copied or migrated. The rewrite continues to 
 
 ## Installation
 
-Preferred — remove the 0.3 entry, then install the renamed package:
+Preferred — remove the 0.3 entry, then install the renamed package from **npm**:
 
 ```bash
 dsh plugin --profile web remove dsh-usage-stats
-dsh plugin --profile web add "github:lninghaha/dsh-hub-oauth-gateway"
+dsh plugin --profile web add dsh-hub-oauth-gateway
 ```
 
-Fallback:
+Fallback installer (also from npm):
 
 ```bash
-npx --yes github:lninghaha/dsh-hub-oauth-gateway
-npx --yes github:lninghaha/dsh-hub-oauth-gateway --check
+npx --yes dsh-hub-oauth-gateway-install
+npx --yes dsh-hub-oauth-gateway-install --check
 ```
+
+For unreleased or Git-tracked installs, use `github:lninghaha/dsh-hub-oauth-gateway` or a local path instead.
 
 The fallback installer stages a complete package, keeps package and Cordis-patch backups through final verification, and rolls both back if package install, patch update, or verification fails. Removed 0.3 runtime files cannot linger after a successful install. An unreadable `profiles/web/package.json` fails closed instead of installing beside an unknown plugin-manager state.
 

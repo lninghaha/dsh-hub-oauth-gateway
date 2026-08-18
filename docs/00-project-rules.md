@@ -139,8 +139,9 @@ Recommended sequence:
 3. `pnpm run check` before handoff;
 4. `npm pack --dry-run --json --ignore-scripts` before publish;
 5. DSH smoke: isolated `DSH_HOME` → install DSH →
-   `dsh plugin --profile web add <path-or-git-ref>` → `dsh web` → confirm
-   `http://127.0.0.1:3080` and Usage Center load.
+   `dsh plugin --profile web add <repo-path>` → `dsh web` → confirm
+   `http://127.0.0.1:3080` and Usage Center load. End-user installs prefer the
+   npm package name `dsh-hub-oauth-gateway` (see `README.md`).
 
 Isolation and privacy remain mandatory:
 

@@ -56,8 +56,9 @@ pnpm run check
 ```
 
 Plugin smoke: isolated `DSH_HOME` → install `@deepseek-ai/dsh` →
-`dsh plugin --profile web add <repo>` → `dsh web` → confirm Usage Center on
-`http://127.0.0.1:3080`.
+`dsh plugin --profile web add <repo-path>` → `dsh web` → confirm Usage Center on
+`http://127.0.0.1:3080`. End-user installs prefer npm (`dsh-hub-oauth-gateway`);
+see `README.md`.
 
 `pnpm.overrides` for `@earendil-works/pi-ai` live in `pnpm-workspace.yaml` (pnpm 11). Do not reintroduce ignored `package.json#pnpm.overrides`.
 

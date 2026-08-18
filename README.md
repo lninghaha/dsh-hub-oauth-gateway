@@ -41,10 +41,10 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 ## 安装 / Installation
 
-优先使用 DSH 插件管理器：
+优先从 **npm** 用 DSH 插件管理器安装已发布版本：
 
 ```bash
-dsh plugin --profile web add "github:lninghaha/dsh-hub-oauth-gateway"
+dsh plugin --profile web add dsh-hub-oauth-gateway
 ```
 
 升级和移除：
@@ -54,12 +54,14 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-如果当前 DSH 版本没有插件管理器，可使用兼容安装器：
+如果当前 DSH 版本没有插件管理器，可使用兼容安装器（同样从 npm 拉取）：
 
 ```bash
-npx --yes github:lninghaha/dsh-hub-oauth-gateway
-npx --yes github:lninghaha/dsh-hub-oauth-gateway --check
+npx --yes dsh-hub-oauth-gateway-install
+npx --yes dsh-hub-oauth-gateway-install --check
 ```
+
+未发布改动、需要跟 GitHub `main`、或本仓库开发冒烟时，再使用 Git 引用或本地路径，例如 `github:lninghaha/dsh-hub-oauth-gateway` 或 `"$PWD"`（见下文验证节）。
 
 兼容安装器会原子替换 `~/.dsh/profiles/node_modules/dsh-hub-oauth-gateway`，并幂等维护 `profiles/web/cordis.patch.yml`。包目录和 Cordis patch 会一起备份到最终校验完成；任一步失败都会完整回滚。如果检测到 `dsh.profile.bundles` 已注册本插件，或 web profile 清单无法严格解析，它会拒绝修改并要求改用插件管理器，避免 bundle 与手工 Cordis entry 重复挂载。
 

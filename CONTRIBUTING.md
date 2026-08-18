@@ -47,7 +47,9 @@ nvm Node from `.nvmrc` (or any `22.19+` / `24+`) so that `node` and `pnpm` share
 that runtime before re-running.
 For plugin smoke tests, use an **isolated** `DSH_HOME` (never the operator’s
 personal profile), install `@deepseek-ai/dsh`, add this package to the web
-profile, and start `dsh web` on loopback.
+profile via a **local path** (`dsh plugin --profile web add "$PWD"`), and start
+`dsh web` on loopback. End-user installs prefer the published npm package name;
+see [`README.md`](README.md).
 
 Automated tests use mocks and sanitized fixtures. They must not read a
 personal DSH profile, local CLI login, credential store, production SQLite, or

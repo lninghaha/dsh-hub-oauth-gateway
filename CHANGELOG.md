@@ -16,6 +16,10 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 - Pin cloud/dev Node via `.nvmrc` / `.cursor/environment.json` and
   `pnpm run assert:node` so Cursor’s `/exec-daemon/node` 22.14 no longer drives
   `Unsupported engine` warnings during builds.
+- Public install docs prefer the npm package name
+  (`dsh plugin add dsh-hub-oauth-gateway` /
+  `npx dsh-hub-oauth-gateway-install`); GitHub refs and local paths remain for
+  unreleased or development smoke installs.
 ### Added
 
 - Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),

@@ -18,7 +18,7 @@ if (args.has("--help")) {
 	console.log(`dsh-hub-oauth-gateway installer
 
 Usage:
-  npx --yes github:lninghaha/dsh-hub-oauth-gateway [options]
+  npx --yes dsh-hub-oauth-gateway-install [options]
 
 Options:
   --check      Verify the installed package and Cordis patch without changing them
