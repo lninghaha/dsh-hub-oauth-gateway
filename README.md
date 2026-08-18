@@ -18,6 +18,8 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 >
 > **1.6.1**：用量中心设置信息架构优化——去掉独立「凭据」页签；订阅账号卡内嵌 CLI 拉取；供应商页可操作；显示设置更紧凑。发版须 npm 上架且 GitHub Release 附带 `.tgz`。
 >
+> **1.7.0**：入口形态可选悬浮小窗（默认）或侧栏按钮；OAuth 会话桥接配额监测；Peek KPI 压缩单行；发版操作者仅三条 npm 命令。
+>
 > **1.6.0**：编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与可选本地 API 网关正式并入本插件：设置页新增 订阅账号 / 网关 / 能力 三个标签，支持 Grok Build（SuperGrok / X Premium）、ChatGPT Plus/Pro Codex、Kimi Code、Claude Pro/Max 的 OAuth 登录与模型挂接；新增 token-monitor 风格的本机监控（默认关闭）：只读本机 CLI 认证快照与跨工具本地用量扫描。
 
 ## 功能 / Highlights
@@ -75,7 +77,7 @@ npx --yes dsh-hub-oauth-gateway-install --check
 也可以从 [GitHub Releases](https://github.com/lninghaha/dsh-hub-oauth-gateway/releases) 下载该版本附带的 `dsh-hub-oauth-gateway-<version>.tgz`，交给 Agent 或本地直接安装（无需再构建）：
 
 ```bash
-dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.6.1.tgz
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.7.0.tgz
 ```
 
 正式发版时每个 GitHub Release **必须**附带与 npm 包一致的该 `.tgz` 资产（见 [`docs/00-project-rules.md`](docs/00-project-rules.md) §8）。

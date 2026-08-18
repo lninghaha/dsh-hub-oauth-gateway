@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.7.0
+
 ### Added
 
 - Display preference `entryMode` (`floating` default, or `sidebar`): floating
