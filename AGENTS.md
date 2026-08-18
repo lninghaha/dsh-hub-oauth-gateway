@@ -89,3 +89,14 @@
 - Agent 应明确提示“尚未重启，当前运行实例仍使用旧代码”，不得以验证为由代替用户执行重启。
 - 用户完成重启并明确要求检查后，Agent 可以执行只读状态、HTTP、bundle 和 API 健康检查。
 - 原因：当前开发/对话工作本身可能运行在 `dsh-web.service` 中，主动重启会中断正在进行的工作与会话。
+
+## Cursor Cloud specific instructions
+
+> 面向未来在已执行 update script 的 Cloud Agent VM 中工作的 agent。仅记录非显而易见的启动/运行注意事项；常规命令请参考 `README.md` / `docs/00-project-rules.md` / `docs/dev-handoff.md` / `package.json`。
+
+- **本仓库无独立可运行的应用或 dev server。** 交付物是一个 DSH Web 的 Cordis 服务端插件 + 一个 classic-script 客户端；真正的宿主 `@deepseek-ai/dsh` 不在本仓库内，也不在 VM 内运行。没有需要打开的端口。“运行应用”＝在 sandbox 镜像里加载构建产物 `lib/index.js`（导出 `apply`）并执行 `lib/bin.js --help`。
+- **验证只走 Docker sandbox。** VM 里虽然预装了 node/pnpm，但项目规则禁止在宿主/VM 直接跑 `pnpm`/`tsc`/`vitest`/`npm pack`。lint、typecheck、build、test 一律通过 `docker build --target ...`（命令清单见 `docs/00-project-rules.md` §5 与 `README.md` 开发章节）。
+- **Docker daemon 不会随 VM 自动启动，需每次会话手动拉起**（update script 不负责启动服务）。例如在 tmux 会话里运行 `sudo dockerd`，等 `sudo docker info` 就绪后再构建。VM 上 Docker 已配置为 `fuse-overlayfs` 存储驱动并使用 legacy iptables（内核限制），改动 `/etc/docker/daemon.json` 时勿改回 overlay2。
+- **依赖阶段需要联网**：Dockerfile 的 `dependencies` stage 用 `pnpm install --no-frozen-lockfile` 拉取 `@deepseek-ai/*`（`0.1.0-rc.6`）与 `@earendil-works/pi-ai@0.84.2`，这些包均在公共 npm registry。项目代码阶段一律 `--network=none`。
+- **首选门禁**：`--target check-next`（快速：lint+typecheck+build+test）与 `--target check`（完整：lint + release 构建 + bundle/installer 测试 + test）在本环境均通过。
+- **release-readiness 门禁与分支内容强耦合**：`--target verify` / `package` / `isolated-install` 以及 `release:pack` / `release:inspect` 会校验 `README.md` 必须包含 `package.json#version`、且 `CHANGELOG.md` 顶部 `##` 版本号需与之相等（见 `scripts/release.mjs`）。在版本号已提前于 README/CHANGELOG 的开发分支上，这些目标会按设计失败——属于发布内容问题，而非环境问题，勿为通过门禁而擅改版本或 README。
