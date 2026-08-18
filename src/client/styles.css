@@ -594,6 +594,153 @@
   opacity: 0.22;
 }
 
+.dus-account-fee-tip {
+  margin: 4px 0 0;
+  color: var(--dus-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.dus-module-stack {
+  display: grid;
+  gap: 13px;
+}
+
+.dus-activity-caption {
+  margin: 0 0 8px;
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dus-heatmap {
+  display: block;
+  min-width: 100%;
+}
+
+.dus-heatmap-cell {
+  fill: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 8%, transparent);
+}
+
+.dus-heatmap-cell.is-pad {
+  fill: transparent;
+}
+
+.dus-heatmap-cell.is-empty {
+  fill: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 6%, transparent);
+}
+
+.dus-heatmap-cell.is-level-1 {
+  fill: color-mix(in srgb, var(--dus-accent-2) 28%, transparent);
+}
+
+.dus-heatmap-cell.is-level-2 {
+  fill: color-mix(in srgb, var(--dus-accent-2) 48%, transparent);
+}
+
+.dus-heatmap-cell.is-level-3 {
+  fill: color-mix(in srgb, var(--dus-accent) 62%, transparent);
+}
+
+.dus-heatmap-cell.is-level-4 {
+  fill: color-mix(in srgb, var(--dus-accent) 88%, transparent);
+}
+
+.dus-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  color: var(--dus-muted);
+  font-size: 10px;
+}
+
+.dus-heatmap-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 8%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-1 {
+  background: color-mix(in srgb, var(--dus-accent-2) 28%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-2 {
+  background: color-mix(in srgb, var(--dus-accent-2) 48%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-3 {
+  background: color-mix(in srgb, var(--dus-accent) 62%, transparent);
+}
+
+.dus-heatmap-swatch.is-level-4 {
+  background: color-mix(in srgb, var(--dus-accent) 88%, transparent);
+}
+
+.dus-export-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dus-module-editor {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.dus-module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--dus-border);
+  border-radius: 8px;
+}
+
+.dus-module-move {
+  display: flex;
+  gap: 4px;
+}
+
+.dus-settings-hint {
+  margin: 0 0 8px;
+  color: var(--dus-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dus-fee-table {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.dus-fee-row {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(6rem, 1fr) minmax(6rem, 1fr) 4.5rem 4rem 4.5rem 7rem minmax(5rem, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.dus-fee-row input,
+.dus-fee-row select {
+  min-width: 0;
+}
+
+.dus-fee-placeholder {
+  color: var(--dus-muted);
+  text-align: center;
+}
+
 .dus-quota-reset,
 .dus-account-note {
   display: block;

@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExactWebServer, UsageStatsApiDependencies } from "../../../src/server/api/router.js";
 import { registerV1Routes } from "../../../src/server/api/router.js";
+import { FeesRepository } from "../../../src/server/fees/repository.js";
 import { PricingRepository } from "../../../src/server/pricing/repository.js";
 import { PreferencesRepository } from "../../../src/server/settings/repository.js";
 import { UsageDatabase } from "../../../src/server/storage/database.js";
@@ -283,5 +284,102 @@ describe("v1 API router", () => {
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toContain("text/csv");
 		expect(response.body).toContain("'=provider-a");
+	});
+
+	it("defaults export layout to filtered and supports daily CSV plus bundle JSON", async () => {
+		const filtered = new TestResponse();
+		await routes.get(API_PATHS.export)?.(
+			request("GET", `${API_PATHS.export}?format=csv&dimension=provider`).value,
+			filtered as unknown as ServerResponse,
+		);
+		expect(filtered.status).toBe(200);
+		expect(filtered.body).toContain("dimension");
+
+		const daily = new TestResponse();
+		await routes.get(API_PATHS.export)?.(
+			request("GET", `${API_PATHS.export}?format=csv&layout=daily&dimension=provider`).value,
+			daily as unknown as ServerResponse,
+		);
+		expect(daily.status).toBe(200);
+		expect(daily.body).toContain("date,provider");
+		expect(daily.body).toContain("'=provider-a");
+
+		const bundle = new TestResponse();
+		await routes.get(API_PATHS.export)?.(
+			request("GET", `${API_PATHS.export}?format=json&layout=bundle&dimension=provider`).value,
+			bundle as unknown as ServerResponse,
+		);
+		expect(bundle.status).toBe(200);
+		const payload = JSON.parse(bundle.body) as {
+			ok: boolean;
+			data: { snapshot: { rows: unknown[] }; daily: Array<{ provider: string }> };
+		};
+		expect(payload.ok).toBe(true);
+		expect(payload.data.snapshot.rows.length).toBeGreaterThan(0);
+		expect(payload.data.daily[0]?.provider).toBe("=provider-a");
+	});
+
+	it("reads activity without refreshing upstream projections", async () => {
+		const local = request("GET", `${API_PATHS.activity}?metric=tokens`);
+		const response = new TestResponse();
+		await routes.get(API_PATHS.activity)?.(local.value, response as unknown as ServerResponse);
+		expect(response.status).toBe(200);
+		expect(dependencies.projection.synchronize).not.toHaveBeenCalled();
+		const payload = JSON.parse(response.body) as { ok: boolean; data: { days: unknown[]; streak: number } };
+		expect(payload.ok).toBe(true);
+		expect(payload.data.days).toHaveLength(370);
+	});
+
+	it("rejects fees mutations without the plugin marker and replaces the ledger with CSRF", async () => {
+		const fees = {
+			fees: [
+				{
+					id: "fee-1",
+					providerId: "provider-a",
+					accountLabel: null,
+					kind: "subscription" as const,
+					planName: "Pro",
+					amount: 20,
+					currency: "USD",
+					interval: "month" as const,
+					anchorDate: null,
+					nextRenewalDate: "2024-04-01",
+					topups: [],
+					notes: null,
+					updatedAt: now,
+				},
+			],
+		};
+		const denied = new TestResponse();
+		const rejected = request("PUT", API_PATHS.fees, fees);
+		rejected.value.headers["x-dsh-hub-oauth-gateway"] = "0";
+		const deniedHandle = routes.get(API_PATHS.fees)?.(rejected.value, denied as unknown as ServerResponse);
+		rejected.emitBody();
+		await deniedHandle;
+		expect(denied.status).toBe(403);
+
+		const accepted = new TestResponse();
+		const local = request("PUT", API_PATHS.fees, fees);
+		const handle = routes.get(API_PATHS.fees)?.(local.value, accepted as unknown as ServerResponse);
+		local.emitBody();
+		await handle;
+		expect(accepted.status).toBe(503);
+
+		dependencies.fees = new FeesRepository(database);
+		const saved = new TestResponse();
+		const write = request("PUT", API_PATHS.fees, fees);
+		const writeHandle = routes.get(API_PATHS.fees)?.(write.value, saved as unknown as ServerResponse);
+		write.emitBody();
+		await writeHandle;
+		expect(saved.status).toBe(200);
+		expect(dependencies.fees.list()).toHaveLength(1);
+
+		const exported = new TestResponse();
+		await routes.get(API_PATHS.export)?.(
+			request("GET", `${API_PATHS.export}?format=csv&dimension=provider`).value,
+			exported as unknown as ServerResponse,
+		);
+		expect(exported.body).not.toContain("fee-1");
+		expect(exported.body).not.toContain("Pro");
 	});
 });

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { totalTokens, UsageBucketsSchema, UsageQuerySchema } from "../../../src/shared/domain.js";
-import { defaultUserPreferences, UserPreferencesSchema } from "../../../src/shared/preferences.js";
+import {
+	applyPresetToPreferences,
+	defaultUserPreferences,
+	effectiveModules,
+	resetModulesToPreset,
+	UserPreferencesSchema,
+} from "../../../src/shared/preferences.js";
 
 describe("usage domain", () => {
 	it("keeps all provider token buckets disjoint", () => {
@@ -74,5 +80,39 @@ describe("user preferences", () => {
 				display: { ...preferences.display, timeZone: "UTC", baseCurrency: "$" },
 			}),
 		).toThrow();
+	});
+
+	it("fills Wave 1 module defaults when older preference payloads omit them", () => {
+		const preferences = defaultUserPreferences("UTC");
+		const { modules: _modules, modulesCustomized: _customized, streakMinTokens: _streak, ...legacyDisplay } =
+			preferences.display;
+		const parsed = UserPreferencesSchema.parse({
+			...preferences,
+			display: legacyDisplay,
+		});
+		expect(parsed.display.modules.order).toContain("heatmap");
+		expect(parsed.display.modulesCustomized).toBe(false);
+		expect(parsed.display.streakMinTokens).toBe(0);
+	});
+
+	it("applies preset module templates until the layout is customized", () => {
+		const base = defaultUserPreferences("UTC");
+		const cost = applyPresetToPreferences(base, "cost");
+		expect(effectiveModules(cost)).toEqual(["kpi", "heatmap", "trend", "accounts", "breakdown"]);
+		const customized = {
+			...cost,
+			display: {
+				...cost.display,
+				modulesCustomized: true,
+				modules: {
+					order: [...cost.display.modules.order],
+					hidden: [...new Set([...cost.display.modules.hidden, "heatmap" as const])],
+				},
+			},
+		};
+		const afterPreset = applyPresetToPreferences(customized, "minimal");
+		expect(afterPreset.display.preset).toBe("minimal");
+		expect(effectiveModules(afterPreset)).toEqual(["kpi", "trend", "accounts", "breakdown"]);
+		expect(effectiveModules(resetModulesToPreset(afterPreset))).toEqual(["kpi"]);
 	});
 });

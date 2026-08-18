@@ -248,6 +248,44 @@ describe("SQLite usage projection", () => {
 		}
 	});
 
+	it("upgrades schema v1 databases to v2 with account_fees", async () => {
+		const directory = await mkdtemp(join(process.cwd(), "output", "database-v1-upgrade-"));
+		const path = join(directory, "v1.sqlite");
+		try {
+			writeSqliteFile(path, (db) => {
+				db.exec("PRAGMA application_id = 1146442545");
+				db.exec("PRAGMA user_version = 1");
+				db.exec(`
+					CREATE TABLE session_cursors (session_id TEXT PRIMARY KEY);
+					CREATE TABLE usage_facts (id INTEGER PRIMARY KEY);
+					CREATE TABLE account_snapshots (provider_id TEXT PRIMARY KEY);
+					CREATE TABLE quota_window_snapshots (id INTEGER PRIMARY KEY);
+					CREATE TABLE price_rules (id TEXT PRIMARY KEY);
+					CREATE TABLE preferences (id INTEGER PRIMARY KEY);
+					CREATE TABLE alert_state (rule_id TEXT PRIMARY KEY);
+					CREATE TABLE migration_state (key TEXT PRIMARY KEY);
+				`);
+			});
+			const upgraded = await UsageDatabase.open(path);
+			try {
+				const version = (
+					upgraded.prepare("PRAGMA user_version").get() as { user_version: number }
+				).user_version;
+				expect(version).toBe(2);
+				const tables = (
+					upgraded
+						.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'account_fees'")
+						.get() as { name: string } | undefined
+				)?.name;
+				expect(tables).toBe("account_fees");
+			} finally {
+				upgraded.close();
+			}
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+
 	it("keeps anonymized facts when a source session disappears by default", () => {
 		const projection = projectUsageEvents(
 			emptySessionCursor("session-3", "persisted", "rev", 0),

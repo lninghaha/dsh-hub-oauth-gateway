@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web; coding-plan OAuth sign-in and an API gateway are planned next",
-  "version": "1.1.0",
+	"version": "1.2.0",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {

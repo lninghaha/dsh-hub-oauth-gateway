@@ -17,13 +17,15 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 ## 功能 / Highlights
 
 - **Quick Peek + Full Dashboard**：侧栏快速查看，完整仪表盘支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
-- **四种展示预设**：Minimal、Quota、Cost、Analyst；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
+- **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
+- **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
 - **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
 - **成本分析**：用户维护每百万 Token 价格；分别计算 input、output、cache read、cache write，并显示价格覆盖率。插件不会猜测未配置价格。
+- **订阅费用账本**：本地记录订阅/充值费用；账户卡片可显示月均与回本倍数（仅货币一致且本月成本可估算时）。
 - **趋势与预测**：按时区生成小时/日/周/月桶；预测为有界线性外推，并以虚线和历史数据区分。
 - **账户与配额**：内置 21 个余额/订阅适配器，统一显示余额、额度窗口、重置时间、陈旧状态和健康提醒。
 - **本地软提醒**：低配额、每日估算成本、账户异常；提醒不向外发送，也不实施硬阻断。
-- **CSV / JSON 导出**：遵循当前过滤条件；可隐藏会话标识，CSV 自动防御电子表格公式注入。
+- **CSV / JSON 导出**：过滤结果、日序列 CSV、打包 JSON；可隐藏会话标识，CSV 自动防御电子表格公式注入；费用账本不进入默认导出。
 - **中英文界面**：复用 DSH UI、locale、layout、settings、sidebar 和 slots 服务。
 
 产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。

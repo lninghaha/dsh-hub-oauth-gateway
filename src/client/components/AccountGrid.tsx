@@ -1,5 +1,8 @@
+import type { AccountFeeRecord } from "../../shared/fees.js";
+import { monthlyEquivalent, paybackMultiplier } from "../../shared/fees.js";
 import type { AccountSnapshot, QuotaWindow } from "../../shared/domain.js";
 import { formatCurrency, formatDurationUntil, formatNumber } from "../format.js";
+import type { Translate } from "../locales.js";
 
 function remainingRatio(window: QuotaWindow): number | null {
 	if (window.usedRatio !== null) return Math.max(0, Math.min(1, 1 - window.usedRatio));
@@ -79,53 +82,98 @@ function compactAccounts(accounts: readonly AccountSnapshot[]): AccountSnapshot[
 		.map(({ account }) => account);
 }
 
+function feeTooltip(
+	fee: AccountFeeRecord,
+	monthEstimatedCost: number | null,
+	baseCurrency: string,
+	t: Translate,
+): string {
+	const lines = [
+		fee.planName ?? fee.kind,
+		`${formatCurrency(fee.amount, fee.currency)}${fee.interval === null ? "" : ` / ${fee.interval}`}`,
+	];
+	if (fee.nextRenewalDate !== null) lines.push(t("fees.nextRenewal", { date: fee.nextRenewalDate }));
+	const monthly = monthlyEquivalent(fee);
+	if (monthly !== null) lines.push(t("fees.monthlyEquivalent", { value: formatCurrency(monthly, fee.currency) }));
+	const payback = paybackMultiplier(fee, monthEstimatedCost, baseCurrency);
+	if (payback === null) {
+		if (fee.currency !== baseCurrency.toUpperCase() || monthEstimatedCost === null) {
+			lines.push(t("fees.paybackUnavailable"));
+		}
+	} else {
+		lines.push(t("fees.payback", { value: String(payback) }));
+	}
+	return lines.join(" · ");
+}
+
 export function AccountGrid({
 	accounts,
 	emptyLabel,
 	compact = false,
 	selectedProviderId,
 	onSelect,
+	fees = [],
+	monthEstimatedCost = null,
+	baseCurrency = "USD",
+	t,
 }: {
 	readonly accounts: readonly AccountSnapshot[];
 	readonly emptyLabel: string;
 	readonly compact?: boolean;
 	readonly selectedProviderId?: string | null;
 	readonly onSelect?: (providerId: string) => void;
+	readonly fees?: readonly AccountFeeRecord[];
+	readonly monthEstimatedCost?: number | null;
+	readonly baseCurrency?: string;
+	readonly t?: Translate;
 }) {
 	if (accounts.length === 0) return <div className="dus-empty dus-empty-small">{emptyLabel}</div>;
 	const visible = compact ? compactAccounts(accounts) : accounts;
+	const feeByProvider = new Map(fees.map((fee) => [fee.providerId, fee]));
 	return (
 		<div className={`dus-account-grid${compact ? " is-compact" : ""}`}>
-			{visible.map((account) => (
-				<article
-					className={`dus-account-card${selectedProviderId === account.providerId ? " is-selected" : ""}`}
-					key={account.providerId}
-				>
-					<button
-						type="button"
-						className="dus-account-select"
-						onClick={() => onSelect?.(account.providerId)}
-						disabled={onSelect === undefined}
+			{visible.map((account) => {
+				const fee = feeByProvider.get(account.providerId);
+				const tip =
+					fee === undefined || t === undefined
+						? null
+						: feeTooltip(fee, monthEstimatedCost, baseCurrency, t);
+				return (
+					<article
+						className={`dus-account-card${selectedProviderId === account.providerId ? " is-selected" : ""}`}
+						key={account.providerId}
 					>
-						<span>
-							<strong className="dus-account-name">{account.displayName}</strong>
-							<span className="dus-account-plan">{account.plan ?? account.mode}</span>
-						</span>
-						<span className={`dus-status is-${account.stale ? "stale" : account.status}`}>
-							{account.stale ? "stale" : account.status}
-						</span>
-					</button>
-					{balanceLabel(account) === null ? null : (
-						<strong className="dus-account-balance">{balanceLabel(account)}</strong>
-					)}
-					{account.windows.slice(0, compact ? 1 : 3).map((window) => (
-						<QuotaBar key={`${window.kind}:${window.label}`} window={window} />
-					))}
-					{account.missingCredentials.length === 0 ? null : (
-						<span className="dus-account-note">{account.missingCredentials.join(", ")}</span>
-					)}
-				</article>
-			))}
+						<button
+							type="button"
+							className="dus-account-select"
+							onClick={() => onSelect?.(account.providerId)}
+							disabled={onSelect === undefined}
+						>
+							<span>
+								<strong className="dus-account-name">{account.displayName}</strong>
+								<span className="dus-account-plan" title={tip ?? undefined}>
+									{account.plan ?? account.mode}
+								</span>
+							</span>
+							<span className={`dus-status is-${account.stale ? "stale" : account.status}`}>
+								{account.stale ? "stale" : account.status}
+							</span>
+						</button>
+						{balanceLabel(account) === null ? null : (
+							<strong className="dus-account-balance" title={tip ?? undefined}>
+								{balanceLabel(account)}
+							</strong>
+						)}
+						{tip === null || compact ? null : <p className="dus-account-fee-tip">{tip}</p>}
+						{account.windows.slice(0, compact ? 1 : 3).map((window) => (
+							<QuotaBar key={`${window.kind}:${window.label}`} window={window} />
+						))}
+						{account.missingCredentials.length === 0 ? null : (
+							<span className="dus-account-note">{account.missingCredentials.join(", ")}</span>
+						)}
+					</article>
+				);
+			})}
 		</div>
 	);
 }

@@ -15,6 +15,7 @@ import { configuredProviders } from "./host/providers.js";
 import { DshSessionInventory } from "./host/session-inventory.js";
 import { migrateLegacyPreferences, migrateLegacyUsageCache } from "./migration.js";
 import { PricingRepository } from "./pricing/repository.js";
+import { FeesRepository } from "./fees/repository.js";
 import { startRefreshScheduler } from "./scheduler.js";
 import { PreferencesRepository } from "./settings/repository.js";
 import { UsageDatabase } from "./storage/database.js";
@@ -101,6 +102,7 @@ export async function apply(
 	const pricing = new PricingRepository(database);
 	const preferences = new PreferencesRepository(database);
 	const accountSnapshots = new AccountSnapshotRepository(database);
+	const fees = new FeesRepository(database);
 
 	await migrateLegacyPreferences(database, preferences, ctx.logger);
 	if (!preferences.exists()) {
@@ -239,6 +241,7 @@ export async function apply(
 			pricing,
 			preferences,
 			accounts: accountService,
+			fees,
 			providers: providersApi,
 			alerts: alertsApi,
 			freshness,

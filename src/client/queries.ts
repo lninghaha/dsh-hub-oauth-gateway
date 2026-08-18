@@ -2,15 +2,19 @@ import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import {
 	AccountsDataSchema,
+	ActivityDataSchema,
 	AlertsDataSchema,
 	API_PATHS,
 	BreakdownDataSchema,
+	type ExportLayout,
+	FeesDataSchema,
 	OverviewDataSchema,
 	PricingDataSchema,
 	SeriesDataSchema,
 } from "../shared/contracts.js";
 import { ProvidersDataSchema } from "../shared/providers.js";
 import type { PriceRule } from "../shared/domain.js";
+import type { FeesData } from "../shared/fees.js";
 import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
 import { fetchApi, mutateApi } from "./api.js";
 import { queryString, type ResolvedUsageQuery } from "./range.js";
@@ -132,6 +136,49 @@ export function useAlertsQuery(enabled = true) {
 			queryFn: ({ signal }) => fetchApi(API_PATHS.alerts, AlertsDataSchema, {}, signal),
 			enabled,
 			refetchInterval: enabled ? 60_000 : false,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useActivityQuery(
+	metric: "tokens" | "estimatedCost" | "requests" | "cacheHitRate",
+	enabled = true,
+	providers: readonly string[] = [],
+) {
+	const params = new URLSearchParams({ metric });
+	if (providers.length > 0) params.set("providers", providers.join(","));
+	const url = `${API_PATHS.activity}?${params.toString()}`;
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "activity", url],
+			queryFn: ({ signal }) => fetchApi(url, ActivityDataSchema, {}, signal),
+			enabled,
+			refetchInterval: enabled ? 60_000 : false,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useFeesQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "fees"],
+			queryFn: ({ signal }) => fetchApi(API_PATHS.fees, FeesDataSchema, {}, signal),
+			enabled,
+			refetchInterval: enabled ? 60_000 : false,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useSaveFeesMutation() {
+	return useMutation(
+		{
+			mutationFn: (fees: FeesData["fees"]) => mutateApi(API_PATHS.fees, "PUT", { fees }, FeesDataSchema),
+			onSuccess: async () => {
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "fees"] });
+			},
 		},
 		usageQueryClient,
 	);
@@ -278,6 +325,7 @@ export function exportUrl(
 	query: ResolvedUsageQuery,
 	format: "csv" | "json",
 	dimension: "provider" | "model" | "session",
+	layout: ExportLayout = "filtered",
 ): string {
-	return `${endpoint(API_PATHS.export, query)}&format=${format}&dimension=${dimension}`;
+	return `${endpoint(API_PATHS.export, query)}&format=${format}&dimension=${dimension}&layout=${layout}`;
 }
