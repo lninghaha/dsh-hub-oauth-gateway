@@ -146,7 +146,7 @@ merge. Authors should not rewrite shared history after review without warning.
 ## Releases
 
 Maintainers perform releases according to
-[`docs/00-project-rules.md`](docs/00-project-rules.md) and [`AGENTS.md`](AGENTS.md).
+[`docs/00-project-rules.md`](docs/00-project-rules.md)（仓库根目录 `AGENTS.md` 为 Agent 工作区副本，不随 npm 包发布）。
 
 - A release **must** publish the same SemVer to public npm; a Git tag / GitHub
   Release without npm is incomplete.
@@ -155,7 +155,7 @@ Maintainers perform releases according to
   Agents do not run `npm publish` themselves.
 - Every GitHub Release for a version **must** attach
   `dsh-hub-oauth-gateway-<version>.tgz` so users can download a ready-to-install
-  package and hand it to an Agent (see [`AGENTS.md`](AGENTS.md) §8).
+  package and hand it to an Agent (see [`docs/00-project-rules.md`](docs/00-project-rules.md) §8).
 - Related install and release documentation must be updated in the release
   change set, not deferred after publish.
 
