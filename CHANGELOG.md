@@ -16,6 +16,9 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 - Add a unified provider catalog at `GET /api/usage-stats/v1/providers` and a
   Settings provider-management view with independent connection, auth, model, and
   quota states.
+- Port the Coding OAuth Settings section (accounts, CLI source pull, capabilities,
+  Imagine status, and opt-in local gateway controls) as a separate
+  `settings.section` registration with bilingual copy.
 
 ## 1.1.0
 

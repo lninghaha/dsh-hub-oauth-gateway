@@ -1,4 +1,8 @@
 allowBuilds:
+  "@google/genai": false
   esbuild: true
   msw: false
+  protobufjs: false
+overrides:
+  "@earendil-works/pi-ai": "0.84.2"
 storeDir: output/pnpm-store

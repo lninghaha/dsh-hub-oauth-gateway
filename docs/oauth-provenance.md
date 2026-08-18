@@ -6,9 +6,9 @@ from `dsh-coding-subscription-oauth`.
 | Item | Value |
 | --- | --- |
 | Source package | `dsh-coding-subscription-oauth` |
-| Source baseline commit | `f685a163d49f06a0f7e554d9705637189989ae3a` |
-| Integration baseline | the source repository's current worktree at the time of integration, including unpublished capability, Imagine, media, and local gateway changes |
-| Destination | `src/server/coding-oauth/`, `src/cli/coding-oauth.ts` |
+| Source baseline commit | `5af9ad6de61e2c2d5cab8b1ad4f2361544d5ec9e` |
+| Integration baseline | source repository HEAD at migration continuation, including capability, Imagine, media, local gateway, and Coding OAuth Settings UI |
+| Destination | `src/server/coding-oauth/`, `src/cli/coding-oauth.ts`, `src/client/coding-oauth/` |
 | License of imported modules | Apache-2.0 |
 | License of original usage-center modules | MIT |
 | Combined package license | MIT AND Apache-2.0 |

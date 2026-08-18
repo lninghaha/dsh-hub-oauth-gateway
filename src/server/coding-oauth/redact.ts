@@ -40,18 +40,30 @@ function redactOpaqueTokens(input: string): string {
 	return output;
 }
 
+/** Strip userinfo from a proxy URL so CLI/logs never print `user:pass@`. */
+export function redactProxyUrl(value: string): string {
+	try {
+		const parsed = new URL(value);
+		if (parsed.username === "" && parsed.password === "") return value;
+		parsed.username = "";
+		parsed.password = "";
+		const href = parsed.href;
+		if (!value.endsWith("/") && href.endsWith("/") && parsed.pathname === "/") return href.slice(0, -1);
+		return href;
+	} catch {
+		return value.replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/@\s]+@/iu, "$1");
+	}
+}
+
 export function safeMessage(error: unknown): string {
 	let text = (error instanceof Error ? error.message : String(error))
-		.replace(/\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b/gu, "[redacted token]")
-		.replace(/\\bsk-ant-oat[A-Za-z0-9_-]*\\b/giu, "[redacted token]")
-		.replace(/\\bsk-[A-Za-z0-9_-]{16,}\\b/gu, "[redacted token]")
-		.replace(/\\bxai-[A-Za-z0-9._-]{8,}\\b/gu, "[redacted token]")
-		.replace(/(\\bBearer\\s+)[^\\s"',}]+/giu, "$1[redacted]")
-		.replace(/(\\b(?:code|user_code|token|id_token|refresh_token|access_token)=)[^&\\s]+/giu, "$1[redacted]")
-		.replace(
-			/(["']?(?:code|user_code|id_token|refresh_token|access_token)["']?\\s*:\\s*["'])[^"']+/giu,
-			"$1[redacted]",
-		);
+		.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu, "[redacted token]")
+		.replace(/\bsk-ant-oat[A-Za-z0-9_-]*\b/giu, "[redacted token]")
+		.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/gu, "[redacted token]")
+		.replace(/\bxai-[A-Za-z0-9._-]{8,}\b/gu, "[redacted token]")
+		.replace(/(\bBearer\s+)[^\s"',}]+/giu, "$1[redacted]")
+		.replace(/(\b(?:code|user_code|token|id_token|refresh_token|access_token)=)[^&\s]+/giu, "$1[redacted]")
+		.replace(/(["']?(?:code|user_code|id_token|refresh_token|access_token)["']?\s*:\s*["'])[^"']+/giu, "$1[redacted]");
 	// Generic opaque sweep catches long values preceded by labels such as
 	// client_secret, api_key, password, or Authorization. The minimum length
 	// guards against ordinary prose and the case-insensitive pass handles repeats.

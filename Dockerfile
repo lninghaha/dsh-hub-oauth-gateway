@@ -5,10 +5,10 @@
 # inside a container. Network is limited to the toolchain/dependency stage before
 # source is copied; every project-code stage runs with --network=none and a
 # container-only DSH_HOME. No host bind mounts, $HOME, profile, or credential
-# files are used; the source is copied via the Docker context. Test images are
-# conceptually named test-dsh-usage-stats:* .
+# files are used; the source is copied via the Docker context.
 #
-# Targets: check-next, check, verify, artifacts, package, isolated-install.
+# Targets: lockfile, check-next, check, inspect, artifacts, package,
+# isolated-install, verify.
 
 ARG NODE_VERSION=22.19.0
 
@@ -21,12 +21,22 @@ WORKDIR /workspace
 RUN mkdir -p "${DSH_HOME}" && chown -R node:node /workspace "${DSH_HOME}"
 USER node
 
-# Dependency stage: may reach the network to resolve the declared dependency set.
-# The committed pnpm-lock.yaml may be stale until re-generated here; when the
-# lockfile cannot be edited by hand, this stage regenerates it (no --frozen).
+# Regenerate pnpm-lock.yaml from package.json when dependencies change.
+# Export with: docker build --target lockfile --output type=local,dest=output/docker-lockfile .
+FROM toolchain AS lockfile-build
+COPY --chown=node:node package.json pnpm-workspace.yaml ./
+COPY --chown=node:node pnpm-lock.yaml* ./
+RUN pnpm install --no-frozen-lockfile \
+	&& mkdir -p /tmp/export \
+	&& cp pnpm-lock.yaml /tmp/export/pnpm-lock.yaml
+
+FROM scratch AS lockfile
+COPY --from=lockfile-build /tmp/export/ /
+
+# Dependency stage: frozen lockfile only (after lockfile target has been reviewed).
 FROM toolchain AS dependencies
 COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS source
 COPY --chown=node:node . .
@@ -42,7 +52,7 @@ RUN --network=none cp -a lib /tmp/committed-lib \
 	&& cp -a /tmp/committed-lib lib \
 	&& pnpm run check
 
-# In-image release build; warns if the rebuilt lib/ diverges from the committed copy.
+# In-image release build; export rebuilt lib/ for host review before replace.
 FROM source AS artifacts-build
 RUN --network=none cp -a lib /tmp/committed-lib \
 	&& rm -rf lib \
@@ -53,6 +63,9 @@ RUN --network=none cp -a lib /tmp/committed-lib \
 
 FROM scratch AS artifacts
 COPY --from=artifacts-build /tmp/export/ /
+
+FROM source AS inspect
+RUN --network=none pnpm run release:inspect
 
 FROM source AS package-build
 RUN --network=none cp -a lib /tmp/committed-lib \
@@ -71,7 +84,7 @@ RUN --network=none cp -a lib /tmp/committed-lib \
 	&& cp -a /tmp/committed-lib lib \
 	&& pnpm run release:pack \
 	&& mkdir -p /tmp/consumer \
-	&& printf '{"name":"dsh-usage-stats-sandbox-consumer","private":true,"type":"module"}\n' > /tmp/consumer/package.json \
+	&& printf '{"name":"dsh-hub-oauth-gateway-sandbox-consumer","private":true,"type":"module"}\n' > /tmp/consumer/package.json \
 	&& cd /tmp/consumer \
 	&& pnpm add --offline --ignore-scripts --config.auto-install-peers=false /workspace/output/dsh-hub-oauth-gateway-*.tgz \
 	&& node -e 'const fs = require("node:fs"); const path = require("node:path"); const root = require("/workspace/package.json"); for (const name of Object.keys(root.peerDependencies)) { if (name === "@deepseek-ai/dsh-tools") continue; const source = path.join("/workspace/node_modules", name); const target = path.join("/tmp/consumer/node_modules", name); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.rmSync(target, { recursive: true, force: true }); fs.symlinkSync(source, target, "dir"); }' \
