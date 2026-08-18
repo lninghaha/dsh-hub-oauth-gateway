@@ -6,6 +6,9 @@ const DEFAULT_REFRESH = Object.freeze({
 	accountMinutes: 5,
 	accountConcurrency: 3,
 	timeoutMs: 15_000,
+	accountMode: "fixed" as const,
+	accountAdaptiveMinMinutes: 2,
+	accountAdaptiveMaxMinutes: 30,
 });
 
 const DEFAULT_RETENTION = Object.freeze({
@@ -70,6 +73,27 @@ const RuntimeConfigInputSchema = z
 				accountMinutes: z.number().int().min(1).max(1440).default(DEFAULT_REFRESH.accountMinutes),
 				accountConcurrency: z.number().int().min(1).max(12).default(DEFAULT_REFRESH.accountConcurrency),
 				timeoutMs: z.number().int().min(1000).max(120_000).default(DEFAULT_REFRESH.timeoutMs),
+				accountMode: z.enum(["fixed", "adaptive"]).default(DEFAULT_REFRESH.accountMode),
+				accountAdaptiveMinMinutes: z
+					.number()
+					.int()
+					.min(1)
+					.max(1_440)
+					.default(DEFAULT_REFRESH.accountAdaptiveMinMinutes),
+				accountAdaptiveMaxMinutes: z
+					.number()
+					.int()
+					.min(1)
+					.max(1_440)
+					.default(DEFAULT_REFRESH.accountAdaptiveMaxMinutes),
+			})
+			.superRefine((value, context) => {
+				if (value.accountAdaptiveMinMinutes > value.accountAdaptiveMaxMinutes) {
+					context.addIssue({
+						code: "custom",
+						message: "accountAdaptiveMinMinutes must not exceed accountAdaptiveMaxMinutes",
+					});
+				}
 			})
 			.default(DEFAULT_REFRESH),
 		retention: z

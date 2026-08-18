@@ -17,7 +17,12 @@ import { DshSessionInventory } from "./host/session-inventory.js";
 import { migrateLegacyPreferences, migrateLegacyUsageCache } from "./migration.js";
 import { PricingRepository } from "./pricing/repository.js";
 import { collectProvidersData } from "./providers/catalog.js";
-import { startRefreshScheduler } from "./scheduler.js";
+import { startRefreshScheduler, adaptiveAccountIntervalMs } from "./scheduler.js";
+import {
+	isAutoExportAllowedInEnvironment,
+	validateAutoExportDirectory,
+	writeAutoExportFile,
+} from "./export/auto-export.js";
 import { PreferencesRepository } from "./settings/repository.js";
 import { UsageDatabase } from "./storage/database.js";
 import { usageDatabasePath } from "./storage/path.js";
@@ -273,16 +278,121 @@ export async function apply(
 	accountSnapshots.pruneBefore(cutoffNow - config.retention.accountSnapshotDays * 86_400_000);
 	lastRetentionAt = cutoffNow;
 
+	let lastAccountBurnRatio: number | null = null;
+	const refreshAccounts = async (): Promise<void> => {
+		const accounts = await accountService.refresh();
+		let hottest: number | null = null;
+		for (const account of accounts) {
+			for (const window of account.windows) {
+				if (window.usedRatio === null) continue;
+				hottest = hottest === null ? window.usedRatio : Math.max(hottest, window.usedRatio);
+			}
+		}
+		lastAccountBurnRatio = hottest;
+	};
+
 	const scheduler = startRefreshScheduler(
 		{ refresh: () => projectionApi.synchronize() },
-		{ refresh: () => accountService.refresh() },
+		{ refresh: refreshAccounts },
 		ctx.logger,
 		{
 			usageIntervalMs: config.refresh.usageSeconds * 1_000,
 			accountIntervalMs: config.refresh.accountMinutes * 60_000,
+			...(config.refresh.accountMode === "adaptive"
+				? {
+						nextAccountIntervalMs: () =>
+							adaptiveAccountIntervalMs(
+								lastAccountBurnRatio,
+								config.refresh.accountAdaptiveMinMinutes * 60_000,
+								config.refresh.accountAdaptiveMaxMinutes * 60_000,
+								config.refresh.accountMinutes * 60_000,
+							),
+					}
+				: {}),
 			disabled: dependencies.disableBackgroundRefresh,
 		},
 	);
 	ctx.effect(() => () => scheduler.stop(), "usage-stats: refresh scheduler");
+
+	let autoExportTimer: ReturnType<typeof setInterval> | null = null;
+	let lastAutoExportAt = 0;
+	const runAutoExport = async (): Promise<void> => {
+		if (!isAutoExportAllowedInEnvironment()) return;
+		const prefs = preferences.load("UTC");
+		if (!prefs.privacy.autoExportEnabled) return;
+		const current = now();
+		const intervalMs = prefs.privacy.autoExportIntervalMinutes * 60_000;
+		if (lastAutoExportAt > 0 && current - lastAutoExportAt < intervalMs) return;
+		try {
+			const directory = validateAutoExportDirectory(prefs.privacy.autoExportDirectory);
+			const timeKey = bucketKey(current, prefs.display.timeZone, "day");
+			const from = bucketTimestamp(timeKey, prefs.display.timeZone, "day") - 30 * 86_400_000;
+			const query: UsageQuery = {
+				from,
+				to: current,
+				timeZone: prefs.display.timeZone,
+				granularity: "day",
+				metric: "tokens",
+				groupBy: "provider",
+				providers: [],
+				models: [],
+				compare: false,
+			};
+			const layout = prefs.privacy.autoExportLayout;
+			if (layout === "daily") {
+				const rows = queryService.dailyExportRows(query);
+				const header =
+					"date,provider,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,requests,estimated_cost,currency,price_coverage\n";
+				const body =
+					header +
+					rows
+						.map((row) =>
+							[
+								row.date,
+								row.provider,
+								row.inputTokens,
+								row.outputTokens,
+								row.cacheReadTokens,
+								row.cacheWriteTokens,
+								row.requests,
+								row.estimatedCost,
+								row.currency,
+								row.priceCoverage,
+							].join(","),
+						)
+						.join("\n");
+				await writeAutoExportFile(directory, { generatedAt: current, layout, body, extension: "csv" }, current);
+			} else {
+				const showSessions = prefs.privacy.showSessionIdentifiers && !prefs.privacy.redactExports;
+				const snapshot = queryService.breakdown(query, "provider", showSessions);
+				const body = JSON.stringify(
+					{
+						generatedAt: current,
+						layout,
+						query,
+						snapshot,
+						...(layout === "bundle" ? { daily: queryService.dailyExportRows(query) } : {}),
+					},
+					null,
+					2,
+				);
+				await writeAutoExportFile(directory, { generatedAt: current, layout, body, extension: "json" }, current);
+			}
+			lastAutoExportAt = current;
+		} catch {
+			ctx.logger.warn("usage-stats: auto-export failed (details redacted)");
+		}
+	};
+	if (!dependencies.disableBackgroundRefresh) {
+		autoExportTimer = setInterval(() => void runAutoExport(), 60_000);
+		autoExportTimer.unref?.();
+		ctx.effect(
+			() => () => {
+				if (autoExportTimer !== null) clearInterval(autoExportTimer);
+			},
+			"usage-stats: auto-export",
+		);
+	}
+
 	if (config.debug) ctx.logger.debug("usage-stats v1 initialized");
 }

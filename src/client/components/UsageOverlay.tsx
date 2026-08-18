@@ -439,6 +439,10 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 												share: t("breakdown.share"),
 												requests: t("breakdown.requests"),
 												cache: t("breakdown.cache"),
+												input: t("breakdown.input"),
+												output: t("breakdown.output"),
+												cacheRead: t("breakdown.cacheRead"),
+												cacheWrite: t("breakdown.cacheWrite"),
 												cost: t("breakdown.cost"),
 											}}
 										/>

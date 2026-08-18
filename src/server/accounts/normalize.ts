@@ -247,11 +247,13 @@ function alertForResult(spec: AccountSpec, result: RawAccountResult, mode: "bala
  */
 export function buildAccountSnapshot(spec: AccountSpec, result: RawAccountResult, now: number): AccountSnapshot {
 	const mode = result.mode ?? spec.mode ?? "balance";
-	const windows = mode === "subscription" ? toQuotaWindows(result.windows ?? [], spec.id) : [];
+	const windowOwner = spec.profileId === "" ? spec.id : `${spec.id}:${spec.profileId}`;
+	const windows = mode === "subscription" ? toQuotaWindows(result.windows ?? [], windowOwner) : [];
 	const balance = mode !== "subscription" && result.balance != null ? toBalanceSnapshot(result.balance) : null;
 	const alert = alertForResult(spec, result, mode);
 	return AccountSnapshotSchema.parse({
 		providerId: spec.id,
+		profileId: spec.profileId,
 		displayName: spec.displayName,
 		adapterId: spec.adapter,
 		mode,
@@ -274,6 +276,7 @@ export function buildErrorSnapshot(spec: AccountSpec, status: ProviderStatus, no
 
 const FALLBACK_SPEC: AccountSpec = {
 	id: "unknown",
+	profileId: "",
 	displayName: "Unknown",
 	adapter: null,
 	mode: "balance",

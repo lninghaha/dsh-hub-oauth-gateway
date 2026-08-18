@@ -4,6 +4,7 @@ import type { UsageDatabase } from "../storage/database.js";
 interface AccountRow {
 	id: number;
 	provider_id: string;
+	profile_id: string;
 	display_name: string;
 	adapter_id: string | null;
 	observed_at: number;
@@ -60,12 +61,13 @@ export class AccountSnapshotRepository {
 			const result = this.#database
 				.prepare(`
 					INSERT INTO account_snapshots (
-						provider_id, display_name, adapter_id, observed_at, status, mode, configured, stale,
+						provider_id, profile_id, display_name, adapter_id, observed_at, status, mode, configured, stale,
 						plan, balance_json, missing_credentials_json, warning_code
-					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`)
 				.run(
 					value.providerId,
+					value.profileId,
 					value.displayName,
 					value.adapterId,
 					timestamp,
@@ -108,32 +110,32 @@ export class AccountSnapshotRepository {
 		return snapshots.map((snapshot) => this.save(snapshot, observedAt));
 	}
 
-	latest(providerId: string): AccountSnapshot | null {
+	latest(providerId: string, profileId = ""): AccountSnapshot | null {
 		const row = this.#database
 			.prepare(`
-				SELECT id, provider_id, display_name, adapter_id, observed_at, status, mode, configured, stale,
+				SELECT id, provider_id, profile_id, display_name, adapter_id, observed_at, status, mode, configured, stale,
 				plan, balance_json, missing_credentials_json, warning_code
 				FROM account_snapshots
-				WHERE provider_id = ?
+				WHERE provider_id = ? AND profile_id = ?
 				ORDER BY observed_at DESC, id DESC
 				LIMIT 1
 			`)
-			.get(providerId) as AccountRow | undefined;
+			.get(providerId, profileId) as AccountRow | undefined;
 		return row === undefined ? null : this.#hydrate(row);
 	}
 
 	latestAll(): AccountSnapshot[] {
 		const rows = this.#database
 			.prepare(`
-				SELECT a.id, a.provider_id, a.display_name, a.adapter_id, a.observed_at, a.status, a.mode,
+				SELECT a.id, a.provider_id, a.profile_id, a.display_name, a.adapter_id, a.observed_at, a.status, a.mode,
 				a.configured, a.stale, a.plan, a.balance_json, a.missing_credentials_json, a.warning_code
 				FROM account_snapshots a
 				WHERE a.id = (
 					SELECT b.id FROM account_snapshots b
-					WHERE b.provider_id = a.provider_id
+					WHERE b.provider_id = a.provider_id AND b.profile_id = a.profile_id
 					ORDER BY b.observed_at DESC, b.id DESC LIMIT 1
 				)
-				ORDER BY a.provider_id
+				ORDER BY a.provider_id, a.profile_id
 			`)
 			.all() as unknown as AccountRow[];
 		return rows.map((row) => this.#hydrate(row));
@@ -154,6 +156,7 @@ export class AccountSnapshotRepository {
 			.all(row.id) as unknown as WindowRow[];
 		return AccountSnapshotSchema.parse({
 			providerId: row.provider_id,
+			profileId: row.profile_id,
 			displayName: row.display_name,
 			adapterId: row.adapter_id,
 			mode: row.mode,

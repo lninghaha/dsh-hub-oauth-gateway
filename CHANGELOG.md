@@ -17,6 +17,33 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   Settings provider-management view with independent connection, auth, model, and
   quota states.
 
+## 1.4.0
+
+### Added
+
+#### Wave 2 — account coverage
+
+- `volcengine-coding-plan` adapter via signed OpenAPI `GetCodingPlanUsage`
+  (no chat-completion probe).
+- `zai-team-plan` adapter (`open.bigmodel.cn` quota `type=2`) isolated from
+  personal `zai-token-plan`.
+- lastGood hardening: consecutive transient failures keep stale last-good data
+  until a configurable limit, then clear; Account UI shows last-good time.
+- Multi-profile monitors (`accounts.monitors.*.profiles[]`) with snapshot key
+  `(providerId, profileId)` (schema v3) and fee `profileId` attachment.
+
+#### Wave 3 — ops / optional
+
+- Adaptive account refresh (`refresh.accountMode: fixed | adaptive`, default
+  `fixed`); ordinary GET still does not credential-refresh.
+- Breakdown table expands input/output/cacheRead/cacheWrite columns (local data
+  only).
+- Opt-in local-directory auto export (absolute path; refused in CI/sandbox;
+  never writes credentials/sessions).
+- Opt-in `antigravity-quota` (external credential + usage URL only) and
+  `ollama-cloud` (requires `allowCookieSession: true`, host pinned to
+  `ollama.com`).
+
 ## 1.2.0
 
 ### Added

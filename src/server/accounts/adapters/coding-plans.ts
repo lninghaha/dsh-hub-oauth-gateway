@@ -424,3 +424,52 @@ export const minimaxTokenPlanAdapter: AccountAdapter = {
 	},
 };
 //#endregion
+
+//#region z.ai team plan
+export const ZAI_TEAM_API_KEY_REF = "ZAI_TEAM_API_KEY";
+const ZAI_TEAM_HOST = "https://open.bigmodel.cn";
+
+/**
+ * Z.ai / GLM Team Plan quota (`type=2`). Intentionally separate from
+ * `zai-token-plan`: personal keys must not silently fall back to team limits.
+ */
+export const zaiTeamPlanAdapter: AccountAdapter = {
+	id: "zai-team-plan",
+	mode: "subscription",
+	async collect(ctx) {
+		const apiKeyRef = ctx.spec.apiKeyRef ?? ctx.spec.monitor.credentialRef ?? ZAI_TEAM_API_KEY_REF;
+		const apiKey = await resolveCredential(ctx.credentials, apiKeyRef);
+		if (apiKey === "") {
+			return {
+				status: "not-configured",
+				plan: "GLM Team",
+				missingCredentials: [apiKeyRef],
+				windows: [],
+			};
+		}
+		const configured = nonEmptyUrl(ctx.spec.monitor.usageBaseURL, ZAI_QUOTA_PATH);
+		const host = configured === null ? ZAI_TEAM_HOST : new URL(configured).origin;
+		const quotaUrl = `${host}${ZAI_QUOTA_PATH}?type=2`;
+		const init = { headers: { authorization: apiKey, accept: "application/json" } };
+		const officialTarget = { providerBaseURL: host, enforceSameOrigin: true } as const;
+		try {
+			const quota = await requestJson(quotaUrl, init, ctx.deps, officialTarget);
+			let subscription: unknown = null;
+			try {
+				subscription = await requestJson(`${host}${ZAI_SUBSCRIPTION_PATH}`, init, ctx.deps, officialTarget);
+			} catch {
+				/* optional */
+			}
+			const parsed = parseZai(quota, subscription);
+			return {
+				status: parsed.windows.length > 0 ? "ok" : "invalid-response",
+				plan: parsed.plan === "GLM Coding Plan" ? "GLM Team" : parsed.plan,
+				region: "bigmodel-cn",
+				windows: parsed.windows,
+			};
+		} catch (error) {
+			return { status: statusOfError(error), plan: "GLM Team", region: "bigmodel-cn", windows: [] };
+		}
+	},
+};
+//#endregion

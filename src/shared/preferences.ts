@@ -109,6 +109,10 @@ export const UserPreferencesSchema = z
 			.object({
 				showSessionIdentifiers: z.boolean(),
 				redactExports: z.boolean(),
+				autoExportEnabled: z.boolean().default(false),
+				autoExportDirectory: z.string().max(1024).default(""),
+				autoExportLayout: z.enum(["filtered", "daily", "bundle"]).default("bundle"),
+				autoExportIntervalMinutes: z.number().int().min(5).max(1440).default(60),
 			})
 			.strict(),
 		alerts: z
@@ -151,6 +155,10 @@ export function defaultUserPreferences(timeZone = Intl.DateTimeFormat().resolved
 		privacy: {
 			showSessionIdentifiers: false,
 			redactExports: true,
+			autoExportEnabled: false,
+			autoExportDirectory: "",
+			autoExportLayout: "bundle",
+			autoExportIntervalMinutes: 60,
 		},
 		alerts: {
 			enabled: true,

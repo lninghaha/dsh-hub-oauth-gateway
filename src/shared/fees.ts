@@ -22,6 +22,7 @@ export const AccountFeeRecordSchema = z
 	.object({
 		id: z.string().min(1).max(128),
 		providerId: z.string().min(1).max(128),
+		profileId: z.string().max(128).default(""),
 		accountLabel: z.string().trim().max(128).nullable(),
 		kind: FeeKindSchema,
 		planName: z.string().trim().max(128).nullable(),

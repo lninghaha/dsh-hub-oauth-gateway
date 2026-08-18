@@ -9,6 +9,10 @@ export interface BreakdownLabels {
 	readonly requests: string;
 	readonly cache: string;
 	readonly cost: string;
+	readonly input?: string;
+	readonly output?: string;
+	readonly cacheRead?: string;
+	readonly cacheWrite?: string;
 }
 
 export function BreakdownTable({
@@ -21,6 +25,11 @@ export function BreakdownTable({
 	readonly labels: BreakdownLabels;
 }) {
 	const total = data.rows.reduce((sum, row) => sum + totalTokens(row.buckets), 0);
+	const showBuckets =
+		labels.input !== undefined ||
+		labels.output !== undefined ||
+		labels.cacheRead !== undefined ||
+		labels.cacheWrite !== undefined;
 	return (
 		<div className="dus-table-scroll">
 			<table className="dus-table">
@@ -31,6 +40,14 @@ export function BreakdownTable({
 						<th scope="col">{labels.share}</th>
 						<th scope="col">{labels.requests}</th>
 						<th scope="col">{labels.cache}</th>
+						{showBuckets ? (
+							<>
+								<th scope="col">{labels.input ?? "input"}</th>
+								<th scope="col">{labels.output ?? "output"}</th>
+								<th scope="col">{labels.cacheRead ?? "cache read"}</th>
+								<th scope="col">{labels.cacheWrite ?? "cache write"}</th>
+							</>
+						) : null}
 						<th scope="col">{labels.cost}</th>
 					</tr>
 				</thead>
@@ -52,6 +69,14 @@ export function BreakdownTable({
 								<td>{formatPercent(total === 0 ? null : tokens / total)}</td>
 								<td>{formatCompact(row.requests)}</td>
 								<td>{formatPercent(row.cacheHitRate)}</td>
+								{showBuckets ? (
+									<>
+										<td>{formatCompact(row.buckets.input)}</td>
+										<td>{formatCompact(row.buckets.output)}</td>
+										<td>{formatCompact(row.buckets.cacheRead)}</td>
+										<td>{formatCompact(row.buckets.cacheWrite)}</td>
+									</>
+								) : null}
 								<td title={`${Math.round(row.cost.coverageRatio * 100)}% priced`}>
 									{formatCurrency(row.cost.amount, row.cost.currency)}
 								</td>

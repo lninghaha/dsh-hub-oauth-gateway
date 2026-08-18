@@ -67,6 +67,7 @@ export type BalanceSnapshot = z.infer<typeof BalanceSnapshotSchema>;
 export const AccountSnapshotSchema = z
 	.object({
 		providerId: z.string().min(1),
+		profileId: z.string().max(128).default(""),
 		displayName: z.string().min(1),
 		adapterId: z.string().min(1).nullable(),
 		mode: z.enum(["balance", "subscription", "hybrid"]).nullable(),

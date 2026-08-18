@@ -4,6 +4,7 @@ import type { UsageDatabase } from "../storage/database.js";
 interface FeeRow {
 	id: string;
 	provider_id: string;
+	profile_id: string;
 	account_label: string | null;
 	kind: AccountFeeRecord["kind"];
 	plan_name: string | null;
@@ -21,6 +22,7 @@ function fromRow(row: FeeRow): AccountFeeRecord {
 	return AccountFeeRecordSchema.parse({
 		id: row.id,
 		providerId: row.provider_id,
+		profileId: row.profile_id,
 		accountLabel: row.account_label,
 		kind: row.kind,
 		planName: row.plan_name,
@@ -45,10 +47,10 @@ export class FeesRepository {
 	list(): AccountFeeRecord[] {
 		const rows = this.#database
 			.prepare(`
-				SELECT id, provider_id, account_label, kind, plan_name, amount, currency, interval,
+				SELECT id, provider_id, profile_id, account_label, kind, plan_name, amount, currency, interval,
 					anchor_date, next_renewal_date, topups_json, notes, updated_at
 				FROM account_fees
-				ORDER BY provider_id, kind, id
+				ORDER BY provider_id, profile_id, kind, id
 			`)
 			.all() as unknown as FeeRow[];
 		return rows.map(fromRow);
@@ -65,14 +67,15 @@ export class FeesRepository {
 			this.#database.prepare("DELETE FROM account_fees").run();
 			const insert = this.#database.prepare(`
 				INSERT INTO account_fees (
-					id, provider_id, account_label, kind, plan_name, amount, currency, interval,
+					id, provider_id, profile_id, account_label, kind, plan_name, amount, currency, interval,
 					anchor_date, next_renewal_date, topups_json, notes, updated_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`);
 			for (const fee of values) {
 				insert.run(
 					fee.id,
 					fee.providerId,
+					fee.profileId,
 					fee.accountLabel,
 					fee.kind,
 					fee.planName,

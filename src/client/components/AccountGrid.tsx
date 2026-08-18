@@ -1,7 +1,7 @@
 import type { AccountSnapshot, QuotaWindow } from "../../shared/domain.js";
 import type { AccountFeeRecord } from "../../shared/fees.js";
 import { monthlyEquivalent, paybackMultiplier } from "../../shared/fees.js";
-import { formatCurrency, formatDurationUntil, formatNumber } from "../format.js";
+import { formatCurrency, formatDurationUntil, formatNumber, formatRelativeTime } from "../format.js";
 import type { Translate } from "../locales.js";
 
 function remainingRatio(window: QuotaWindow): number | null {
@@ -82,6 +82,10 @@ function compactAccounts(accounts: readonly AccountSnapshot[]): AccountSnapshot[
 		.map(({ account }) => account);
 }
 
+function feeKey(providerId: string, profileId: string): string {
+	return profileId === "" ? providerId : `${providerId}\u0000${profileId}`;
+}
+
 function feeTooltip(
 	fee: AccountFeeRecord,
 	monthEstimatedCost: number | null,
@@ -104,6 +108,20 @@ function feeTooltip(
 		lines.push(t("fees.payback", { value: String(payback) }));
 	}
 	return lines.join(" · ");
+}
+
+function statusLabel(account: AccountSnapshot, t: Translate | undefined): string {
+	if (account.stale) return t?.("status.stale") ?? "stale";
+	return account.status;
+}
+
+function fetchedHint(account: AccountSnapshot, t: Translate | undefined): string | null {
+	if (account.fetchedAt === null) return null;
+	if (account.stale) {
+		const when = formatRelativeTime(account.fetchedAt);
+		return t?.("accounts.lastGood", { time: when }) ?? `last good ${when}`;
+	}
+	return null;
 }
 
 export function AccountGrid({
@@ -129,16 +147,18 @@ export function AccountGrid({
 }) {
 	if (accounts.length === 0) return <div className="dus-empty dus-empty-small">{emptyLabel}</div>;
 	const visible = compact ? compactAccounts(accounts) : accounts;
-	const feeByProvider = new Map(fees.map((fee) => [fee.providerId, fee]));
+	const feeByKey = new Map(fees.map((fee) => [feeKey(fee.providerId, fee.profileId), fee]));
 	return (
 		<div className={`dus-account-grid${compact ? " is-compact" : ""}`}>
 			{visible.map((account) => {
-				const fee = feeByProvider.get(account.providerId);
+				const fee = feeByKey.get(feeKey(account.providerId, account.profileId));
 				const tip = fee === undefined || t === undefined ? null : feeTooltip(fee, monthEstimatedCost, baseCurrency, t);
+				const cardKey = feeKey(account.providerId, account.profileId);
+				const lastGood = fetchedHint(account, t);
 				return (
 					<article
 						className={`dus-account-card${selectedProviderId === account.providerId ? " is-selected" : ""}`}
-						key={account.providerId}
+						key={cardKey}
 					>
 						<button
 							type="button"
@@ -153,9 +173,10 @@ export function AccountGrid({
 								</span>
 							</span>
 							<span className={`dus-status is-${account.stale ? "stale" : account.status}`}>
-								{account.stale ? "stale" : account.status}
+								{statusLabel(account, t)}
 							</span>
 						</button>
+						{lastGood === null || compact ? null : <p className="dus-account-last-good">{lastGood}</p>}
 						{balanceLabel(account) === null ? null : (
 							<strong className="dus-account-balance" title={tip ?? undefined}>
 								{balanceLabel(account)}
