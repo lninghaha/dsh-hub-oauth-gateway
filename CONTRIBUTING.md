@@ -146,10 +146,19 @@ merge. Authors should not rewrite shared history after review without warning.
 ## Releases
 
 Maintainers perform releases according to
-[`docs/00-project-rules.md`](docs/00-project-rules.md). Release preparation and
-inspection are local; version bumps, tags, pushes, registry publication, and
-GitHub Releases require an explicit human decision. Contributors should not
-include an unsolicited version bump or tag in a feature pull request.
+[`docs/00-project-rules.md`](docs/00-project-rules.md) and [`AGENTS.md`](AGENTS.md).
+
+- A release **must** publish the same SemVer to public npm; a Git tag / GitHub
+  Release without npm is incomplete.
+- Agents prepare the version, docs, gates, tag, and GitHub Release, then give
+  the maintainer **cloud-terminal** commands for `npm publish` (nvm Node + OTP).
+  Agents do not run `npm publish` themselves.
+- Related install and release documentation must be updated in the release
+  change set, not deferred after publish.
+
+Version bumps, tags, pushes, registry publication, and GitHub Releases require
+an explicit human decision. Contributors should not include an unsolicited
+version bump or tag in a feature pull request.
 
 Installing or developing the plugin never authorizes a tool or contributor to
 restart DSH Web. A user chooses when to restart the service.
