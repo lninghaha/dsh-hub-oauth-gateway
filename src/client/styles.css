@@ -3,8 +3,13 @@
  * layer (--dsw-alias-*), so the plugin follows the host light/dark theme.
  * The --dus-* names are semantic aliases local to this plugin; the fallbacks
  * only apply when a host predates the rc.6 theme contract.
+ *
+ * The alias layer must live on `body`, not `:root`: the official theme
+ * defines --dsw-alias-* on `body` / `body[data-ds-dark-theme]`, and custom
+ * properties referenced from `:root` would evaluate before those definitions
+ * are in scope, locking in the fallbacks for the whole subtree.
  */
-:root {
+body {
   --dus-accent: var(--dsw-alias-state-business-primary, rgb(65, 118, 230));
   --dus-accent-2: var(--dsw-alias-state-success-primary, #43bca8);
   --dus-accent-soft: var(--dsw-alias-interactive-bg-hover-accent, color-mix(in srgb, var(--dus-accent) 15%, transparent));

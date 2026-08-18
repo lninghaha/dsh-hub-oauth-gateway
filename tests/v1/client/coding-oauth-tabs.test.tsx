@@ -158,6 +158,15 @@ describe("coding OAuth settings tabs", () => {
 		expect(screen.getByText(en["oauth.loginDevice"])).toBeTruthy();
 	});
 
+	it("shows both Grok login methods when the signed-out card is expanded", () => {
+		renderWithClient(<AccountsTab t={t} />);
+		const card = document.querySelector('[data-oauth-provider="grok"]');
+		expect(card).toBeTruthy();
+		fireEvent.click(card!.querySelector(".dus-oauth-card-toggle")!);
+		expect(screen.getByText(en["oauth.loginBrowser"])).toBeTruthy();
+		expect(screen.getByText(en["oauth.loginDevice"])).toBeTruthy();
+	});
+
 	it("renders the gateway tab with status, port editor, and key lifecycle controls", () => {
 		renderWithClient(<GatewayTab t={t} />);
 		expect(screen.getByText(en["gateway.enabled"])).toBeTruthy();
