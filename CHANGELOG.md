@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.7.1
+
 ### Fixed
 
 - Codex (`codex-wham`) quota probe now sends `chatgpt-account-id` and parses
