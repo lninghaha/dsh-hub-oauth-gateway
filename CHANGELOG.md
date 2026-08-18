@@ -13,6 +13,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
   nested logger/settings `coding-oauth`). Composition receives the full Cordis
   context and fails closed when enabled OAuth cannot start. `codingOAuth.retryPolicy`
   is validated by `@deepseek-ai/dsh-llm` `RetryPolicySchema`.
+- Document operator-facing Coding OAuth flows in README and
+  `docs/configuration.md` (`usage-stats` → `config.codingOAuth`): four-provider
+  sign-in, CLI Pull, default-off capabilities, opt-in loopback gateway, Kimi
+  China hosts, proxy precedence, AUTH refresh retry, and explicit non-goals
+  (no default-model hijack; Antigravity remains an optional external `dsh-agy`).
+- Tighten `verify-release` so the published CLI `--help` and Settings HTTP
+  paths cannot drop out of `lib/`, and so old plugin ids stay out of bundle
+  identity.
 
 ### Added
 
@@ -26,6 +34,9 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 - Port the Coding OAuth Settings section (accounts, CLI source pull, capabilities,
   Imagine status, and opt-in local gateway controls) as a separate
   `settings.section` registration with bilingual copy.
+- Add mock regressions for unsigned `(OAuth)` routes staying out of the
+  selector, CLI Pull refusing unsafe source/destination files, a disabled
+  gateway that does not listen, and default-off capability flags.
 
 ## 1.1.0
 

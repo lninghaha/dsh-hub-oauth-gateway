@@ -207,16 +207,52 @@ During authorization, the upstream device code stays in an expiring, bounded ser
 
 Integrated coding-subscription OAuth owner. Keep this enabled after cutover so Grok Build, Codex, Kimi Code, and Claude Code routes, settings, and credential files stay in this plugin. Disable only in isolated tests.
 
+YAML lives under `usage-stats` → `config.codingOAuth`. Invalid `retryPolicy` objects fail startup. This plugin does not change the system default model. Google Antigravity is not bundled; install `dsh-agy` separately if you need that route.
+
 | Field | Default | Meaning |
 | --- | ---: | --- |
 | `enabled` | `true` | Register OAuth LLM routes, compatibility HTTP paths, CLI-backed sessions, and optional capabilities |
 | `proxy` | unset | HTTPS proxy URL for the audited coding-subscription host allowlist |
-| `proxyKimi` | `false` | Also send Kimi China traffic through the proxy |
+| `proxyKimi` | `false` | Also send Kimi China traffic (`auth.kimi.com`, `api.kimi.com`) through the proxy |
 | `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-oauth` settings namespace |
-| `gateway` | disabled | Opt-in isolated local OpenAI-compatible gateway; loopback bind only |
+| `gateway` | disabled | Opt-in isolated local OpenAI/Anthropic-compatible gateway; loopback bind only |
 | `retryPolicy` | harness + AUTH | Optional provider retry policy; validated by `@deepseek-ai/dsh-llm` `RetryPolicySchema` |
 
-YAML lives under `usage-stats` → `config.codingOAuth`. Invalid `retryPolicy` objects fail startup.
+Proxy precedence: `config.codingOAuth.proxy` → `CODING_OAUTH_PROXY` → `GROK_BUILD_PROXY` → `HTTPS_PROXY` / `HTTP_PROXY`. Only audited subscription hosts use the dispatcher; other DSH traffic is unchanged. Kimi stays direct unless `proxyKimi: true`. Kimi Code OAuth is `auth.kimi.com` + `api.kimi.com/coding`, not `api.moonshot.cn`.
+
+```yaml
+- insert:
+    - id: usage-stats
+      name: dsh-hub-oauth-gateway
+      config:
+        codingOAuth:
+          enabled: true
+          proxy: http://127.0.0.1:7890
+          proxyKimi: false
+          capabilities:
+            codexSearch: false
+            grokImagineImage: false
+          gateway:
+            enabled: false
+            bind: 127.0.0.1
+            port: 18080
+          retryPolicy:
+            mode: normal
+            maxRetries: 2
+            retryableCodes:
+              - EMPTY_RESPONSE
+              - RATE_LIMIT
+              - SERVER
+              - TIMEOUT
+              - TRANSPORT
+              - AUTH
+            backoff:
+              initialDelayMs: 500
+              maxDelayMs: 10000
+              jitterRatio: 0.1
+```
+
+The gateway is a local loopback service for tools you control, not a public relay. Copy the OpenAI base URL (`http://127.0.0.1:18080/v1`) and Bearer token from **Settings → Coding OAuth → Gateway**. Non-loopback bind requires an explicit `apiKey`. Optional capabilities stay off until toggled in Settings or set under `capabilities`; Grok Imagine uses the separate DSH credential `XAI_API_KEY`.
 
 ## `debug`
 

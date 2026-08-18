@@ -79,8 +79,100 @@ systemctl --user restart dsh-web.service
 2. 进入 Full Dashboard 后选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
 4. 在 **Settings → Usage Center** 调整预设、密度、时区、货币、供应商显示、提醒、价格、凭据和导出隐私。
-5. 在 **Settings → 编码 OAuth** 登录订阅账户、从 CLI 导入来源、开关可选能力，以及（如需要）启用本机网关。
+5. 在 **Settings → 编码 OAuth** 登录订阅账户、从 CLI 导入来源、开关可选能力，以及（如需要）启用本机网关。完整操作见下方 [Coding OAuth](#coding-oauth)。
 6. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
+
+## Coding OAuth
+
+安装本插件并重启 DSH Web 后，可以用自己的 **SuperGrok / ChatGPT Plus Codex / Kimi Code / Claude Pro** 在 DSH 里对话，不必另买按量 API-key，也不要把 token 贴进聊天。配置一律写在 Cordis `usage-stats` → `config.codingOAuth`。
+
+After install and a Web restart, sign in with a subscription you already own. YAML always lives under `usage-stats` → `config.codingOAuth`. This plugin does **not** change the system default model; pick an `(OAuth)` route in the model selector after sign-in. Google Antigravity is an optional external `dsh-agy` plugin: About shows whether it is installed and the CLI hint; this package does not ship Google login.
+
+### 设置页 / Settings
+
+打开 **Settings → 编码 OAuth**。页面分四个标签：**Accounts**、**Gateway**、**Capabilities**、**About**。已登录供应商卡片默认折叠。
+
+Open **Settings → Coding OAuth**. Tabs: Accounts, Gateway, Capabilities, About.
+
+| 供应商 / Provider | 登录方式 / Sign-in |
+| --- | --- |
+| Grok Build | 授权码 PKCE，或设备码（远端 / 无头 DSH） |
+| Codex | 设备码优先（远程推荐）；也可浏览器 PKCE |
+| Kimi Code | 设备码 |
+| Claude Code | 浏览器 PKCE；远程浏览器可粘贴完整 localhost 回调 URL |
+| Antigravity | 仅展示外部 `dsh-agy` 安装状态 + profile-local CLI 提示 |
+
+DSH 主机在远端时优先设备码。浏览器登录会打开供应商页面；若 localhost 回调到不了这台主机，把返回的授权 code 或完整 redirect URL 粘贴到等待中的设置卡片。
+
+选择器只列出**已登录**路由，显示名带 `(OAuth)`。未登录供应商返回空模型列表，不会出现在选择器里。AUTH 过期会先刷新再重试该 step；配额耗尽或 refresh token 失效会立刻提示重新登录，而不是空转。
+
+### CLI 拉取 / CLI Pull
+
+设置页只读发现白名单内的官方 Grok / Codex / Kimi / Claude CLI OAuth 文件。同步是显式的单向**拉取**：发现 → 预览 → 冲突核对 → 确认覆盖。**不会写回**官方 CLI 文件。
+
+读取拒绝符号链接、非普通文件、非属主、组/其他人可读，以及超大文档。预览票据一次性、短期过期。
+
+命令行（`dsh-grok-build` 是同一命令的别名）：
+
+```bash
+dsh-coding-oauth login [--pkce] | import | status | logout
+dsh-coding-oauth login grok [--pkce|--device-auth]
+dsh-coding-oauth login codex --device-auth
+dsh-coding-oauth login kimi
+dsh-coding-oauth login claude
+dsh-coding-oauth status all
+dsh-coding-oauth logout grok
+```
+
+`import` 仅适用于 Grok CLI `~/.grok/auth.json` → 本插件凭据文件；源文件不被修改。
+
+### 可选能力 / Optional capabilities
+
+七项开关默认全部**关闭**，在 Capabilities 标签打开后立即生效（无需重启）：Codex 搜索、图像生成/编辑、用量、Fast，以及 Grok Imagine 图像/视频。
+
+Grok Imagine 只走官方 `https://api.x.ai`，凭据是独立的 DSH 引用 `XAI_API_KEY`——不用 Grok OAuth，也不读取进程环境变量。
+
+`codex-oauth-fast` 仅在 live catalog 标明有可用 Fast 模型后才会出现。界面写的是**已请求 Fast**，不保证上游兑现。
+
+### 本机网关 / Local gateway
+
+默认**关闭**。启用后在 loopback 启动独立的 OpenAI / Anthropic 兼容口，给自己的本地工具用，不是公网中继。在 Gateway 标签可复制 base URL（例如 `http://127.0.0.1:18080/v1`）和 Bearer key；密钥显示仅限回环，且不写入浏览器存储。
+
+```yaml
+- insert:
+    - id: usage-stats
+      name: dsh-hub-oauth-gateway
+      config:
+        codingOAuth:
+          gateway:
+            enabled: false
+            bind: 127.0.0.1
+            port: 18080
+```
+
+bind 只能写在 YAML 中。非 loopback bind 必须配置 key。
+
+### Kimi 中国 / Kimi China
+
+Kimi Code 订阅 OAuth 使用 `https://auth.kimi.com`；推理使用 `https://api.kimi.com/coding`。`https://api.moonshot.cn` 是按量 Moonshot Open Platform API-key 通道，**不是**可切换的中国 OAuth endpoint。本插件的 `kimi-code-oauth` 路由不影响已有 `kimi-coding` API-key 配置。
+
+### 代理 / Proxy
+
+优先级：`config.codingOAuth.proxy` → `CODING_OAUTH_PROXY` → `GROK_BUILD_PROXY` → `HTTPS_PROXY` / `HTTP_PROXY`。只代理审核过的订阅域名；其余 DSH 流量保持原 dispatcher。Kimi 默认直连，仅当 `proxyKimi: true` 时才走代理。
+
+```yaml
+- insert:
+    - id: usage-stats
+      name: dsh-hub-oauth-gateway
+      config:
+        codingOAuth:
+          proxy: http://127.0.0.1:7890
+          proxyKimi: false
+```
+
+### 凭据文件 / Credential files
+
+owner-only `0600`、原子写。路径在 `${DSH_HOME}` 下：`.grok-build-auth.json`、`.codex-oauth-auth.json`、`.kimi-code-oauth-auth.json`、`.claude-code-oauth-auth.json`。HTTP 状态、日志和 UI 都不得返回 token。
 
 ## 运行配置 / Runtime configuration
 

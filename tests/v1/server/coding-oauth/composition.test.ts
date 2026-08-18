@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CODING_OAUTH_STATUS_PATH } from "../../../../src/server/coding-oauth/auth-routes.js";
+import { CAPABILITY_SETTINGS_PATH } from "../../../../src/server/coding-oauth/capability-routes.js";
 import { CAPABILITY_SETTINGS_NAMESPACE } from "../../../../src/server/coding-oauth/capability-settings.js";
 import { apply as applyInvariant } from "../../../../src/server/coding-oauth/invariant.js";
 import { OAuthProviderSession } from "../../../../src/server/coding-oauth/oauth-session.js";
@@ -71,6 +72,12 @@ describe("coding OAuth identity and composition", () => {
 			registerAdapter: vi.fn(() => Object.assign(vi.fn(), { replace: vi.fn() })),
 			resolveModelInfo: vi.fn(async () => undefined),
 		};
+		const settings = {
+			writable: true,
+			get() {
+				return {};
+			},
+		};
 		const webServer = {
 			register(route: { path: string; handler: unknown }) {
 				routes.set(route.path, route.handler);
@@ -84,11 +91,14 @@ describe("coding OAuth identity and composition", () => {
 			get(name: string) {
 				if (name === "llm") return llm;
 				if (name === "webServer") return webServer;
+				if (name === "settings") return settings;
 				return undefined;
 			},
 			emit: vi.fn(),
 			inject(services, callback) {
-				if (services.length === 1 && services[0] === "webServer") callback(ctx);
+				if (services.length === 1 && (services[0] === "webServer" || services[0] === "settings")) {
+					callback(ctx);
+				}
 			},
 			effect(setup) {
 				const cleanup = setup();
@@ -107,6 +117,7 @@ describe("coding OAuth identity and composition", () => {
 			);
 			expect(llm.registerAdapter).toHaveBeenCalled();
 			expect(routes.has(CODING_OAUTH_STATUS_PATH)).toBe(true);
+			expect(routes.has(CAPABILITY_SETTINGS_PATH)).toBe(true);
 		} finally {
 			if (previousHome === undefined) delete process.env.DSH_HOME;
 			else process.env.DSH_HOME = previousHome;
