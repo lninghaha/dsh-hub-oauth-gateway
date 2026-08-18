@@ -21,7 +21,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 ## 功能 / Highlights
 
 - **Quick Peek + Full Dashboard**：侧栏快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
-- **设置页签**：Settings → 用量中心拆成显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用 / 凭据七个顶部标签，缩短瀑布流滚动。
+- **设置页签**：Settings → 用量中心拆成显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用六个顶部标签，缩短瀑布流滚动。
 - **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
 - **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
 - **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
@@ -31,7 +31,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 - **账户与配额**：内置余额/订阅适配器（含 Volcengine Coding Plan、Z.ai Team、多 profile），统一显示余额、额度窗口、重置时间、陈旧/上次成功状态和健康提醒。
 - **本地软提醒**：低配额、每日估算成本、账户异常；提醒不向外发送，也不实施硬阻断。
 - **CSV / JSON 导出**：过滤结果、日序列 CSV、打包 JSON；可隐藏会话标识，CSV 自动防御电子表格公式注入；费用账本不进入默认导出。
-- **订阅 OAuth 登录**：在 设置 → 订阅账号 完成 Grok Build、Codex、Kimi Code、Claude Code 的 OAuth 授权（设备码/浏览器/PKCE 粘贴），登录后对应模型直接进入 DSH 模型选择器（标注 OAuth）；支持从本机官方 CLI 凭据单向拉取（发现 → 预览 → 确认）。
+- **订阅 OAuth 登录**：在 设置 → 订阅账号 完成 Grok Build、Codex、Kimi Code、Claude Code 的 OAuth 授权（设备码/浏览器/PKCE 粘贴），登录后对应模型直接进入 DSH 模型选择器（标注 OAuth）；每个订阅卡片内可从本机官方 CLI 凭据单向拉取（发现 → 预览 → 确认）。
 - **可选本地 API 网关**：默认关闭的回环 OpenAI/Anthropic 兼容服务（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`），复用已登录会话，Bearer 密钥可显示/轮换；仅供本机工具使用。
 - **可选能力开关**：Codex 搜索/图像/用量/Fast 与 Grok Imagine 图像/视频默认全部关闭，在 设置 → 能力 中逐项打开并立即生效。
 - **本机认证监控（默认关闭）**：`localMonitor.enabled: true` 后，仪表盘「本机」页签只读展示白名单内官方 CLI（Grok/Codex/Kimi/Claude）的登录态、令牌到期与刷新能力，以及本插件保存的 OAuth 会话；不读取任何令牌内容。
@@ -99,7 +99,7 @@ systemctl --user restart dsh-web.service
 1. 点击侧栏底部的 Usage Center，打开 Quick Peek。
 2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细 / 本机，并选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
-4. 在 **Settings → Usage Center** 用顶部页签调整显示、订阅账号、网关、能力、供应商、费用与凭据/价格。
+4. 在 **Settings → Usage Center** 用顶部页签调整显示、订阅账号、网关、能力、供应商与费用（含价格口径）。API Key / Copilot 设备授权在「供应商」页内完成。
 5. 在 **订阅账号** 页签登录 Grok Build / Codex / Kimi Code / Claude Code：远程或无头环境优先设备码；浏览器/PKCE 登录可粘贴授权码或完整回调地址。登录成功后模型选择器会自动列出对应 `(OAuth)` 路由。
 6. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
 

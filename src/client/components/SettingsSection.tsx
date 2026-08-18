@@ -14,7 +14,6 @@ import { usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
 import {
 	useAccountsQuery,
-	useCredentialImportMutation,
 	useCredentialQuery,
 	useDeviceCodeMutation,
 	useDevicePollMutation,
@@ -306,58 +305,67 @@ function PreferenceEditor({
 					/>
 				}
 			/>
-			<div className="dus-provider-toggles">
+			<strong className="dus-settings-subtitle">{t("settings.accountVisibility")}</strong>
+			<p className="dus-settings-hint">{t("settings.accountVisibilityHint")}</p>
+			<div className="dus-provider-visibility">
 				{accounts.map((account) => {
 					const hidden = draft.providers.hidden.includes(account.providerId);
+					const visibleLabel = t("settings.accountVisible", { name: account.displayName });
 					return (
-						<div className="dus-provider-toggle" key={account.providerId}>
-							<label className="dus-check-label">
-								<input
-									type="checkbox"
+						<SettingsRow
+							key={account.providerId}
+							title={account.displayName}
+							hint={hidden ? t("settings.accountHidden") : t("settings.accountShown")}
+							control={
+								<Toggle
+									label={visibleLabel}
 									checked={!hidden}
-									onChange={(event) =>
+									onChange={(checked) =>
 										onChange({
 											...draft,
 											providers: {
 												...draft.providers,
-												hidden: event.target.checked
+												hidden: checked
 													? draft.providers.hidden.filter((id) => id !== account.providerId)
 													: [...new Set([...draft.providers.hidden, account.providerId])],
 											},
 										})
 									}
 								/>
-								<span>{account.displayName}</span>
-							</label>
-							<input
-								aria-label={`${t("settings.alias")}: ${account.displayName}`}
-								placeholder={t("settings.alias")}
-								value={draft.providers.aliases[account.providerId] ?? ""}
-								onChange={(event) =>
-									onChange({
-										...draft,
-										providers: {
-											...draft.providers,
-											aliases: { ...draft.providers.aliases, [account.providerId]: event.target.value },
-										},
-									})
-								}
-							/>
-							<input
-								type="color"
-								aria-label={`${t("settings.color")}: ${account.displayName}`}
-								value={draft.providers.colors[account.providerId] ?? defaultProviderColor(account.providerId)}
-								onChange={(event) =>
-									onChange({
-										...draft,
-										providers: {
-											...draft.providers,
-											colors: { ...draft.providers.colors, [account.providerId]: event.target.value },
-										},
-									})
-								}
-							/>
-						</div>
+							}
+						>
+							<div className="dus-provider-visibility-meta">
+								<input
+									type="text"
+									aria-label={`${t("settings.alias")}: ${account.displayName}`}
+									placeholder={t("settings.alias")}
+									value={draft.providers.aliases[account.providerId] ?? ""}
+									onChange={(event) =>
+										onChange({
+											...draft,
+											providers: {
+												...draft.providers,
+												aliases: { ...draft.providers.aliases, [account.providerId]: event.target.value },
+											},
+										})
+									}
+								/>
+								<input
+									type="color"
+									aria-label={`${t("settings.color")}: ${account.displayName}`}
+									value={draft.providers.colors[account.providerId] ?? defaultProviderColor(account.providerId)}
+									onChange={(event) =>
+										onChange({
+											...draft,
+											providers: {
+												...draft.providers,
+												colors: { ...draft.providers.colors, [account.providerId]: event.target.value },
+											},
+										})
+									}
+								/>
+							</div>
+						</SettingsRow>
 					);
 				})}
 			</div>
@@ -435,26 +443,24 @@ function PreferenceEditor({
 	);
 }
 
-function CredentialEditor({ t }: { readonly t: Translate }) {
+export function CredentialEditor({ t }: { readonly t: Translate }) {
 	const [ref, setRef] = useState("DEEPSEEK_API_KEY");
 	const [value, setValue] = useState("");
-	const [importProvider, setImportProvider] = useState("claude");
 	const credential = useCredentialQuery(ref);
 	const save = useSetCredentialMutation();
 	const unset = useUnsetCredentialMutation();
-	const importer = useCredentialImportMutation();
 	const device = useDeviceCodeMutation();
 	const poll = useDevicePollMutation();
 	const info = credential.data?.ok === true ? credential.data.data : null;
 	const deviceData = device.data?.ok === true ? device.data.data : null;
-	const operationError = [save.error, unset.error, importer.error, device.error, poll.error].find(
+	const operationError = [save.error, unset.error, device.error, poll.error].find(
 		(error): error is Error => error instanceof Error,
 	);
 	return (
 		<div className="dus-settings-card">
 			<div>
-				<h3>{t("settings.credentials")}</h3>
-				<p>{t("settings.credentialsIntro")}</p>
+				<h3>{t("settings.apiCredentials")}</h3>
+				<p>{t("settings.apiCredentialsIntro")}</p>
 				{operationError === undefined ? null : (
 					<p className="dus-error-inline" role="alert">
 						{t("credential.error")}: {operationError.message}
@@ -495,25 +501,6 @@ function CredentialEditor({ t }: { readonly t: Translate }) {
 					onClick={() => unset.mutate(ref)}
 				>
 					{t("credential.remove")}
-				</button>
-			</div>
-			<div className="dus-credential-row">
-				<Field label={t("credential.provider")}>
-					<select value={importProvider} onChange={(event) => setImportProvider(event.target.value)}>
-						<option value="claude">Claude</option>
-						<option value="codex">Codex</option>
-						<option value="gemini">Gemini</option>
-						<option value="grok">Grok</option>
-						<option value="amp">Amp</option>
-					</select>
-				</Field>
-				<button
-					type="button"
-					className="dus-secondary-button"
-					disabled={importer.isPending}
-					onClick={() => importer.mutate(importProvider)}
-				>
-					{t("credential.import")}
 				</button>
 			</div>
 			<div className="dus-device-flow">
@@ -927,18 +914,14 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 			{activeSettingsTab === "gateway" ? <GatewayTab t={t} /> : null}
 			{activeSettingsTab === "capabilities" ? <CapabilitiesTab t={t} /> : null}
 			{activeSettingsTab === "providers" ? (
-				<div data-settings-tab="providers">
-					<ProviderManagement t={t} />
+				<div className="dus-settings-stack" data-settings-tab="providers">
+					<ProviderManagement t={t} onOpenAccounts={() => setActiveSettingsTab("accounts")} />
+					<CredentialEditor t={t} />
 				</div>
 			) : null}
 			{activeSettingsTab === "fees" ? (
-				<div data-settings-tab="fees">
+				<div className="dus-settings-stack" data-settings-tab="fees">
 					<FeesEditor t={t} currency={draft.display.baseCurrency} />
-				</div>
-			) : null}
-			{activeSettingsTab === "credentials" ? (
-				<div data-settings-tab="credentials">
-					<CredentialEditor t={t} />
 					<PricingEditor t={t} />
 				</div>
 			) : null}
