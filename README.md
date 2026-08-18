@@ -22,7 +22,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 ## 功能 / Highlights
 
-- **Quick Peek + Full Dashboard**：侧栏快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。
+- **Quick Peek + Full Dashboard**：默认悬浮小窗（可改回侧栏按钮）快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。设置页始终可打开速览与仪表盘。
 - **设置页签**：Settings → 用量中心拆成显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用六个顶部标签，缩短瀑布流滚动。
 - **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
 - **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
@@ -98,7 +98,7 @@ systemctl --user restart dsh-web.service
 
 ## 使用 / Usage
 
-1. 点击侧栏底部的 Usage Center，打开 Quick Peek。
+1. 默认点击悬浮用量小窗（或在 **Settings → 显示 → 入口形态** 改回侧栏按钮）打开 Quick Peek；设置页标题区也可打开速览 / 完整仪表盘。
 2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细 / 本机，并选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
 4. 在 **Settings → Usage Center** 用顶部页签调整显示、订阅账号、网关、能力、供应商与费用（含价格口径）。API Key / Copilot 设备授权在「供应商」页内完成。

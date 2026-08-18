@@ -17,4 +17,11 @@ describe("overlay height contract", () => {
 		expect(css).toMatch(/\.dus-account-grid\.is-compact\s*\{[^}]*max-height:\s*240px/s);
 		expect(css).toMatch(/\.dus-settings\s*\{[^}]*max-width:\s*780px/s);
 	});
+
+	it("stacks host footer actions when the sidebar entry is mounted and styles the floating HUD", () => {
+		expect(css).toMatch(/\.hHd-Xa_footerActions:has\(\.dus-sidebar-button\)\s*\{[^}]*flex-direction:\s*column/s);
+		expect(css).toMatch(/\.dus-hud\s*\{[^}]*position:\s*fixed/s);
+		expect(css).toMatch(/\.dus-hud\s*\{[^}]*pointer-events:\s*auto/s);
+		expect(css).toMatch(/\.dus-settings-heading-actions\s*\{[^}]*display:\s*flex/s);
+	});
 });

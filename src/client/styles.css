@@ -42,6 +42,22 @@ body {
   border: 0 !important;
 }
 
+/*
+ * When our sidebar entry is present, stack host footer actions vertically so
+ * peer plugins share the rail instead of crushing each other in a row.
+ * Host class: dsh-client-ui-sidebar `.hHd-Xa_footerActions`.
+ */
+.hHd-Xa_footerActions:has(.dus-sidebar-button) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.hHd-Xa_footerActions:has(.dus-sidebar-button) > * {
+  width: 100%;
+  min-width: 0;
+}
+
 .dus-sidebar-button {
   position: relative;
   display: inline-flex;
@@ -50,6 +66,8 @@ body {
   gap: 9px;
   min-width: 36px;
   min-height: 36px;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0 9px;
   border: 1px solid transparent;
   border-radius: 11px;
@@ -58,6 +76,125 @@ body {
   cursor: pointer;
   font: inherit;
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.dus-hud {
+  position: fixed;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 720px);
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--dus-border-strong);
+  border-radius: 999px;
+  color: var(--dus-fg);
+  background: color-mix(in srgb, var(--dus-card) 92%, transparent);
+  box-shadow: 0 10px 28px color-mix(in srgb, #000 18%, transparent);
+  backdrop-filter: blur(10px);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  pointer-events: auto;
+  font: inherit;
+  text-align: left;
+}
+
+.dus-hud:active {
+  cursor: grabbing;
+}
+
+.dus-hud:focus-visible {
+  outline: 2px solid var(--dus-accent);
+  outline-offset: 2px;
+}
+
+.dus-hud.is-density-compact {
+  gap: 7px;
+  padding: 6px 10px;
+}
+
+.dus-hud-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.dus-hud-metric {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dus-hud.is-density-compact .dus-hud-metric {
+  font-size: 12px;
+}
+
+.dus-hud-alert {
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--dus-danger);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+.dus-hud-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--dus-border);
+  flex: 0 0 auto;
+}
+
+.dus-hud-blocks {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dus-hud-block {
+  display: inline-grid;
+  gap: 2px;
+  min-width: 0;
+  max-width: 88px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--dus-control);
+}
+
+.dus-hud-block-name {
+  overflow: hidden;
+  color: var(--dus-muted);
+  font-size: 9px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dus-hud-block-stats {
+  display: inline-flex;
+  gap: 5px;
+  color: var(--dus-fg);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.dus-hud-more {
+  flex: 0 0 auto;
+  color: var(--dus-muted);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .dus-sidebar-button:hover,
@@ -1213,6 +1350,14 @@ body {
   gap: 18px;
 }
 
+.dus-settings-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .dus-settings-card {
   display: grid;
   gap: 14px;
@@ -1731,7 +1876,9 @@ body {
 .dus-dashboard.is-reduced-motion *::after,
 .dus-settings.is-reduced-motion *,
 .dus-settings.is-reduced-motion *::before,
-.dus-settings.is-reduced-motion *::after {
+.dus-settings.is-reduced-motion *::after,
+.dus-hud.is-reduced-motion,
+.dus-hud.is-reduced-motion * {
   scroll-behavior: auto !important;
   animation-duration: 0.01ms !important;
   transition-duration: 0.01ms !important;
@@ -1743,7 +1890,9 @@ body {
   .dus-dashboard:not(.allows-motion) *::after,
   .dus-settings:not(.allows-motion) *,
   .dus-settings:not(.allows-motion) *::before,
-  .dus-settings:not(.allows-motion) *::after {
+  .dus-settings:not(.allows-motion) *::after,
+  .dus-hud:not(.allows-motion),
+  .dus-hud:not(.allows-motion) * {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
