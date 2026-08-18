@@ -41,7 +41,7 @@
 2. 快速门禁 `pnpm run check:next`；
 3. 交付门禁 `pnpm run check`（含重建/校验 `lib/` 时按 `package.json` scripts）；
 4. 发布前 `npm pack --dry-run --json --ignore-scripts` 审阅清单；
-5. **DSH 冒烟**：隔离 `DSH_HOME`（例如 `/home/ubuntu/.dsh-cloud` 或 `/tmp/dsh-verify-*`）安装 DSH → `dsh plugin --profile web add <本仓库或 Git 引用>` → 启动 `dsh web` → 检查 `http://127.0.0.1:3080` 与 Usage Center 是否加载。
+5. **DSH 冒烟**：隔离 `DSH_HOME`（例如 `/tmp/dsh-verify-*` 或云工作区下的独立目录）安装 DSH → `dsh plugin --profile web add <本仓库或 Git 引用>` → 启动 `dsh web` → 检查 `http://127.0.0.1:3080` 与 Usage Center 是否加载。
 
 ### 3.2 隔离与隐私（仍强制）
 

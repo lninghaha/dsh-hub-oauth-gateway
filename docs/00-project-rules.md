@@ -145,8 +145,8 @@ Recommended sequence:
 Isolation and privacy remain mandatory:
 
 - Use a dedicated `DSH_HOME` (for example `/tmp/dsh-verify-*` or
-  `/home/ubuntu/.dsh-cloud`). Never read or write the operator’s real profile,
-  production SQLite, or live credentials.
+  `${DSH_HOME}` under the cloud workspace). Never read or write the operator’s
+  real profile, production SQLite, or live credentials.
 - Automated tests stay on mocks and sanitized fixtures; no live providers.
 - Do not commit cloud tokens, cookies, sessions, or private absolute paths.
 
