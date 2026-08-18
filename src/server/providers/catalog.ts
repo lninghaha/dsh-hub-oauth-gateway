@@ -132,6 +132,8 @@ function apiKeyRecord(account: AccountSnapshot): ProviderRecord {
 	};
 }
 
+const OAUTH_QUOTA_NATIVE_IDS = new Set(["openai-codex", "anthropic", "kimi-coding"]);
+
 async function subscriptionRecord(
 	session: OAuthProviderSession,
 	accounts: readonly AccountSnapshot[],
@@ -153,7 +155,7 @@ async function subscriptionRecord(
 		available,
 		selected,
 		account,
-		session.definition.nativeProviderId === "openai-codex" || session.definition.nativeProviderId === "anthropic",
+		OAUTH_QUOTA_NATIVE_IDS.has(session.definition.nativeProviderId),
 		now,
 	);
 }

@@ -57,6 +57,8 @@ export interface RawAccountResult {
 	readonly windows?: readonly RawQuotaWindow[] | undefined;
 	readonly missingCredentials?: readonly string[] | undefined;
 	readonly region?: string | undefined;
+	/** Secret-free failure reason for UI (e.g. missing-chatgpt-account-id). */
+	readonly diagnosticCode?: string | undefined;
 }
 
 /** Harness credential seam: refs in, values out, never persisted here. */

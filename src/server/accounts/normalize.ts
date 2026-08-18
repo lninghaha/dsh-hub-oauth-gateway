@@ -265,7 +265,7 @@ export function buildAccountSnapshot(spec: AccountSpec, result: RawAccountResult
 		balance,
 		windows,
 		missingCredentials: [...(result.missingCredentials ?? [])],
-		warningCode: warningCodeOf(alert),
+		warningCode: nonEmptyString(result.diagnosticCode) ?? warningCodeOf(alert),
 	});
 }
 

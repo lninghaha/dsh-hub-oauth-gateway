@@ -3,7 +3,7 @@
  * GitHub Copilot, Cursor, Grok, and Amp. Each is a constrained endpoint probe
  * authenticated with a user access token.
  */
-import type { AccountAdapter } from "../types.js";
+import type { AccountAdapter, RawQuotaWindow } from "../types.js";
 export declare const CLAUDE_OAUTH_TOKEN_REF = "CLAUDE_OAUTH_TOKEN";
 export declare const CODEX_ACCESS_TOKEN_REF = "CODEX_ACCESS_TOKEN";
 export declare const GEMINI_ACCESS_TOKEN_REF = "GEMINI_ACCESS_TOKEN";
@@ -13,6 +13,11 @@ export declare const GROK_TOKEN_REF = "GROK_ACCESS_TOKEN";
 export declare const AMP_API_KEY_REF = "AMP_API_KEY";
 /** Claude subscription usage via the OAuth usage endpoint. */
 export declare const claudeOauthAdapter: AccountAdapter;
+/**
+ * Parse ChatGPT `wham/usage` windows.
+ * Prefer `used_percent` (official Codex shape); fall back to used/limit ratios.
+ */
+export declare function parseCodexUsage(body: unknown): RawQuotaWindow[];
 /** Codex (ChatGPT subscription) usage via the wham endpoint. */
 export declare const codexWhamAdapter: AccountAdapter;
 /** Gemini Code Assist quota via the Cloud Code internal endpoint. */
@@ -21,7 +26,14 @@ export declare const geminiQuotaAdapter: AccountAdapter;
 export declare const copilotDeviceAdapter: AccountAdapter;
 /** Cursor plan usage via the dashboard Connect RPC endpoint. */
 export declare const cursorSubscriptionAdapter: AccountAdapter;
-/** Grok subscription billing via the CLI chat proxy. */
+/** Parse cli-chat-proxy `/v1/billing` (and compatible shapes). */
+export declare function parseGrokBilling(body: unknown): RawQuotaWindow[];
+/**
+ * Parse Token Monitor-style Grok Build credits (`GetGrokCreditsConfig` / REST).
+ * Accepts remaining+limit or used+limit without requiring Electron CLI spawn.
+ */
+export declare function parseGrokCredits(body: unknown): RawQuotaWindow[];
+/** Grok subscription: CLI billing first, then grok.com credits REST fallback. */
 export declare const grokSubscriptionAdapter: AccountAdapter;
 /** Amp balance via the internal RPC endpoint. */
 export declare const ampSubscriptionAdapter: AccountAdapter;

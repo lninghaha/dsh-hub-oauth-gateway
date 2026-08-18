@@ -4,6 +4,7 @@ import {
 	CODEX_ACCESS_TOKEN_REF,
 	createOAuthQuotaCredentialBridge,
 	GROK_ACCESS_TOKEN_REF,
+	KIMI_API_KEY_REF,
 	type OAuthTokenSource,
 } from "../../../../src/server/accounts/oauth-credential-bridge.js";
 import type { CredentialResolver } from "../../../../src/server/accounts/types.js";
@@ -13,6 +14,7 @@ function tokenSource(overrides: Partial<OAuthTokenSource> = {}): OAuthTokenSourc
 		resolveGrokAccessToken: async () => undefined,
 		resolveCodexAccessToken: async () => undefined,
 		resolveClaudeAccessToken: async () => undefined,
+		resolveKimiAccessToken: async () => undefined,
 		...overrides,
 	};
 }
@@ -28,11 +30,13 @@ describe("oauth quota credential bridge", () => {
 				resolveGrokAccessToken: async () => "grok-session-token",
 				resolveCodexAccessToken: async () => "codex-session-token",
 				resolveClaudeAccessToken: async () => "claude-session-token",
+				resolveKimiAccessToken: async () => "kimi-session-token",
 			}),
 		);
 		expect(await bridge.resolve(GROK_ACCESS_TOKEN_REF)).toEqual({ value: "grok-session-token" });
 		expect(await bridge.resolve(CODEX_ACCESS_TOKEN_REF)).toEqual({ value: "codex-session-token" });
 		expect(await bridge.resolve(CLAUDE_OAUTH_TOKEN_REF)).toEqual({ value: "claude-session-token" });
+		expect(await bridge.resolve(KIMI_API_KEY_REF)).toEqual({ value: "kimi-session-token" });
 	});
 
 	it("prefers explicit Harness credential values over OAuth sessions", async () => {

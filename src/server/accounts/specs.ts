@@ -22,6 +22,12 @@ export const COMPATIBILITY_ACCOUNT_PROVIDERS: readonly ProviderDescriptor[] = Ob
 	{ id: "ollama-cloud", displayName: "Ollama Cloud", apiKeyEnv: "OLLAMA_CLOUD_SESSION", baseURL: "https://ollama.com" },
 	{ id: "claude", displayName: "Claude", apiKeyEnv: "CLAUDE_OAUTH_TOKEN" },
 	{ id: "codex", displayName: "Codex", apiKeyEnv: "CODEX_ACCESS_TOKEN" },
+	{
+		id: "kimi-coding",
+		displayName: "Kimi Code",
+		apiKeyEnv: "KIMI_API_KEY",
+		baseURL: "https://api.kimi.com",
+	},
 	{ id: "gemini", displayName: "Gemini", apiKeyEnv: "GEMINI_ACCESS_TOKEN" },
 	{ id: "copilot", displayName: "GitHub Copilot", apiKeyEnv: "GITHUB_COPILOT_TOKEN" },
 	{

@@ -7,6 +7,17 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Fixed
+
+- Codex (`codex-wham`) quota probe now sends `chatgpt-account-id` and parses
+  `used_percent` windows (aligned with the existing Codex usage reader). Missing
+  account id / auth / empty responses surface secret-free diagnostic codes on
+  account snapshots and Providers instead of silent `--`.
+- Grok subscription falls back from CLI billing to `grok.com` credits REST when
+  billing returns no windows; Claude / Kimi adapters emit the same diagnostic
+  codes. Kimi Code OAuth sessions bridge into `KIMI_API_KEY` for
+  `kimi-token-plan` so Providers no longer mark Kimi OAuth as not-supported.
+
 ## 1.7.0
 
 ### Added

@@ -130,6 +130,13 @@ function statusLabel(account: AccountSnapshot, t: Translate | undefined): string
 	return t?.(key) ?? account.status;
 }
 
+function diagnosticLabel(code: string, t: Translate | undefined): string {
+	const key = `quotaDiag.${code}` as Parameters<Translate>[0];
+	const localized = t?.(key);
+	if (localized !== undefined && localized !== key) return localized;
+	return code;
+}
+
 function fetchedHint(account: AccountSnapshot, t: Translate | undefined): string | null {
 	if (account.fetchedAt === null) return null;
 	if (account.stale) {
@@ -203,6 +210,9 @@ export function AccountGrid({
 						))}
 						{account.missingCredentials.length === 0 ? null : (
 							<span className="dus-account-note">{account.missingCredentials.join(", ")}</span>
+						)}
+						{account.warningCode === null || compact ? null : (
+							<span className="dus-account-note">{diagnosticLabel(account.warningCode, t)}</span>
 						)}
 					</article>
 				);

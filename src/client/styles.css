@@ -1780,6 +1780,14 @@ body {
   line-height: 1.45;
 }
 
+.dus-provider-warnings {
+  margin: 0;
+  padding-left: 1.1em;
+  color: var(--dus-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .dus-provider-group {
   display: grid;
   gap: 8px;

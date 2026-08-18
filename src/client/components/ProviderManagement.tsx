@@ -22,6 +22,12 @@ function nextStepKey(provider: ProviderRecord): UsageLocaleKey {
 	return "providers.next.review";
 }
 
+function diagnosticLabel(code: string, t: Translate): string {
+	const key = `quotaDiag.${code}` as UsageLocaleKey;
+	const localized = t(key);
+	return localized === key ? code : localized;
+}
+
 function groupId(provider: ProviderRecord): "needsAttention" | "connected" | "unconfigured" | "unsupported" {
 	if (provider.connection === "unsupported") return "unsupported";
 	if (provider.connection === "connected") return "connected";
@@ -73,6 +79,13 @@ function ProviderCard({
 					<dd>{t(`quotaState.${provider.quotaState}` as UsageLocaleKey)}</dd>
 				</div>
 			</dl>
+			{provider.warnings.length === 0 ? null : (
+				<ul className="dus-provider-warnings">
+					{provider.warnings.map((warning) => (
+						<li key={warning}>{diagnosticLabel(warning, t)}</li>
+					))}
+				</ul>
+			)}
 			<p className="dus-provider-next">{t(next)}</p>
 			<div className="dus-provider-actions">
 				<div className="dus-inline-actions">

@@ -2,26 +2,29 @@
  * Bridge coding-oauth session tokens into AccountService credential refs.
  *
  * OAuth login writes plugin auth files; quota adapters resolve
- * GROK_ACCESS_TOKEN / CODEX_ACCESS_TOKEN / CLAUDE_OAUTH_TOKEN via the Harness
- * credentials seam. When those refs are empty, fall back to the signed-in
- * coding-oauth session access token (in memory only — never logged or stored).
+ * GROK_ACCESS_TOKEN / CODEX_ACCESS_TOKEN / CLAUDE_OAUTH_TOKEN / KIMI_API_KEY
+ * via the Harness credentials seam. When those refs are empty, fall back to
+ * the signed-in coding-oauth session access token (in memory only — never
+ * logged or stored).
  */
 
 import type { CodingOAuthRuntime } from "../coding-oauth/compose.js";
-import { CLAUDE_PI_PROVIDER, CODEX_PI_PROVIDER, XAI_PI_PROVIDER } from "../coding-oauth/ids.js";
+import { CLAUDE_PI_PROVIDER, CODEX_PI_PROVIDER, KIMI_PI_PROVIDER, XAI_PI_PROVIDER } from "../coding-oauth/ids.js";
 import type { CredentialResolver } from "./types.js";
 
 export const GROK_ACCESS_TOKEN_REF = "GROK_ACCESS_TOKEN";
 export const CODEX_ACCESS_TOKEN_REF = "CODEX_ACCESS_TOKEN";
 export const CLAUDE_OAUTH_TOKEN_REF = "CLAUDE_OAUTH_TOKEN";
+export const KIMI_API_KEY_REF = "KIMI_API_KEY";
 
 /** AccountProvider ids refreshed after OAuth login / CLI pull. */
-export const OAUTH_QUOTA_ACCOUNT_IDS = Object.freeze(["grok", "codex", "claude"] as const);
+export const OAUTH_QUOTA_ACCOUNT_IDS = Object.freeze(["grok", "codex", "claude", "kimi-coding"] as const);
 
 export interface OAuthTokenSource {
 	resolveGrokAccessToken(): Promise<string | undefined>;
 	resolveCodexAccessToken(): Promise<string | undefined>;
 	resolveClaudeAccessToken(): Promise<string | undefined>;
+	resolveKimiAccessToken(): Promise<string | undefined>;
 }
 
 function nonEmpty(value: string | undefined): string | undefined {
@@ -34,6 +37,7 @@ function nonEmpty(value: string | undefined): string | undefined {
 export function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthTokenSource {
 	const codex = runtime.subscriptions.find((session) => session.definition.nativeProviderId === CODEX_PI_PROVIDER);
 	const claude = runtime.subscriptions.find((session) => session.definition.nativeProviderId === CLAUDE_PI_PROVIDER);
+	const kimi = runtime.subscriptions.find((session) => session.definition.nativeProviderId === KIMI_PI_PROVIDER);
 	return {
 		async resolveGrokAccessToken() {
 			try {
@@ -58,6 +62,14 @@ export function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthT
 			if (claude === undefined) return undefined;
 			try {
 				return nonEmpty(await claude.resolveAccessToken());
+			} catch {
+				return undefined;
+			}
+		},
+		async resolveKimiAccessToken() {
+			if (kimi === undefined) return undefined;
+			try {
+				return nonEmpty(await kimi.resolveAccessToken());
 			} catch {
 				return undefined;
 			}
@@ -89,6 +101,7 @@ export function createOAuthQuotaCredentialBridge(
 			if (ref === GROK_ACCESS_TOKEN_REF) fromSession = await tokens.resolveGrokAccessToken();
 			else if (ref === CODEX_ACCESS_TOKEN_REF) fromSession = await tokens.resolveCodexAccessToken();
 			else if (ref === CLAUDE_OAUTH_TOKEN_REF) fromSession = await tokens.resolveClaudeAccessToken();
+			else if (ref === KIMI_API_KEY_REF) fromSession = await tokens.resolveKimiAccessToken();
 			return fromSession === undefined ? undefined : { value: fromSession };
 		},
 		...(set === undefined
