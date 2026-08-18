@@ -73,29 +73,20 @@ export async function apply(
 			ctx.logger.warn("usage-stats: coding OAuth is enabled but the llm service is unavailable");
 		} else {
 			try {
-				codingOAuthRuntime = applyCodingOAuth(
-					{
-						...ctx,
-						llm,
-						logger: (namespace: string) => ({
-							debug: (message: unknown) => ctx.logger.debug(`${namespace}: ${String(message)}`),
-							info: (message: unknown) => ctx.logger.info(`${namespace}: ${String(message)}`),
-							warn: (message: unknown) => ctx.logger.warn(`${namespace}: ${String(message)}`),
-							error: (message: unknown) => ctx.logger.error(`${namespace}: ${String(message)}`),
-						}),
-					} as never,
-					{
-						proxyKimi: config.codingOAuth.proxyKimi,
-						...(config.codingOAuth.proxy === undefined ? {} : { proxy: config.codingOAuth.proxy }),
-						...(config.codingOAuth.retryPolicy === undefined
-							? {}
-							: { retryPolicy: config.codingOAuth.retryPolicy as never }),
-						...(config.codingOAuth.capabilities === undefined
-							? {}
-							: { capabilities: config.codingOAuth.capabilities as never }),
-						...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway as never }),
-					},
-				);
+				// Pass the live Cordis context through: it is a service-resolving
+				// proxy, and spreading it would drop prototype methods (inject,
+				// effect, get, emit) that the composition relies on.
+				codingOAuthRuntime = applyCodingOAuth(ctx as never, {
+					proxyKimi: config.codingOAuth.proxyKimi,
+					...(config.codingOAuth.proxy === undefined ? {} : { proxy: config.codingOAuth.proxy }),
+					...(config.codingOAuth.retryPolicy === undefined
+						? {}
+						: { retryPolicy: config.codingOAuth.retryPolicy as never }),
+					...(config.codingOAuth.capabilities === undefined
+						? {}
+						: { capabilities: config.codingOAuth.capabilities as never }),
+					...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway as never }),
+				});
 			} catch (error) {
 				ctx.logger.warn("usage-stats: coding OAuth composition failed closed (details redacted)");
 				if (config.debug) ctx.logger.warn(String(error instanceof Error ? error.name : "error"));
