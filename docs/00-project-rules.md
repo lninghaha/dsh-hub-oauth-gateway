@@ -274,6 +274,15 @@ separate from external writes.
    notes from the changelog.
 8. Verify the registry/release metadata and installation path after publishing.
 
+**Cloud Agent npm publish:** Agents cannot complete npm authentication in Cursor
+Cloud (no interactive login, no default `NPM_TOKEN`). When a maintainer asks to
+publish, the Agent must **not** run `npm publish` / `npm login`; it must give
+copy-paste cloud-terminal commands (including `cd /workspace`, Node PATH from
+`.nvmrc`, optional `pnpm run check` / `release:inspect`, `npm publish`, and
+`npm view` verification) for the maintainer to run. Tokens stay in the
+operator's shell or secrets store—never in chat, Git, or logs. See
+[`AGENTS.md`](../AGENTS.md) §8.
+
 Release helpers may build, inspect, and export a local tarball under `output/`;
 they must never bump a version, commit, tag, push, publish, or read user
 credentials without explicit maintainer action.

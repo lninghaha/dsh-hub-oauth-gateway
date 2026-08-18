@@ -147,9 +147,13 @@ merge. Authors should not rewrite shared history after review without warning.
 
 Maintainers perform releases according to
 [`docs/00-project-rules.md`](docs/00-project-rules.md). Release preparation and
-inspection are local; version bumps, tags, pushes, registry publication, and
-GitHub Releases require an explicit human decision. Contributors should not
-include an unsolicited version bump or tag in a feature pull request.
+inspection may run in Cursor Cloud (`pnpm run check`, `pnpm run release:inspect`,
+`pnpm run release:pack`); version bumps, tags, pushes, **npm registry
+publication**, and GitHub Releases require an explicit human decision. Cloud
+Agents cannot authenticate to npm—when a publish is requested they must supply
+cloud-terminal commands for the maintainer to run (see [`AGENTS.md`](AGENTS.md)
+§8). Contributors should not include an unsolicited version bump or tag in a
+feature pull request.
 
 Installing or developing the plugin never authorizes a tool or contributor to
 restart DSH Web. A user chooses when to restart the service.
