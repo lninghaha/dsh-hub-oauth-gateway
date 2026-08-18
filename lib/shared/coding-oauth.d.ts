@@ -276,8 +276,8 @@ export declare const OAuthSourceKindSchema: z.ZodEnum<{
 }>;
 export type OAuthSourceKind = CodingOAuthProviderSlug;
 export declare const OAuthSourceUnavailableReasonSchema: z.ZodEnum<{
-    missing: "missing";
     too_large: "too_large";
+    missing: "missing";
     unsafe: "unsafe";
     invalid: "invalid";
 }>;
@@ -292,8 +292,8 @@ export declare const OAuthSourceDiscoverySchema: z.ZodObject<{
     available: z.ZodBoolean;
     expiresAt: z.ZodOptional<z.ZodNumber>;
     reason: z.ZodOptional<z.ZodEnum<{
-        missing: "missing";
         too_large: "too_large";
+        missing: "missing";
         unsafe: "unsafe";
         invalid: "invalid";
     }>>;
@@ -311,8 +311,8 @@ export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
         available: z.ZodBoolean;
         expiresAt: z.ZodOptional<z.ZodNumber>;
         reason: z.ZodOptional<z.ZodEnum<{
-            missing: "missing";
             too_large: "too_large";
+            missing: "missing";
             unsafe: "unsafe";
             invalid: "invalid";
         }>>;

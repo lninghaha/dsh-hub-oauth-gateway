@@ -43,9 +43,22 @@ function modelState(available: readonly string[], selected: readonly string[]): 
 
 function accountByHints(accounts: readonly AccountSnapshot[], hints: readonly string[]): AccountSnapshot | undefined {
 	const wanted = new Set(hints);
-	return accounts.find(
+	const matches = accounts.filter(
 		(account) => wanted.has(account.providerId) || (account.adapterId !== null && wanted.has(account.adapterId)),
 	);
+	if (matches.length === 0) return undefined;
+	const ranked = [...matches].sort((left, right) => accountQuotaRank(left) - accountQuotaRank(right));
+	return ranked[0];
+}
+
+function accountQuotaRank(account: AccountSnapshot): number {
+	const hasQuota = account.balance !== null || account.windows.length > 0;
+	if (account.status === "ok" && hasQuota) return 0;
+	if (account.status === "ok") return 1;
+	if (account.status === "pending") return 2;
+	if (account.status === "not-configured") return 3;
+	if (account.status === "unsupported") return 5;
+	return 4;
 }
 
 async function oauthRecord(

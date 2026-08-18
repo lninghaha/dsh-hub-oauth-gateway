@@ -75,6 +75,8 @@ export interface CodingOAuthRuntime {
         signal?: AbortSignal;
     }): Promise<unknown>;
     currentCapabilities(): ReturnType<CapabilityRuntimeState["current"]>;
+    /** Register a listener for OAuth login / logout / CLI import (quota refresh). */
+    onCredentialChange(listener: () => void): () => void;
 }
 /**
  * Register the `grok-build` LLM route with a provider-native OAuth store.
