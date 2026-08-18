@@ -29,6 +29,9 @@ export const API_PATHS = Object.freeze({
 	oauthDevicePoll: `${API_BASE}/oauth/device/poll`,
 	export: `${API_BASE}/export`,
 	health: `${API_BASE}/health`,
+	localAuth: `${API_BASE}/local/auth`,
+	localUsage: `${API_BASE}/local/usage`,
+	localUsageScan: `${API_BASE}/local/usage/scan`,
 });
 
 export const ExportLayoutSchema = z.enum(["filtered", "daily", "bundle"]);

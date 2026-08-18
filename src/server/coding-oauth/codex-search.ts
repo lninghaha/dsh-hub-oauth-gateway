@@ -132,23 +132,23 @@ export function assertCodexSearchMaxResults(maxResults: number | undefined): voi
  */
 export function mapCodexSearchResponse(value: unknown, maxResults?: number): CodexSearchResult {
 	assertCodexSearchMaxResults(maxResults);
-	if (!isRecord(value) || typeof value["output"] !== "string") {
+	if (!isRecord(value) || typeof value.output !== "string") {
 		throw new LlmError("Codex returned a search response without string output", "SERVER");
 	}
-	const output = value["output"];
-	const rawResults = value["results"];
+	const output = value.output;
+	const rawResults = value.results;
 	if (rawResults !== undefined && !Array.isArray(rawResults)) {
 		throw new LlmError("Codex returned a search response with non-array results", "SERVER");
 	}
 	const sources: CodexSearchSource[] = [];
 	const seen = new Set<string>();
 	for (const item of rawResults ?? []) {
-		if (!isRecord(item) || item["type"] !== "text_result") continue;
-		const url = citeableHttpUrl(item["url"]);
+		if (!isRecord(item) || item.type !== "text_result") continue;
+		const url = citeableHttpUrl(item.url);
 		if (url === undefined || seen.has(url)) continue;
 		seen.add(url);
-		const title = optionalNonEmptyString(item["title"]);
-		const snippet = optionalNonEmptyString(item["snippet"]);
+		const title = optionalNonEmptyString(item.title);
+		const snippet = optionalNonEmptyString(item.snippet);
 		sources.push({
 			url,
 			...(title === undefined ? {} : { title }),

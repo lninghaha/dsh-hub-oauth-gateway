@@ -39,7 +39,7 @@ export const GROK_BUILD_MODELS_URL = `${GROK_BUILD_BASE_URL}/models-v2`;
  * Track the `@xai-official/grok` npm release stream; make overridable via
  * GROK_BUILD_CLIENT_VERSION for urgent drift fixes without a release.
  */
-export const GROK_CLIENT_VERSION: string = process.env["GROK_BUILD_CLIENT_VERSION"] ?? "0.1.220";
+export const GROK_CLIENT_VERSION: string = process.env.GROK_BUILD_CLIENT_VERSION ?? "0.1.220";
 
 /**
  * Fingerprint headers required by the Grok Build middleware. Missing headers

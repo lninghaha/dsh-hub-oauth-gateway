@@ -23,6 +23,8 @@ import { FeesDataSchema } from "../../shared/fees.js";
 import { UserPreferencesSchema } from "../../shared/preferences.js";
 import type { ProvidersData } from "../../shared/providers.js";
 import type { FeesRepository } from "../fees/repository.js";
+import type { LocalAuthSnapshot } from "../local-monitor/auth-status.js";
+import type { LocalUsageAggregateRow } from "../local-monitor/repository.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageQueryService } from "../usage/query.js";
@@ -63,6 +65,17 @@ export interface ApiFreshness {
 	warnings: readonly string[];
 }
 
+export interface LocalAuthApiService {
+	snapshot(): Promise<LocalAuthSnapshot>;
+}
+
+export interface LocalUsageApiService {
+	tools(): readonly { toolId: string; displayName: string; available: boolean }[];
+	aggregate(fromDay: string, toDay: string): readonly LocalUsageAggregateRow[];
+	stats(): { files: number; lastScanAt: number | null };
+	scan(): Promise<{ scannedAt: number; files: number; events: number; skipped: number }>;
+}
+
 export interface UsageStatsApiDependencies {
 	readonly logger: UsageStatsLogger;
 	readonly projection: UsageProjectionApiService;
@@ -73,6 +86,8 @@ export interface UsageStatsApiDependencies {
 	readonly fees?: FeesRepository | undefined;
 	readonly providers?: { list(): Promise<ProvidersData> } | undefined;
 	readonly alerts?: { list(): Promise<readonly UsageAlert[]> } | undefined;
+	readonly localAuth?: LocalAuthApiService | undefined;
+	readonly localUsage?: LocalUsageApiService | undefined;
 	freshness(): ApiFreshness;
 	now?(): number;
 }
@@ -486,6 +501,57 @@ export function registerV1Routes(
 		}),
 		register(API_PATHS.health, ["GET"], (_request, response) => {
 			writeJson(response, 200, success(dependencies, { status: "ok", ...dependencies.freshness() }));
+		}),
+		register(API_PATHS.localAuth, ["GET"], async (_request, response) => {
+			if (dependencies.localAuth === undefined) {
+				writeJson(response, 200, success(dependencies, { enabled: false }));
+				return;
+			}
+			const snapshot = await dependencies.localAuth.snapshot();
+			writeJson(response, 200, success(dependencies, { enabled: true, ...snapshot }));
+		}),
+		register(API_PATHS.localUsage, ["GET"], (_request, response, url) => {
+			if (dependencies.localUsage === undefined) {
+				writeJson(response, 200, success(dependencies, { enabled: false }));
+				return;
+			}
+			const current = dependencies.now?.() ?? Date.now();
+			const toDay = new Date(current).toISOString().slice(0, 10);
+			const fromFallback = new Date(current - 29 * 86_400_000).toISOString().slice(0, 10);
+			const fromDay = z
+				.string()
+				.regex(/^\d{4}-\d{2}-\d{2}$/)
+				.parse(url.searchParams.get("from") ?? fromFallback);
+			const toDayParsed = z
+				.string()
+				.regex(/^\d{4}-\d{2}-\d{2}$/)
+				.parse(url.searchParams.get("to") ?? toDay);
+			if (fromDay > toDayParsed) throw new RangeError("from must not exceed to");
+			const stats = dependencies.localUsage.stats();
+			writeJson(
+				response,
+				200,
+				success(dependencies, {
+					enabled: true,
+					generatedAt: current,
+					lastScanAt: stats.lastScanAt,
+					scannedFiles: stats.files,
+					tools: [...dependencies.localUsage.tools()],
+					rows: [...dependencies.localUsage.aggregate(fromDay, toDayParsed)],
+				}),
+			);
+		}),
+		register(API_PATHS.localUsageScan, ["POST"], async (_request, response) => {
+			if (dependencies.localUsage === undefined) {
+				writeJson(
+					response,
+					200,
+					success(dependencies, { enabled: false, scannedAt: null, files: 0, events: 0, skipped: 0 }),
+				);
+				return;
+			}
+			const result = await dependencies.localUsage.scan();
+			writeJson(response, 200, success(dependencies, { enabled: true, ...result }));
 		}),
 	];
 }

@@ -9,6 +9,7 @@ import { registerCredentialRoutes } from "./api/credentials.js";
 import { registerLegacyRoutes } from "./api/legacy.js";
 import { type ApiFreshness, registerV1Routes } from "./api/router.js";
 import { applyCodingOAuth, type CodingOAuthRuntime } from "./coding-oauth/compose.js";
+import { XAI_PI_PROVIDER } from "./coding-oauth/ids.js";
 import { DEFAULT_RUNTIME_CONFIG, type RuntimeConfig, RuntimeConfigSchema } from "./config.js";
 import type { UsageStatsHostContext } from "./context.js";
 import {
@@ -19,6 +20,10 @@ import {
 import { FeesRepository } from "./fees/repository.js";
 import { configuredProviders } from "./host/providers.js";
 import { DshSessionInventory } from "./host/session-inventory.js";
+import { collectLocalCliAuth, type LocalPluginSessionStatus } from "./local-monitor/auth-status.js";
+import { LOCAL_USAGE_PARSERS } from "./local-monitor/parsers.js";
+import { LocalUsageRepository } from "./local-monitor/repository.js";
+import { LocalUsageScanner } from "./local-monitor/usage-scan.js";
 import { migrateLegacyPreferences, migrateLegacyUsageCache } from "./migration.js";
 import { PricingRepository } from "./pricing/repository.js";
 import { collectProvidersData } from "./providers/catalog.js";
@@ -240,6 +245,75 @@ export async function apply(
 		warnings: [...warnings],
 	});
 
+	const localAuthApi = config.localMonitor.enabled
+		? {
+				async snapshot() {
+					const sessions: LocalPluginSessionStatus[] = [];
+					if (codingOAuthRuntime !== undefined) {
+						const grok = await codingOAuthRuntime.grok.store
+							.read(XAI_PI_PROVIDER)
+							.then((credential): { authenticated: boolean; expiresAt: number | null } =>
+								credential?.type === "oauth"
+									? { authenticated: true, expiresAt: credential.expires }
+									: { authenticated: false, expiresAt: null },
+							)
+							.catch((): { authenticated: boolean; expiresAt: number | null } => ({
+								authenticated: false,
+								expiresAt: null,
+							}));
+						sessions.push({
+							provider: "grok",
+							route: "grok-build",
+							authenticated: grok.authenticated,
+							expiresAt: grok.expiresAt,
+						});
+						for (const session of codingOAuthRuntime.subscriptions) {
+							const status = await session.status().catch(() => ({ authenticated: false }) as const);
+							sessions.push({
+								provider: session.definition.slug,
+								route: session.definition.route,
+								authenticated: status.authenticated,
+								expiresAt: "expiresAt" in status && status.expiresAt !== undefined ? status.expiresAt : null,
+							});
+						}
+					}
+					return { generatedAt: now(), cli: await collectLocalCliAuth(), sessions };
+				},
+			}
+		: undefined;
+
+	const localUsageApi = config.localUsage.enabled
+		? (() => {
+				const repository = new LocalUsageRepository(database);
+				const home = process.env.HOME ?? "";
+				const scanner = new LocalUsageScanner(repository, {
+					home,
+					env: process.env,
+					now,
+					maxFileBytes: config.localUsage.maxFileBytes,
+					maxTotalBytes: config.localUsage.maxTotalBytes,
+				});
+				return {
+					tools: () =>
+						LOCAL_USAGE_PARSERS.map((parser) => ({
+							toolId: parser.toolId,
+							displayName: parser.displayName,
+							available: true,
+						})),
+					aggregate: (fromDay: string, toDay: string) => repository.aggregate(fromDay, toDay),
+					stats: () => repository.stats(),
+					scan: async () => {
+						const result = await scanner.scan();
+						const cutoff = new Date(result.scannedAt - config.localUsage.retentionDays * 86_400_000)
+							.toISOString()
+							.slice(0, 10);
+						repository.prune(cutoff, result.scannedAt - config.localUsage.retentionDays * 86_400_000);
+						return result;
+					},
+				};
+			})()
+		: undefined;
+
 	const routeDisposers = [
 		...registerV1Routes(webServer, {
 			logger: ctx.logger,
@@ -251,6 +325,8 @@ export async function apply(
 			fees,
 			providers: providersApi,
 			alerts: alertsApi,
+			...(localAuthApi === undefined ? {} : { localAuth: localAuthApi }),
+			...(localUsageApi === undefined ? {} : { localUsage: localUsageApi }),
 			freshness,
 			now,
 		}),
@@ -391,6 +467,30 @@ export async function apply(
 				if (autoExportTimer !== null) clearInterval(autoExportTimer);
 			},
 			"usage-stats: auto-export",
+		);
+	}
+
+	if (localUsageApi !== undefined && !dependencies.disableBackgroundRefresh) {
+		const usageApi = localUsageApi;
+		let scanning = false;
+		const runScan = async (): Promise<void> => {
+			if (scanning) return;
+			scanning = true;
+			try {
+				await usageApi.scan();
+			} catch {
+				ctx.logger.warn("usage-stats: local usage scan failed (details redacted)");
+			} finally {
+				scanning = false;
+			}
+		};
+		const scanTimer = setInterval(() => void runScan(), config.localUsage.intervalMinutes * 60_000);
+		scanTimer.unref?.();
+		ctx.effect(
+			() => () => {
+				clearInterval(scanTimer);
+			},
+			"usage-stats: local usage scan",
 		);
 	}
 

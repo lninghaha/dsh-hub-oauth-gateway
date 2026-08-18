@@ -14,6 +14,11 @@ import {
 } from "../shared/contracts.js";
 import type { PriceRule } from "../shared/domain.js";
 import type { FeesData } from "../shared/fees.js";
+import {
+	LocalAuthResponseSchema,
+	LocalUsageResponseSchema,
+	LocalUsageScanResultSchema,
+} from "../shared/local-monitor.js";
 import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
 import { ProvidersDataSchema } from "../shared/providers.js";
 import { fetchApi, mutateApi } from "./api.js";
@@ -328,4 +333,44 @@ export function exportUrl(
 	layout: ExportLayout = "filtered",
 ): string {
 	return `${endpoint(API_PATHS.export, query)}&format=${format}&dimension=${dimension}&layout=${layout}`;
+}
+
+export function useLocalAuthQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "local-auth"],
+			queryFn: ({ signal }) => fetchApi(API_PATHS.localAuth, LocalAuthResponseSchema, {}, signal),
+			enabled,
+			refetchInterval: enabled ? 60_000 : false,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useLocalUsageQuery(enabled = true, from?: string, to?: string) {
+	const params = new URLSearchParams();
+	if (from !== undefined) params.set("from", from);
+	if (to !== undefined) params.set("to", to);
+	const suffix = params.size === 0 ? "" : `?${params.toString()}`;
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "local-usage", suffix],
+			queryFn: ({ signal }) => fetchApi(`${API_PATHS.localUsage}${suffix}`, LocalUsageResponseSchema, {}, signal),
+			enabled,
+			refetchInterval: enabled ? 60_000 : false,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useLocalUsageScanMutation() {
+	return useMutation(
+		{
+			mutationFn: () => mutateApi(API_PATHS.localUsageScan, "POST", {}, LocalUsageScanResultSchema),
+			onSuccess: async () => {
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "local-usage"] });
+			},
+		},
+		usageQueryClient,
+	);
 }

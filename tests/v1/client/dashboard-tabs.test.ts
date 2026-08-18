@@ -38,7 +38,15 @@ describe("dashboard tabs", () => {
 });
 
 describe("settings tabs", () => {
-	it("exposes the four OAuth-style settings panels", () => {
-		expect([...SETTINGS_TABS]).toEqual(["display", "providers", "fees", "credentials"]);
+	it("exposes the settings panels including the coding OAuth tabs", () => {
+		expect([...SETTINGS_TABS]).toEqual([
+			"display",
+			"accounts",
+			"gateway",
+			"capabilities",
+			"providers",
+			"fees",
+			"credentials",
+		]);
 	});
 });

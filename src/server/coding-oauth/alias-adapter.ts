@@ -38,7 +38,7 @@ export interface AliasLlmRoutePolicy {
 function routePiAiReplayState(value: unknown, route: string): unknown {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
 	const state = value as Record<string, unknown>;
-	if (state["kind"] !== "pi-ai" || state["provider"] === route) return value;
+	if (state.kind !== "pi-ai" || state.provider === route) return value;
 	return { ...state, provider: route };
 }
 

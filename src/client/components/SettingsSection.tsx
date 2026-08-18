@@ -28,6 +28,10 @@ import {
 	useUnsetCredentialMutation,
 } from "../queries.js";
 import { SETTINGS_TABS } from "../settings-tabs.js";
+import { SelectPill, SettingsRow, TextInput, Toggle } from "./controls.js";
+import { AccountsTab } from "./oauth/AccountsTab.js";
+import { CapabilitiesTab } from "./oauth/CapabilitiesTab.js";
+import { GatewayTab } from "./oauth/GatewayTab.js";
 import { ProviderManagement } from "./ProviderManagement.js";
 
 type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;
@@ -63,114 +67,152 @@ function PreferenceEditor({
 	const display = draft.display;
 	return (
 		<>
-			<div className="dus-settings-grid">
-				<Field label={t("settings.preset")}>
-					<select
-						value={display.preset}
-						onChange={(event) => onChange(applyPresetToPreferences(draft, event.target.value as typeof display.preset))}
-					>
-						<option value="minimal">{t("preset.minimal")}</option>
-						<option value="quota">{t("preset.quota")}</option>
-						<option value="cost">{t("preset.cost")}</option>
-						<option value="analyst">{t("preset.analyst")}</option>
-					</select>
-				</Field>
-				<Field label={t("settings.sidebarMetric")}>
-					<select
-						value={display.sidebarMetric}
-						onChange={(event) =>
-							onChange({
-								...draft,
-								display: { ...display, sidebarMetric: event.target.value as typeof display.sidebarMetric },
-							})
-						}
-					>
-						<option value="todayTokens">{t("metric.tokens")}</option>
-						<option value="todayCost">{t("metric.cost")}</option>
-						<option value="lowestQuota">{t("preset.quota")}</option>
-						<option value="alerts">{t("metric.alerts")}</option>
-					</select>
-				</Field>
-				<Field label={t("settings.defaultRange")}>
-					<select
-						value={display.defaultRange}
-						onChange={(event) =>
-							onChange({
-								...draft,
-								display: { ...display, defaultRange: event.target.value as typeof display.defaultRange },
-							})
-						}
-					>
-						<option value="today">{t("range.today")}</option>
-						<option value="7d">{t("range.7d")}</option>
-						<option value="30d">{t("range.30d")}</option>
-						<option value="month">{t("range.month")}</option>
-					</select>
-				</Field>
-				<Field label={t("settings.density")}>
-					<select
-						value={display.density}
-						onChange={(event) =>
-							onChange({
-								...draft,
-								display: { ...display, density: event.target.value as typeof display.density },
-							})
-						}
-					>
-						<option value="compact">{t("density.compact")}</option>
-						<option value="comfortable">{t("density.comfortable")}</option>
-					</select>
-				</Field>
-				<Field label={t("settings.motion")}>
-					<select
-						value={display.reducedMotion}
-						onChange={(event) =>
-							onChange({
-								...draft,
-								display: { ...display, reducedMotion: event.target.value as typeof display.reducedMotion },
-							})
-						}
-					>
-						<option value="system">{t("motion.system")}</option>
-						<option value="always">{t("motion.always")}</option>
-						<option value="never">{t("motion.never")}</option>
-					</select>
-				</Field>
-				<Field label={t("settings.timeZone")}>
-					<input
-						value={display.timeZone}
-						onChange={(event) => onChange({ ...draft, display: { ...display, timeZone: event.target.value } })}
-					/>
-				</Field>
-				<Field label={t("settings.baseCurrency")}>
-					<input
-						value={display.baseCurrency}
-						maxLength={8}
-						onChange={(event) =>
-							onChange({
-								...draft,
-								display: { ...display, baseCurrency: event.target.value.toUpperCase() },
-							})
-						}
-					/>
-				</Field>
-				<Field label={t("settings.streakMinTokens")}>
-					<input
-						type="number"
-						min={0}
-						step={1}
-						value={display.streakMinTokens}
-						onChange={(event) =>
-							onChange({
-								...draft,
-								display: {
-									...display,
-									streakMinTokens: Math.max(0, Math.floor(Number(event.target.value) || 0)),
-								},
-							})
-						}
-					/>
-				</Field>
+			<div className="dus-settings-stack">
+				<SettingsRow
+					title={t("settings.preset")}
+					control={
+						<SelectPill
+							ariaLabel={t("settings.preset")}
+							value={display.preset}
+							onChange={(value) => onChange(applyPresetToPreferences(draft, value as typeof display.preset))}
+							options={[
+								{ value: "minimal", label: t("preset.minimal") },
+								{ value: "quota", label: t("preset.quota") },
+								{ value: "cost", label: t("preset.cost") },
+								{ value: "analyst", label: t("preset.analyst") },
+							]}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.sidebarMetric")}
+					control={
+						<SelectPill
+							ariaLabel={t("settings.sidebarMetric")}
+							value={display.sidebarMetric}
+							onChange={(value) =>
+								onChange({
+									...draft,
+									display: { ...display, sidebarMetric: value as typeof display.sidebarMetric },
+								})
+							}
+							options={[
+								{ value: "todayTokens", label: t("metric.tokens") },
+								{ value: "todayCost", label: t("metric.cost") },
+								{ value: "lowestQuota", label: t("preset.quota") },
+								{ value: "alerts", label: t("metric.alerts") },
+							]}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.defaultRange")}
+					control={
+						<SelectPill
+							ariaLabel={t("settings.defaultRange")}
+							value={display.defaultRange}
+							onChange={(value) =>
+								onChange({
+									...draft,
+									display: { ...display, defaultRange: value as typeof display.defaultRange },
+								})
+							}
+							options={[
+								{ value: "today", label: t("range.today") },
+								{ value: "7d", label: t("range.7d") },
+								{ value: "30d", label: t("range.30d") },
+								{ value: "month", label: t("range.month") },
+							]}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.density")}
+					control={
+						<SelectPill
+							ariaLabel={t("settings.density")}
+							value={display.density}
+							onChange={(value) =>
+								onChange({
+									...draft,
+									display: { ...display, density: value as typeof display.density },
+								})
+							}
+							options={[
+								{ value: "compact", label: t("density.compact") },
+								{ value: "comfortable", label: t("density.comfortable") },
+							]}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.motion")}
+					control={
+						<SelectPill
+							ariaLabel={t("settings.motion")}
+							value={display.reducedMotion}
+							onChange={(value) =>
+								onChange({
+									...draft,
+									display: { ...display, reducedMotion: value as typeof display.reducedMotion },
+								})
+							}
+							options={[
+								{ value: "system", label: t("motion.system") },
+								{ value: "always", label: t("motion.always") },
+								{ value: "never", label: t("motion.never") },
+							]}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.timeZone")}
+					control={
+						<TextInput
+							ariaLabel={t("settings.timeZone")}
+							value={display.timeZone}
+							onChange={(value) => onChange({ ...draft, display: { ...display, timeZone: value } })}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.baseCurrency")}
+					control={
+						<TextInput
+							ariaLabel={t("settings.baseCurrency")}
+							value={display.baseCurrency}
+							maxLength={8}
+							onChange={(value) =>
+								onChange({
+									...draft,
+									display: { ...display, baseCurrency: value.toUpperCase() },
+								})
+							}
+						/>
+					}
+				/>
+				<SettingsRow
+					title={t("settings.streakMinTokens")}
+					control={
+						<input
+							className="dus-input dus-input-narrow"
+							type="number"
+							min={0}
+							step={1}
+							aria-label={t("settings.streakMinTokens")}
+							value={display.streakMinTokens}
+							onChange={(event) =>
+								onChange({
+									...draft,
+									display: {
+										...display,
+										streakMinTokens: Math.max(0, Math.floor(Number(event.target.value) || 0)),
+									},
+								})
+							}
+						/>
+					}
+				/>
 			</div>
 			<strong className="dus-settings-subtitle">{t("settings.modules")}</strong>
 			<p className="dus-settings-hint">{t("settings.modulesHint")}</p>
@@ -251,17 +293,19 @@ function PreferenceEditor({
 					);
 				})}
 			</ul>
-			<button type="button" className="dus-secondary-button" onClick={() => onChange(resetModulesToPreset(draft))}>
+			<button type="button" className="dus-button is-small" onClick={() => onChange(resetModulesToPreset(draft))}>
 				{t("settings.resetModules")}
 			</button>
-			<label className="dus-check-label">
-				<input
-					type="checkbox"
-					checked={display.comparePrevious}
-					onChange={(event) => onChange({ ...draft, display: { ...display, comparePrevious: event.target.checked } })}
-				/>
-				<span>{t("settings.compare")}</span>
-			</label>
+			<SettingsRow
+				title={t("settings.compare")}
+				control={
+					<Toggle
+						label={t("settings.compare")}
+						checked={display.comparePrevious}
+						onChange={(checked) => onChange({ ...draft, display: { ...display, comparePrevious: checked } })}
+					/>
+				}
+			/>
 			<div className="dus-provider-toggles">
 				{accounts.map((account) => {
 					const hidden = draft.providers.hidden.includes(account.providerId);
@@ -317,40 +361,42 @@ function PreferenceEditor({
 					);
 				})}
 			</div>
-			<div className="dus-settings-grid is-single">
-				<label className="dus-check-label">
-					<input
-						type="checkbox"
+			<SettingsRow
+				title={t("settings.showSessions")}
+				control={
+					<Toggle
+						label={t("settings.showSessions")}
 						checked={draft.privacy.showSessionIdentifiers}
-						onChange={(event) =>
+						onChange={(checked) =>
 							onChange({
 								...draft,
-								privacy: { ...draft.privacy, showSessionIdentifiers: event.target.checked },
+								privacy: { ...draft.privacy, showSessionIdentifiers: checked },
 							})
 						}
 					/>
-					<span>{t("settings.showSessions")}</span>
-				</label>
-				<label className="dus-check-label">
-					<input
-						type="checkbox"
+				}
+			/>
+			<SettingsRow
+				title={t("settings.redactExports")}
+				control={
+					<Toggle
+						label={t("settings.redactExports")}
 						checked={draft.privacy.redactExports}
-						onChange={(event) =>
-							onChange({ ...draft, privacy: { ...draft.privacy, redactExports: event.target.checked } })
-						}
+						onChange={(checked) => onChange({ ...draft, privacy: { ...draft.privacy, redactExports: checked } })}
 					/>
-					<span>{t("settings.redactExports")}</span>
-				</label>
-			</div>
+				}
+			/>
 			<strong className="dus-settings-subtitle">{t("settings.alerts")}</strong>
-			<label className="dus-check-label">
-				<input
-					type="checkbox"
-					checked={draft.alerts.enabled}
-					onChange={(event) => onChange({ ...draft, alerts: { ...draft.alerts, enabled: event.target.checked } })}
-				/>
-				<span>{t("settings.alertsEnabled")}</span>
-			</label>
+			<SettingsRow
+				title={t("settings.alertsEnabled")}
+				control={
+					<Toggle
+						label={t("settings.alertsEnabled")}
+						checked={draft.alerts.enabled}
+						onChange={(checked) => onChange({ ...draft, alerts: { ...draft.alerts, enabled: checked } })}
+					/>
+				}
+			/>
 			<div className="dus-settings-grid">
 				<Field label={t("settings.quotaThreshold")}>
 					<input
@@ -877,6 +923,9 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					</div>
 				</article>
 			) : null}
+			{activeSettingsTab === "accounts" ? <AccountsTab t={t} /> : null}
+			{activeSettingsTab === "gateway" ? <GatewayTab t={t} /> : null}
+			{activeSettingsTab === "capabilities" ? <CapabilitiesTab t={t} /> : null}
 			{activeSettingsTab === "providers" ? (
 				<div data-settings-tab="providers">
 					<ProviderManagement t={t} />

@@ -24,6 +24,46 @@ const DEFAULT_CODING_OAUTH = Object.freeze({
 	proxyKimi: false,
 });
 
+const DEFAULT_LOCAL_MONITOR = Object.freeze({
+	enabled: false,
+});
+
+const DEFAULT_LOCAL_USAGE = Object.freeze({
+	enabled: false,
+	intervalMinutes: 30,
+	maxFileBytes: 8 * 1024 * 1024,
+	maxTotalBytes: 256 * 1024 * 1024,
+	retentionDays: 400,
+});
+
+const LocalMonitorConfigSchema = z
+	.object({
+		/** Read-only local CLI authentication snapshot (hardened allowlist reads). */
+		enabled: z.boolean().default(DEFAULT_LOCAL_MONITOR.enabled),
+	})
+	.strict();
+
+const LocalUsageConfigSchema = z
+	.object({
+		/** Opt-in cross-tool local usage log scan (token-monitor style). */
+		enabled: z.boolean().default(DEFAULT_LOCAL_USAGE.enabled),
+		intervalMinutes: z.number().int().min(5).max(1440).default(DEFAULT_LOCAL_USAGE.intervalMinutes),
+		maxFileBytes: z
+			.number()
+			.int()
+			.min(4096)
+			.max(64 * 1024 * 1024)
+			.default(DEFAULT_LOCAL_USAGE.maxFileBytes),
+		maxTotalBytes: z
+			.number()
+			.int()
+			.min(65_536)
+			.max(1024 * 1024 * 1024)
+			.default(DEFAULT_LOCAL_USAGE.maxTotalBytes),
+		retentionDays: z.number().int().min(7).max(3650).default(DEFAULT_LOCAL_USAGE.retentionDays),
+	})
+	.strict();
+
 const CodingOAuthCapabilityPatchSchema = z
 	.object({
 		codexSearch: z.boolean().optional(),
@@ -124,6 +164,10 @@ const RuntimeConfigInputSchema = z
 			.default(DEFAULT_PRICING),
 		/** Integrated coding-subscription OAuth owner. Disable only for isolated tests. */
 		codingOAuth: CodingOAuthConfigSchema.default(DEFAULT_CODING_OAUTH),
+		/** Token-monitor-style local CLI authentication snapshot. Default off. */
+		localMonitor: LocalMonitorConfigSchema.default(DEFAULT_LOCAL_MONITOR),
+		/** Opt-in cross-tool local usage scan. Default off; scans never run on page loads. */
+		localUsage: LocalUsageConfigSchema.default(DEFAULT_LOCAL_USAGE),
 		debug: z.boolean().default(false),
 	})
 	.strict()

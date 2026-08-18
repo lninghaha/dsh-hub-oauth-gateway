@@ -427,15 +427,15 @@ function parseIndexDocument(text: string): IndexDocument {
 		throw new MediaStoreError("CORRUPT", "media index must contain an object");
 	}
 	const document = value as Record<string, unknown>;
-	if (document["version"] !== MEDIA_STORE_INDEX_VERSION) {
+	if (document.version !== MEDIA_STORE_INDEX_VERSION) {
 		throw new MediaStoreError("CORRUPT", "media index has an unsupported version");
 	}
-	const artifactId = document["artifactId"];
-	const sha256 = document["sha256"];
-	const mediaType = document["mediaType"];
-	const bytes = document["bytes"];
-	const createdAt = document["createdAt"];
-	const expiresAt = document["expiresAt"];
+	const artifactId = document.artifactId;
+	const sha256 = document.sha256;
+	const mediaType = document.mediaType;
+	const bytes = document.bytes;
+	const createdAt = document.createdAt;
+	const expiresAt = document.expiresAt;
 	if (typeof artifactId !== "string" || parseMediaArtifactId(artifactId) === undefined) {
 		throw new MediaStoreError("CORRUPT", "media index artifact id is invalid");
 	}
@@ -454,7 +454,7 @@ function parseIndexDocument(text: string): IndexDocument {
 	if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt) || expiresAt <= createdAt) {
 		throw new MediaStoreError("CORRUPT", "media index expiresAt is invalid");
 	}
-	const name = typeof document["name"] === "string" ? sanitizeDisplayName(document["name"]) : undefined;
+	const name = typeof document.name === "string" ? sanitizeDisplayName(document.name) : undefined;
 	const parsed: IndexDocument = {
 		version: MEDIA_STORE_INDEX_VERSION,
 		artifactId,

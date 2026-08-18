@@ -1,15 +1,28 @@
+/*
+ * Design tokens: every color resolves through the official DSH theme alias
+ * layer (--dsw-alias-*), so the plugin follows the host light/dark theme.
+ * The --dus-* names are semantic aliases local to this plugin; the fallbacks
+ * only apply when a host predates the rc.6 theme contract.
+ */
 :root {
-  --dus-accent: var(--dsw-accent, #706cf6);
-  --dus-accent-2: #43bca8;
-  --dus-accent-soft: color-mix(in srgb, var(--dus-accent) 15%, transparent);
-  --dus-border: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 13%, transparent);
-  --dus-border-strong: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 22%, transparent);
-  --dus-muted: var(--dsw-fg-muted, #9295a4);
-  --dus-surface: color-mix(in srgb, var(--dsw-bg-elevated, #1f2028) 97%, transparent);
-  --dus-card: color-mix(in srgb, var(--dsw-bg-elevated, #22232c) 88%, var(--dsw-bg, #181920));
-  --dus-success: #48b99d;
-  --dus-warning: #e6a251;
-  --dus-danger: var(--dsw-danger, #ef7279);
+  --dus-accent: var(--dsw-alias-state-business-primary, rgb(65, 118, 230));
+  --dus-accent-2: var(--dsw-alias-state-success-primary, #43bca8);
+  --dus-accent-soft: var(--dsw-alias-interactive-bg-hover-accent, color-mix(in srgb, var(--dus-accent) 15%, transparent));
+  --dus-border: var(--dsw-alias-border-l2, color-mix(in srgb, currentColor 12%, transparent));
+  --dus-border-strong: var(--dsw-alias-border-l3, color-mix(in srgb, currentColor 22%, transparent));
+  --dus-fg: var(--dsw-alias-label-primary, currentColor);
+  --dus-muted: var(--dsw-alias-label-secondary, color-mix(in srgb, currentColor 62%, transparent));
+  --dus-faint: var(--dsw-alias-label-tertiary, color-mix(in srgb, currentColor 45%, transparent));
+  --dus-surface: var(--dsw-alias-bg-layer-1, transparent);
+  --dus-card: var(--dsw-alias-bg-layer-2, var(--dsw-alias-bg-module-platform, transparent));
+  --dus-control: var(--dsw-alias-bg-module-platform, color-mix(in srgb, currentColor 6%, transparent));
+  --dus-control-hover: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, currentColor 10%, transparent));
+  --dus-primary-fill: var(--dsw-alias-button-primary-fill, currentColor);
+  --dus-primary-hover: var(--dsw-alias-button-primary-hover, currentColor);
+  --dus-primary-fg: var(--dsw-alias-label-primary-inverted, #fff);
+  --dus-success: var(--dsw-alias-state-success-primary, #48b99d);
+  --dus-warning: var(--dsw-alias-state-warn-primary, #e6a251);
+  --dus-danger: var(--dsw-alias-state-error-primary, #ef7279);
 }
 
 .dus-sr-only {
@@ -35,7 +48,7 @@
   padding: 0 9px;
   border: 1px solid transparent;
   border-radius: 11px;
-  color: var(--dsw-fg, inherit);
+  color: var(--dus-fg);
   background: transparent;
   cursor: pointer;
   font: inherit;
@@ -45,7 +58,7 @@
 .dus-sidebar-button:hover,
 .dus-sidebar-button:focus-visible {
   border-color: var(--dus-border);
-  background: var(--dus-accent-soft);
+  background: var(--dus-control-hover);
   outline: none;
 }
 
@@ -134,11 +147,8 @@
   grid-template-rows: auto auto minmax(0, 1fr);
   height: 100%;
   max-height: inherit;
-  color: var(--dsw-fg, #e8e8ee);
-  background:
-    radial-gradient(circle at 18% -18%, color-mix(in srgb, var(--dus-accent) 18%, transparent), transparent 35%),
-    radial-gradient(circle at 93% 4%, color-mix(in srgb, var(--dus-accent-2) 8%, transparent), transparent 30%),
-    var(--dus-surface);
+  color: var(--dus-fg);
+  background: var(--dus-surface);
 }
 
 .dus-dashboard.is-peek-layout {
@@ -150,7 +160,7 @@
   flex-direction: column;
   min-width: 0;
   border-bottom: 1px solid var(--dus-border);
-  background: color-mix(in srgb, var(--dus-surface) 92%, transparent);
+  background: var(--dus-surface);
 }
 
 .dus-dashboard-chrome .dus-toolbar {
@@ -169,6 +179,7 @@
 
 .dus-settings-tabs {
   padding: 0 0 12px;
+  border-bottom: 1px solid var(--dus-border);
 }
 
 .dus-tab {
@@ -176,27 +187,29 @@
   align-items: center;
   justify-content: center;
   min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--dus-border);
-  border-radius: 10px;
-  color: inherit;
-  background: color-mix(in srgb, var(--dsw-bg, #181920) 84%, transparent);
+  padding: 0 14px;
+  border: 0;
+  border-radius: 16px;
+  color: var(--dus-muted);
+  background: transparent;
   cursor: pointer;
   font: inherit;
-  font-size: 11px;
-  font-weight: 650;
-  transition: border-color 140ms ease, background 140ms ease;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 140ms ease, color 140ms ease;
 }
 
 .dus-tab:hover,
 .dus-tab:focus-visible {
-  border-color: color-mix(in srgb, var(--dus-accent) 48%, var(--dus-border));
+  color: var(--dus-fg);
+  background: var(--dus-control-hover);
   outline: none;
 }
 
 .dus-tab.is-active {
-  border-color: color-mix(in srgb, var(--dus-accent) 54%, transparent);
-  background: color-mix(in srgb, var(--dus-accent) 23%, var(--dsw-bg, #181920));
+  color: var(--dus-fg);
+  background: var(--dus-control);
+  font-weight: 600;
 }
 
 .dus-dashboard-header {
@@ -231,7 +244,7 @@
 .dus-freshness {
   display: inline-block;
   margin-top: 7px;
-  color: var(--dus-muted);
+  color: var(--dus-faint);
   font-size: 10px;
 }
 
@@ -244,6 +257,60 @@
   gap: 8px;
 }
 
+/* Official-style capsule buttons (figma Button, 36px md / 28px sm). */
+.dus-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  color: var(--dus-fg);
+  background: var(--dus-control);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  line-height: 22px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 140ms ease, opacity 140ms ease;
+}
+
+.dus-button:hover,
+.dus-button:focus-visible {
+  background: var(--dus-control-hover);
+  outline: none;
+}
+
+.dus-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.dus-button.is-primary {
+  color: var(--dus-primary-fg);
+  background: var(--dus-primary-fill);
+}
+
+.dus-button.is-primary:hover,
+.dus-button.is-primary:focus-visible {
+  background: var(--dus-primary-hover);
+}
+
+.dus-button.is-danger {
+  color: var(--dus-danger);
+  background: var(--dsw-alias-interactive-bg-hover-danger, color-mix(in srgb, var(--dus-danger) 10%, transparent));
+}
+
+.dus-button.is-small {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  font-size: 12px;
+}
+
 .dus-icon-button,
 .dus-primary-button,
 .dus-secondary-button,
@@ -254,7 +321,7 @@
   border: 1px solid var(--dus-border);
   border-radius: 9px;
   color: inherit;
-  background: color-mix(in srgb, var(--dsw-bg, #181920) 84%, transparent);
+  background: transparent;
   cursor: pointer;
   font: inherit;
   text-decoration: none;
@@ -269,7 +336,8 @@
 .dus-primary-button:focus-visible,
 .dus-secondary-button:focus-visible,
 .dus-segmented button:focus-visible {
-  border-color: color-mix(in srgb, var(--dus-accent) 48%, var(--dus-border));
+  border-color: var(--dus-border-strong);
+  background: var(--dus-control-hover);
   outline: none;
 }
 
@@ -297,8 +365,14 @@
 }
 
 .dus-primary-button {
-  border-color: color-mix(in srgb, var(--dus-accent) 54%, transparent);
-  background: color-mix(in srgb, var(--dus-accent) 23%, var(--dsw-bg, #181920));
+  border-color: transparent;
+  color: var(--dus-primary-fg);
+  background: var(--dus-primary-fill);
+}
+
+.dus-primary-button:hover,
+.dus-primary-button:focus-visible {
+  background: var(--dus-primary-hover);
 }
 
 .dus-toolbar {
@@ -308,7 +382,7 @@
   min-width: 0;
   padding: 11px 22px;
   border-bottom: 1px solid var(--dus-border);
-  background: color-mix(in srgb, var(--dus-surface) 92%, transparent);
+  background: var(--dus-surface);
 }
 
 .dus-toolbar-spacer {
@@ -322,7 +396,7 @@
   padding: 3px;
   border: 1px solid var(--dus-border);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--dsw-bg, #181920) 65%, transparent);
+  background: transparent;
 }
 
 .dus-segmented button {
@@ -335,8 +409,7 @@
 
 .dus-segmented button.is-active {
   border-color: var(--dus-border-strong);
-  background: var(--dus-accent-soft);
-  box-shadow: 0 3px 10px color-mix(in srgb, #000 14%, transparent);
+  background: var(--dus-control);
 }
 
 .dus-select-label select,
@@ -346,8 +419,8 @@
   min-height: 34px;
   border: 1px solid var(--dus-border);
   border-radius: 9px;
-  color: inherit;
-  background: color-mix(in srgb, var(--dsw-bg, #181920) 84%, transparent);
+  color: var(--dus-fg);
+  background: var(--dus-control);
   font: inherit;
   font-size: 11px;
 }
@@ -360,7 +433,7 @@
 .dus-field input:focus,
 .dus-field select:focus,
 .dus-price-row input:focus {
-  border-color: color-mix(in srgb, var(--dus-accent) 56%, transparent);
+  border-color: var(--dus-border-strong);
   outline: none;
 }
 
@@ -375,6 +448,174 @@
 
 .dus-check-label input {
   accent-color: var(--dus-accent);
+}
+
+/* Official settings row (figma Setting-Cell): flat title + control rows. */
+.dus-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--dus-border);
+}
+
+.dus-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-right: 48px;
+}
+
+.dus-row-title {
+  color: var(--dus-fg);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.dus-row-hint {
+  color: var(--dus-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Official selector geometry: 36px capsule on the module platform fill. */
+.dus-select-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--dus-fg);
+  background: var(--dus-control);
+  border-radius: 18px;
+}
+
+.dus-select-pill:hover {
+  background: var(--dus-control-hover);
+}
+
+.dus-select-pill select {
+  height: 36px;
+  padding: 0 34px 0 14px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.dus-select-pill select:focus {
+  outline: none;
+}
+
+.dus-select-pill.is-disabled {
+  opacity: 0.48;
+}
+
+.dus-select-pill-chevron {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--dus-muted);
+}
+
+.dus-input {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  color: var(--dus-fg);
+  background: var(--dus-control);
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.dus-input:focus {
+  outline: 1px solid var(--dus-border-strong);
+}
+
+.dus-input:disabled {
+  opacity: 0.48;
+}
+
+.dus-input-narrow {
+  width: 110px;
+}
+
+/* Switch control for boolean settings. */
+.dus-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--dus-control);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.dus-toggle:hover {
+  background: var(--dus-control-hover);
+}
+
+.dus-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.dus-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dus-fg);
+  transition: transform 140ms ease;
+}
+
+.dus-toggle.is-on {
+  background: var(--dus-accent);
+}
+
+.dus-toggle.is-on .dus-toggle-thumb {
+  transform: translateX(18px);
+  background: var(--dus-primary-fg);
+}
+
+/* Four-state semantic dot (pairs with text for accessibility). */
+.dus-state-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--dus-faint);
+}
+
+.dus-state-dot.is-ok {
+  background: var(--dus-success);
+}
+
+.dus-state-dot.is-running {
+  background: var(--dus-accent);
+}
+
+.dus-state-dot.is-error {
+  background: var(--dus-danger);
+}
+
+.dus-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .dus-dashboard-body {
@@ -396,7 +637,6 @@
   border: 1px solid var(--dus-border);
   border-radius: 13px;
   background: var(--dus-card);
-  box-shadow: 0 12px 32px color-mix(in srgb, #000 12%, transparent);
 }
 
 .dus-kpi-card {
@@ -529,8 +769,8 @@
 }
 
 .dus-account-card.is-selected {
-  border-color: color-mix(in srgb, var(--dus-accent) 62%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dus-accent) 18%, transparent);
+  border-color: var(--dus-accent);
+  box-shadow: 0 0 0 1px var(--dus-accent-soft);
 }
 
 .dus-account-select {
@@ -576,7 +816,7 @@
   padding: 3px 6px;
   border-radius: 999px;
   color: var(--dus-muted);
-  background: color-mix(in srgb, var(--dsw-fg, #fff) 6%, transparent);
+  background: var(--dus-control);
   font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
@@ -615,7 +855,7 @@
 }
 
 .dus-quota-value {
-  color: var(--dsw-fg, #e8e8ee);
+  color: var(--dus-fg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -632,7 +872,7 @@
   margin-top: 5px;
   overflow: hidden;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--dsw-fg, #fff) 8%, transparent);
+  background: var(--dus-control);
 }
 
 .dus-quota-fill {
@@ -684,7 +924,7 @@
 }
 
 .dus-heatmap-cell {
-  fill: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 8%, transparent);
+  fill: var(--dus-control);
 }
 
 .dus-heatmap-cell.is-pad {
@@ -692,7 +932,7 @@
 }
 
 .dus-heatmap-cell.is-empty {
-  fill: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 6%, transparent);
+  fill: var(--dus-control);
 }
 
 .dus-heatmap-cell.is-level-1 {
@@ -724,7 +964,7 @@
   width: 11px;
   height: 11px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--dsw-fg, #e8e8ee) 8%, transparent);
+  background: var(--dus-control);
 }
 
 .dus-heatmap-swatch.is-level-1 {
@@ -958,6 +1198,7 @@
   gap: 14px;
   max-width: 780px;
   padding: 4px 0 30px;
+  color: var(--dus-fg);
 }
 
 .dus-settings-heading {
@@ -975,6 +1216,11 @@
 
 .dus-settings-card h3 {
   font-size: 14px;
+}
+
+.dus-settings-stack {
+  display: grid;
+  gap: 4px;
 }
 
 .dus-settings-grid {
@@ -1100,7 +1346,8 @@
 }
 
 .dus-settings-subtitle {
-  font-size: 11px;
+  font-size: 13px;
+  color: var(--dus-fg);
 }
 
 .dus-credential-row {
@@ -1137,6 +1384,130 @@
   min-width: 0;
   padding: 0 8px;
   box-sizing: border-box;
+}
+
+/* Coding OAuth settings (Accounts / Gateway / Capabilities tabs). */
+.dus-oauth-card {
+  border: 1px solid var(--dus-border);
+  border-radius: 13px;
+  background: var(--dus-card);
+}
+
+.dus-oauth-card-head {
+  display: flex;
+}
+
+.dus-oauth-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 0;
+  color: var(--dus-fg);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+
+.dus-oauth-card-toggle:hover {
+  background: var(--dus-control-hover);
+  border-radius: 13px;
+}
+
+.dus-oauth-card-toggle strong {
+  flex: 0 0 auto;
+}
+
+.dus-oauth-card-toggle .dus-row-hint {
+  flex: 1 1 auto;
+}
+
+.dus-oauth-chevron {
+  flex: 0 0 auto;
+  color: var(--dus-muted);
+}
+
+.dus-oauth-card-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 16px 14px;
+}
+
+.dus-oauth-card-body > .dus-row-hint,
+.dus-oauth-card-body > p {
+  margin: 0;
+}
+
+.dus-oauth-challenge {
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+  padding: 10px;
+  border: 1px dashed var(--dus-border-strong);
+  border-radius: 10px;
+}
+
+.dus-oauth-code {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--dus-control);
+  color: var(--dus-fg);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.dus-oauth-models {
+  display: grid;
+  gap: 6px;
+}
+
+.dus-oauth-import {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dus-oauth-source {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+}
+
+.dus-oauth-source-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dus-oauth-source-head code {
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-oauth-preview {
+  display: grid;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 8px;
+  background: var(--dus-control);
+}
+
+.dus-gateway-warning {
+  margin: 0 0 4px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--dus-warning) 42%, var(--dus-border));
+  border-radius: 10px;
+  color: var(--dus-warning);
+  background: color-mix(in srgb, var(--dus-warning) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .dus-dashboard.is-density-compact .dus-dashboard-body,
@@ -1221,6 +1592,14 @@
 
   .dus-settings-heading {
     display: grid;
+  }
+
+  .dus-row {
+    flex-wrap: wrap;
+  }
+
+  .dus-row-text {
+    padding-right: 0;
   }
 }
 
