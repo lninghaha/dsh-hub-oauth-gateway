@@ -146,17 +146,24 @@ merge. Authors should not rewrite shared history after review without warning.
 ## Releases
 
 Maintainers perform releases according to
-[`docs/00-project-rules.md`](docs/00-project-rules.md). Release preparation and
-inspection may run in Cursor Cloud (`pnpm run check`, `pnpm run release:inspect`,
-`pnpm run release:pack`); version bumps, tags, pushes, **npm registry
-publication**, and **GitHub Releases** require an explicit human decision.
-Every GitHub Release for a version **must** attach
-`dsh-hub-oauth-gateway-<version>.tgz` so users can download a ready-to-install
-package and hand it to an Agent. Cloud Agents cannot authenticate to npm or
-create Releases—when a publish is requested they must supply cloud-terminal
-commands for the maintainer to run (see [`AGENTS.md`](AGENTS.md) §8).
-Contributors should not include an unsolicited version bump or tag in a feature
-pull request.
+[`docs/00-project-rules.md`](docs/00-project-rules.md) and [`AGENTS.md`](AGENTS.md).
+
+- A release **must** publish the same SemVer to public npm; a Git tag / GitHub
+  Release without npm is incomplete.
+- Agents prepare the version, docs, gates, tag, and GitHub Release, then give
+  the maintainer **cloud-terminal** commands for `npm publish` (nvm Node + OTP).
+  Agents do not run `npm publish` themselves.
+- Every GitHub Release for a version **must** attach
+  `dsh-hub-oauth-gateway-<version>.tgz` so users can download a ready-to-install
+  package and hand it to an Agent (see [`AGENTS.md`](AGENTS.md) §8).
+- Related install and release documentation must be updated in the release
+  change set, not deferred after publish.
+
+Release preparation and inspection may run in Cursor Cloud (`pnpm run check`,
+`pnpm run release:inspect`, `pnpm run release:pack`). Version bumps, tags,
+pushes, registry publication, and GitHub Releases require an explicit human
+decision. Contributors should not include an unsolicited version bump or tag in
+a feature pull request.
 
 Installing or developing the plugin never authorizes a tool or contributor to
 restart DSH Web. A user chooses when to restart the service.

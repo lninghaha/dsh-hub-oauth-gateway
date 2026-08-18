@@ -7,7 +7,8 @@
 - 开始和结束时检查 `git status`，识别并保留用户已有修改；不得回滚、覆盖、暂存或格式化无关文件。
 - 禁止使用 `git reset --hard`、`git clean -fdx`、强制推送等破坏性命令。
 - 未经用户明确要求，不得执行 `git commit`、`git push`、创建或移动 tag、创建 GitHub Release、`npm publish` 等外部写操作。
-- **npm / GitHub 发版例外见第 8 节**：即使操作者要求发布，Agent 也不得在云环境代为完成 npm 认证、`npm publish`、或创建带资产的 GitHub Release；必须给出可在云终端由操作者本人执行的命令。GitHub Release **必须**附带 `dsh-hub-oauth-gateway-<version>.tgz`，供用户下载后直接交给 Agent 安装。
+- **`npm publish` 一律由用户在云终端执行**（需 OTP / 2FA）。Agent **不得**代跑 `npm publish`；发版时须给出可复制的完整命令（含 nvm Node 切换），由用户粘贴执行。
+- **npm / GitHub 发版细节见第 8 节**：即使操作者要求发布，Agent 也不得在云环境代为完成 npm 认证、`npm publish`、或创建带资产的 GitHub Release；必须给出可在云终端由操作者本人执行的命令。GitHub Release **必须**附带 `dsh-hub-oauth-gateway-<version>.tgz`，供用户下载后直接交给 Agent 安装。
 - 修改范围必须与当前任务直接相关。不要借机新增 CI、模板、发布脚本、Dockerfile、治理文档或重构其他模块；确有必要时先说明并征得用户同意。
 
 ## 2. 开源发布与隐私边界
@@ -78,6 +79,34 @@
 - 用户可见文案同时维护中文和英文；避免文档宣称尚未实现或无法验证的能力。
 - 版本遵循 SemVer：兼容修复为 patch，兼容新能力为 minor，破坏公开 export、配置、API、存储或安装契约为 major。
 - `lib/` 可复现、文档同步、云环境门禁（`check`）与 npm 打包清单审阅、以及隔离 DSH 冒烟是发布前置条件。
+
+## 5.1 发版与 npm（强制）
+
+一次完整发版 **必须** 把同一 SemVer 版本推到公共 npm（`registry.npmjs.org`，`latest` 或约定 dist-tag）。仅打 Git tag / 仅建 GitHub Release **不算**发版完成。
+
+Agent 在用户明确要求发版时的职责：
+
+1. 准备版本：`CHANGELOG` 从 Unreleased 移入目标版本、`package.json` / `lib` banner / `build/verify-release.mjs` 等版本元数据一致。
+2. **发版阶段及时更新相关文档**：安装说明（README / migration）、规则与贡献指南中与版本或安装契约相关的段落、用户可见中英文文案；不得把文档拖到发版之后再补。
+3. 云环境跑通 `pnpm run check` 与 `pnpm run release:inspect`（Node 须满足 `.nvmrc` / engines）。
+4. 在获准后：提交、推送、`v<version>` annotated tag、GitHub Release（changelog 摘要）。
+5. **向用户给出云终端 npm 发布命令**（须先切到 nvm Node，避免 `/exec-daemon/node` 22.14），例如：
+
+   ```bash
+   cd /workspace
+   export NVM_DIR="$HOME/.nvm"
+   . "$NVM_DIR/nvm.sh"
+   nvm use --delete-prefix $(cat .nvmrc) --silent
+   export PATH="$NVM_DIR/versions/node/v$(cat .nvmrc)/bin:$PATH"
+   hash -r
+   node -v
+   git checkout main && git pull origin main
+   npm whoami
+   npm publish --access public --otp=<6位验证码>
+   npm view dsh-hub-oauth-gateway version
+   ```
+
+6. 用户执行后，Agent 用 `npm view` 核对 registry 版本与 tag / `package.json` 一致，并在回复中确认；不一致则不得声称发版完成。
 
 ## 6. 安全不变量
 

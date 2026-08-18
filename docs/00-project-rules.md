@@ -246,19 +246,28 @@ they are not required to claim a change is verified.
 ## 6. Release process
 
 Only maintainers release. Preparing and inspecting a release is deliberately
-separate from external writes.
+separate from registry writes that need interactive 2FA.
+
+A release is **incomplete** until the same SemVer version is published to the
+public npm registry (`https://registry.npmjs.org/`). A Git tag and GitHub
+Release alone do not finish a release.
 
 1. Choose the SemVer change from the actual compatibility impact.
 2. Move relevant `CHANGELOG.md` entries from `Unreleased` into the target
-   version and update user-facing docs.
-3. Update `package.json` (and any generated version metadata) without weakening
+   version. **During the release**, update related user-facing docs in the
+   same change set (README install notes, migration, configuration, and any
+   rule text that describes install or version contracts). Do not defer docs
+   to a follow-up after publish.
+3. Update `package.json` (and any generated version metadata such as the
+   server bundle banner / `build/verify-release.mjs` pin) without weakening
    the Node/pnpm or peer-dependency contract.
-4. From a reviewed working tree, run the cloud gates on a supported Node line:
+4. From a reviewed working tree, run the cloud gates on a supported Node line
+   (use `.nvmrc`; do not rely on `/exec-daemon/node` 22.14):
 
    ```bash
    pnpm install --frozen-lockfile
    pnpm run check
-   npm pack --dry-run --json --ignore-scripts
+   pnpm run release:inspect
    ```
 
    Optionally smoke-test with an isolated DSH install (`DSH_HOME` under
@@ -269,15 +278,33 @@ separate from external writes.
    credential-bearing personal profile.
 6. Confirm the changelog version, package version, bundle banner, and tag will
    all be identical.
-7. Only after explicit human approval, commit, create annotated tag
-   `v<version>`, push, publish to the intended npm registry, create a GitHub
-   Release whose assets **must** include
+7. Only after explicit human approval: commit, push, create annotated tag
+   `v<version>`, and create a GitHub Release whose assets **must** include
    `dsh-hub-oauth-gateway-<version>.tgz` (from `pnpm run release:pack`, same
-   bytes users would install via npm), and create release notes from the
-   changelog. The tarball lets users download a ready-to-install package and
-   hand it to an Agent (`dsh plugin --profile web add <tarball>`).
-8. Verify the registry/release metadata, that the Release asset is present, and
-   the installation path after publishing.
+   bytes users would install via npm), with release notes from the changelog.
+   The tarball lets users download a ready-to-install package and hand it to an
+   Agent (`dsh plugin --profile web add <tarball>`).
+8. **npm publish is mandatory** and is run by the maintainer in the **Cursor
+   Cloud terminal** (OTP / 2FA). Agents must **not** execute `npm publish`;
+   they must paste a complete command block (nvm Node switch +
+   `npm publish --access public --otp=<code>` + `npm view` check) for the
+   maintainer to run. Example shape:
+
+   ```bash
+   export NVM_DIR="$HOME/.nvm"
+   . "$NVM_DIR/nvm.sh"
+   nvm use --delete-prefix "$(cat .nvmrc)" --silent
+   export PATH="$NVM_DIR/versions/node/v$(cat .nvmrc)/bin:$PATH"
+   hash -r
+   node -v
+   npm publish --access public --otp=<6-digit-code>
+   npm view dsh-hub-oauth-gateway version
+   ```
+
+9. After publish, verify `npm view dsh-hub-oauth-gateway version` matches the
+   tag and `package.json`, that the GitHub Release asset is present, and that
+   the documented install path (`dsh plugin add dsh-hub-oauth-gateway` /
+   `npx dsh-hub-oauth-gateway-install`) resolves to that version.
 
 **Cloud Agent publication:** Agents cannot complete npm authentication or create
 GitHub Releases with assets in Cursor Cloud. When a maintainer asks to publish,
@@ -290,7 +317,8 @@ operator's shell or secrets store—never in chat, Git, or logs. See
 
 Release helpers may build, inspect, and export a local tarball under `output/`;
 they must never bump a version, commit, tag, push, publish, or read user
-credentials without explicit maintainer action.
+credentials without explicit maintainer action. Helpers also must never run
+`npm publish` on the maintainer’s behalf.
 
 ## 7. Pre-release privacy and security checklist
 
@@ -313,9 +341,12 @@ Before an external release, verify all of the following:
       a lifecycle script.
 - [ ] Publishing target, package name, version, tag, and release notes have
       been reviewed by a human.
+- [ ] Public npm publish of the same version completed; `npm view` matches
+      tag / `package.json` (Git tag alone is not enough).
 - [ ] The GitHub Release for `v<version>` attaches
       `dsh-hub-oauth-gateway-<version>.tgz` from `pnpm run release:pack` (same
       installable package users would get from npm).
+- [ ] Install and release docs updated in the same release change set.
 
 If a secret may have been exposed, stop the release, revoke/rotate it, remove
 it from pending changes and artifacts, and follow `SECURITY.md`. Rewriting Git

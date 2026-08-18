@@ -7,6 +7,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Release process: a release is incomplete until the same SemVer is published
+  to public npm; agents must hand cloud-terminal `npm publish` commands (nvm
+  Node + OTP) to the maintainer instead of publishing themselves, and must
+  update related docs in the release change set (`AGENTS.md`,
+  `docs/00-project-rules.md`, `CONTRIBUTING.md`).
+
 ## 1.6.0
 
 ### Added
