@@ -12,6 +12,8 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 > **更名说明 / Renamed**：本项目前身为 `dsh-usage-stats`（原仓库 `Ychris12138/dsh-usage-stats`）。包名与仓库已更名为 `dsh-hub-oauth-gateway`，旧包名不再收到更新；已安装旧版本的用户请先移除旧 entry，再按下方说明重新安装。本地数据文件与内部插件 id 保持不变，历史统计数据不受影响。本次更名随 1.1.0 版本发布生效。
 >
+> **1.5.0**：完整仪表盘与 Settings → 用量中心改为顶部页签（一次只展示一块），Peek/仪表盘改为内容高度 + `max-height`，缩短瀑布流。
+>
 > **路线图 / Roadmap**：在用量中心之外，本仓库计划整合编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与 API 网关能力；这些功能尚未发布。
 
 ## 功能 / Highlights
