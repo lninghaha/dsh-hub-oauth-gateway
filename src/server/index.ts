@@ -88,7 +88,12 @@ export async function apply(
 					...(config.codingOAuth.gateway.apiKey === undefined ? {} : { apiKey: config.codingOAuth.gateway.apiKey }),
 				};
 			}
-			Object.assign(ctx, { llm });
+			// Cordis inject already exposes `ctx.llm` on this fiber. Do not
+			// Object.assign service properties onto the shared context proxy —
+			// that throws "cannot set property in multiple fibers".
+			if (ctx.llm === undefined) {
+				throw new Error("usage-stats: coding OAuth requires the llm service");
+			}
 			const { applyCodingOAuth } = await import("./coding-oauth/compose.js");
 			codingOAuthRuntime = applyCodingOAuth(ctx as never, codingConfig);
 		} catch (error) {

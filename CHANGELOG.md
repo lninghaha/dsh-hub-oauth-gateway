@@ -12,7 +12,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 - Register Coding OAuth under this package identity (`dsh-hub-oauth-gateway`,
   nested logger/settings `coding-oauth`). Composition receives the full Cordis
   context and fails closed when enabled OAuth cannot start. `codingOAuth.retryPolicy`
-  is validated by `@deepseek-ai/dsh-llm` `RetryPolicySchema`.
+  is validated by `@deepseek-ai/dsh-llm` `RetryPolicySchema`. Do not assign `llm`
+  onto the Cordis context proxy (multi-fiber set fails); rely on inject.
 - Document operator-facing Coding OAuth flows in README and
   `docs/configuration.md` (`usage-stats` → `config.codingOAuth`): four-provider
   sign-in, CLI Pull, default-off capabilities, opt-in loopback gateway, Kimi
