@@ -1,6 +1,6 @@
 /**
  * Start, stop, and rotate the opt-in local coding-subscription API gateway.
- * @module dsh-coding-subscription-oauth/gateway
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway
  */
 
 import type { Server } from "node:http";

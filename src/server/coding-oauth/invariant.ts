@@ -1,12 +1,12 @@
 /**
- * Package-owned invariant companion for `dsh-coding-subscription-oauth`.
- * @module dsh-coding-subscription-oauth/invariant
+ * Package-owned invariant companion for `dsh-hub-oauth-gateway`.
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/invariant
  */
 
 import type { Context } from "@deepseek-ai/cordis";
 import type { InvariantInstaller } from "@deepseek-ai/dsh-invariants";
 
-const PACKAGE_NAME = "dsh-coding-subscription-oauth";
+const PACKAGE_NAME = "dsh-hub-oauth-gateway";
 
 export const name = "grok-build-invariant";
 export const inject = ["invariants"];

@@ -1,6 +1,6 @@
 /**
  * Scoped egress proxy for coding-subscription OAuth and inference traffic.
- * @module dsh-coding-subscription-oauth/proxy
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/proxy
  */
 
 import { Dispatcher, getGlobalDispatcher, ProxyAgent, setGlobalDispatcher } from "undici";

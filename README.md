@@ -12,7 +12,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 
 > **更名说明 / Renamed**：本项目前身为 `dsh-usage-stats`（原仓库 `Ychris12138/dsh-usage-stats`）。包名与仓库已更名为 `dsh-hub-oauth-gateway`，旧包名不再收到更新；已安装旧版本的用户请先移除旧 entry，再按下方说明重新安装。本地数据文件与内部插件 id 保持不变，历史统计数据不受影响。本次更名随 1.1.0 版本发布生效。
 >
-> **路线图 / Roadmap**：在用量中心之外，本仓库计划整合编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与 API 网关能力；这些功能尚未发布。
+> 本包同时提供用量中心与 Coding OAuth（Settings、CLI、opt-in 本地网关）。OAuth 配置挂在 Cordis `usage-stats` → `config.codingOAuth`。HTTP 路径 `/plugins/dsh-grok-build/*`、CLI `dsh-coding-oauth` / `dsh-grok-build` 与凭据文件名是有意保留的产品面。
 
 ## 功能 / Highlights
 
@@ -25,6 +25,7 @@ A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, acc
 - **本地软提醒**：低配额、每日估算成本、账户异常；提醒不向外发送，也不实施硬阻断。
 - **CSV / JSON 导出**：遵循当前过滤条件；可隐藏会话标识，CSV 自动防御电子表格公式注入。
 - **中英文界面**：复用 DSH UI、locale、layout、settings、sidebar 和 slots 服务。
+- **Coding OAuth**：Settings 中独立的编码订阅登录（Grok Build、Codex、Kimi Code、Claude Code）、CLI Pull、可选 Codex/Imagine 能力，以及默认关闭的本机 OpenAI 兼容网关。配置见 `config.codingOAuth`。
 
 产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。
 
@@ -78,7 +79,8 @@ systemctl --user restart dsh-web.service
 2. 进入 Full Dashboard 后选择时间范围、指标和 provider/model 维度。
 3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
 4. 在 **Settings → Usage Center** 调整预设、密度、时区、货币、供应商显示、提醒、价格、凭据和导出隐私。
-5. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
+5. 在 **Settings → 编码 OAuth** 登录订阅账户、从 CLI 导入来源、开关可选能力，以及（如需要）启用本机网关。
+6. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
 
 ## 运行配置 / Runtime configuration
 
@@ -106,6 +108,8 @@ systemctl --user restart dsh-web.service
         # 可选。只填你自己控制或明确信任的 GitHub OAuth App 公共 client ID。
         oauthDevice:
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
+        codingOAuth:
+          enabled: true
 ```
 
 完整字段、monitor 示例与网络策略见 [`docs/configuration.md`](docs/configuration.md)。

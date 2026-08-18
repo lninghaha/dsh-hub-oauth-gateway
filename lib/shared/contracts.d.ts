@@ -6,6 +6,7 @@ export declare const API_PATHS: Readonly<{
     breakdown: "/api/usage-stats/v1/breakdown";
     accounts: "/api/usage-stats/v1/accounts";
     account: "/api/usage-stats/v1/account";
+    providers: "/api/usage-stats/v1/providers";
     refresh: "/api/usage-stats/v1/refresh";
     settings: "/api/usage-stats/v1/settings";
     pricing: "/api/usage-stats/v1/pricing";

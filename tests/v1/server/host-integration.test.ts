@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { SessionEvent } from "@deepseek-ai/dsh-session";
 import { describe, expect, it, vi } from "vitest";
-import { DEFAULT_RUNTIME_CONFIG } from "../../../src/server/config.js";
 import type { UsageStatsHostContext } from "../../../src/server/context.js";
 import { apply } from "../../../src/server/index.js";
 import { API_PATHS } from "../../../src/shared/contracts.js";
@@ -126,11 +125,15 @@ describe("server host integration", () => {
 			},
 		};
 
-		await apply(ctx, DEFAULT_RUNTIME_CONFIG, {
-			databasePath: ":memory:",
-			disableBackgroundRefresh: true,
-			now: () => 1_700_000_001_000,
-		});
+		await apply(
+			ctx,
+			{ codingOAuth: { enabled: false } },
+			{
+				databasePath: ":memory:",
+				disableBackgroundRefresh: true,
+				now: () => 1_700_000_001_000,
+			},
+		);
 		expect(routes.has(API_PATHS.overview)).toBe(true);
 		expect(routes.has("/api/usage-stats/usage")).toBe(true);
 		expect(routes.has(API_PATHS.credentials)).toBe(true);
@@ -212,11 +215,15 @@ describe("server host integration", () => {
 		const previousHome = process.env.DSH_HOME;
 		process.env.DSH_HOME = home;
 		try {
-			await apply(ctx, DEFAULT_RUNTIME_CONFIG, {
-				databasePath,
-				disableBackgroundRefresh: true,
-				now: () => 1_700_000_001_000,
-			});
+			await apply(
+				ctx,
+				{ codingOAuth: { enabled: false } },
+				{
+					databasePath,
+					disableBackgroundRefresh: true,
+					now: () => 1_700_000_001_000,
+				},
+			);
 			expect(sessionCursors(databasePath)).toEqual([]);
 			expect(logger.warn).toHaveBeenCalledWith(
 				"usage-stats: initial usage projection failed (details redacted; background retry scheduled)",

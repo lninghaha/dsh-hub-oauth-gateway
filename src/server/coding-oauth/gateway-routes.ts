@@ -1,6 +1,6 @@
 /**
  * Settings-facing routes for the opt-in local API gateway.
- * @module dsh-coding-subscription-oauth/gateway-routes
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-routes
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -47,7 +47,7 @@ export function registerGatewayRoutes(ctx: GatewayRouteContext, controller: Codi
 			});
 		});
 		return dispose;
-	}, "dsh-coding-subscription-oauth: gateway settings routes");
+	}, "dsh-hub-oauth-gateway: gateway settings routes");
 	return () => dispose();
 }
 

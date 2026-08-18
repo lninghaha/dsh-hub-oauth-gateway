@@ -1,6 +1,6 @@
 /**
  * Shared JSON body reader for isolated gateway endpoints.
- * @module dsh-coding-subscription-oauth/gateway-body
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-body
  */
 
 import type { IncomingMessage } from "node:http";

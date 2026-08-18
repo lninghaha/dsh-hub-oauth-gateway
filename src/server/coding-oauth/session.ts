@@ -1,6 +1,6 @@
 /**
  * Shared OAuth store + live catalog for the host plugin and CLI.
- * @module dsh-coding-subscription-oauth/session
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/session
  */
 
 import { mkdir, readFile, rm } from "node:fs/promises";
@@ -58,9 +58,9 @@ function parseCache(text: string): ParsedCache | undefined {
 	}
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
 	const document = value as Record<string, unknown>;
-	if (document["version"] !== 1 && document["version"] !== MODELS_CACHE_VERSION) return undefined;
-	const ids = parseIdList(document["ids"]);
-	const selected = parseIdList(document["selected"]);
+	if (document.version !== 1 && document.version !== MODELS_CACHE_VERSION) return undefined;
+	const ids = parseIdList(document.ids);
+	const selected = parseIdList(document.selected);
 	if (ids.length === 0 && selected.length === 0) return undefined;
 	return {
 		ids,

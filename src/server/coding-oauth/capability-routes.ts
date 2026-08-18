@@ -2,7 +2,7 @@
  * Plugin-owned same-origin Web routes for the capability-settings namespace.
  * Arbitrary Host settings namespaces are not remotely exposed, so this plugin
  * publishes only the secret-free snapshot and the two optional read surfaces.
- * @module dsh-coding-subscription-oauth/capability-routes
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/capability-routes
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -94,7 +94,7 @@ export function registerCapabilityRoutes(ctx: CapabilityRouteContext, options: C
 			}
 		});
 		return dispose;
-	}, "dsh-coding-subscription-oauth: capability routes");
+	}, "dsh-hub-oauth-gateway: capability routes");
 	return () => dispose();
 }
 
@@ -185,7 +185,7 @@ function readWriteEnvelope(
 	if (!isPlainObject(body)) {
 		throw new CapabilityRouteRequestError(400, "request body must be a JSON object");
 	}
-	const expectedRevision = body["expectedRevision"];
+	const expectedRevision = body.expectedRevision;
 	if (typeof expectedRevision !== "number" || !Number.isInteger(expectedRevision) || expectedRevision < 0) {
 		throw new CapabilityRouteRequestError(400, "expectedRevision must be a nonnegative integer");
 	}
@@ -208,11 +208,11 @@ function admitCapabilitySection(input: Record<string, unknown>, label: string): 
 
 function publicCredentialStatus(info: unknown): ImagineCredentialStatus {
 	const record = isPlainObject(info) ? info : {};
-	const source = record["source"];
+	const source = record.source;
 	return {
-		configured: record["configured"] === true,
+		configured: record.configured === true,
 		source: typeof source === "string" && source.length <= 40 && /^[a-z0-9._-]+$/iu.test(source) ? source : "unknown",
-		writable: record["writable"] === true,
+		writable: record.writable === true,
 	};
 }
 
@@ -237,13 +237,13 @@ function errorBody(error: unknown, status: number): Record<string, unknown> {
 	const body: Record<string, unknown> = { error: status >= 500 ? "request failed" : safeMessage(error) };
 	const conflict = conflictInfo(error);
 	if (conflict !== undefined) {
-		body["code"] = "SETTINGS_CONFLICT";
-		body["expected"] = conflict.expected;
-		body["actual"] = conflict.actual;
+		body.code = "SETTINGS_CONFLICT";
+		body.expected = conflict.expected;
+		body.actual = conflict.actual;
 		return body;
 	}
 	if (isCapabilitySettingsReadOnlyError(error)) {
-		body["code"] = error.code;
+		body.code = error.code;
 	}
 	return body;
 }

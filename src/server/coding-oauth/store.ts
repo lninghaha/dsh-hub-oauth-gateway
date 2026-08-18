@@ -1,6 +1,6 @@
 /**
  * Owner-only persistent OAuth credential storage for coding-subscription routes.
- * @module dsh-coding-subscription-oauth/store
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/store
  */
 
 import { mkdir, rm } from "node:fs/promises";
@@ -30,13 +30,13 @@ function parseDocument(text: string, filename: string, label: string): AuthDocum
 		throw new Error(`${label}: ${filename} must contain an object`);
 	}
 	const document = value as Record<string, unknown>;
-	if (document["version"] !== AUTH_FORMAT_VERSION) {
-		throw new Error(`${label}: ${filename} has unsupported auth format version ${String(document["version"])}`);
+	if (document.version !== AUTH_FORMAT_VERSION) {
+		throw new Error(`${label}: ${filename} has unsupported auth format version ${String(document.version)}`);
 	}
 	if (Object.keys(document).some((key) => key !== "version" && key !== "credential")) {
 		throw new Error(`${label}: ${filename} contains an unknown top-level field`);
 	}
-	const raw = document["credential"];
+	const raw = document.credential;
 	if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
 		throw new Error(`${label}: ${filename} credential must be an object`);
 	}
@@ -45,23 +45,19 @@ function parseDocument(text: string, filename: string, label: string): AuthDocum
 	if (Object.keys(credential).some((key) => !allowed.has(key))) {
 		throw new Error(`${label}: ${filename} credential contains an unknown field`);
 	}
-	if (credential["type"] !== "oauth") throw new Error(`${label}: ${filename} credential type must be oauth`);
+	if (credential.type !== "oauth") throw new Error(`${label}: ${filename} credential type must be oauth`);
 	for (const key of ["access", "refresh"] as const) {
 		if (typeof credential[key] !== "string" || credential[key].length === 0) {
 			throw new Error(`${label}: ${filename} credential ${key} must be a non-empty string`);
 		}
 	}
 	if (
-		credential["accountId"] !== undefined &&
-		(typeof credential["accountId"] !== "string" || credential["accountId"].length === 0)
+		credential.accountId !== undefined &&
+		(typeof credential.accountId !== "string" || credential.accountId.length === 0)
 	) {
 		throw new Error(`${label}: ${filename} credential accountId must be a non-empty string when present`);
 	}
-	if (
-		typeof credential["expires"] !== "number" ||
-		!Number.isFinite(credential["expires"]) ||
-		credential["expires"] <= 0
-	) {
+	if (typeof credential.expires !== "number" || !Number.isFinite(credential.expires) || credential.expires <= 0) {
 		throw new Error(`${label}: ${filename} credential expires must be a positive finite number`);
 	}
 	return { version: AUTH_FORMAT_VERSION, credential: credential as unknown as OAuthCredential };

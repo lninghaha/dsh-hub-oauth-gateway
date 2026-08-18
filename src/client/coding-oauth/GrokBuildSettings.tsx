@@ -613,12 +613,12 @@ async function jsonRequest<T>(path: string, method = "GET", body?: unknown): Pro
 	if (!response.ok) {
 		const record = isRecord(value) ? value : undefined;
 		const message =
-			record !== undefined && typeof record["error"] === "string"
-				? record["error"]
-				: record !== undefined && typeof record["message"] === "string"
-					? record["message"]
+			record !== undefined && typeof record.error === "string"
+				? record.error
+				: record !== undefined && typeof record.message === "string"
+					? record.message
 					: `HTTP ${response.status}`;
-		const code = record !== undefined && typeof record["code"] === "string" ? record["code"] : undefined;
+		const code = record !== undefined && typeof record.code === "string" ? record.code : undefined;
 		const error = new Error(message) as PluginRequestError;
 		error.name = "PluginRequestError";
 		error.status = response.status;
@@ -629,14 +629,14 @@ async function jsonRequest<T>(path: string, method = "GET", body?: unknown): Pro
 }
 
 function parseSource(value: unknown): SourceStatus | undefined {
-	if (!isRecord(value) || typeof value["kind"] !== "string" || !isSourceKind(value["kind"])) return undefined;
-	const kind = value["kind"];
-	const reasonRaw = optionalString(value["reason"]);
-	const expiresAt = optionalFiniteNumber(value["expiresAt"]);
+	if (!isRecord(value) || typeof value.kind !== "string" || !isSourceKind(value.kind)) return undefined;
+	const kind = value.kind;
+	const reasonRaw = optionalString(value.reason);
+	const expiresAt = optionalFiniteNumber(value.expiresAt);
 	return {
 		kind,
-		displayPath: safeDisplayPath(value["displayPath"], kind),
-		available: value["available"] === true,
+		displayPath: safeDisplayPath(value.displayPath, kind),
+		available: value.available === true,
 		...(expiresAt === undefined ? {} : { expiresAt }),
 		...(reasonRaw !== undefined && isSourceReason(reasonRaw) ? { reason: reasonRaw } : {}),
 	};
@@ -650,31 +650,27 @@ function mergeSources(discovered: readonly SourceStatus[]): SourceStatus[] {
 }
 
 function parseSources(value: unknown): SourceStatus[] {
-	const rows = Array.isArray(value)
-		? value
-		: isRecord(value) && Array.isArray(value["sources"])
-			? value["sources"]
-			: [];
+	const rows = Array.isArray(value) ? value : isRecord(value) && Array.isArray(value.sources) ? value.sources : [];
 	return mergeSources(rows.map(parseSource).filter((entry): entry is SourceStatus => entry !== undefined));
 }
 
 function parsePreview(value: unknown): SourcePreview | undefined {
 	if (!isRecord(value)) return undefined;
-	const previewId = optionalString(value["previewId"]);
-	const kindRaw = optionalString(value["kind"]);
+	const previewId = optionalString(value.previewId);
+	const kindRaw = optionalString(value.kind);
 	if (previewId === undefined || kindRaw === undefined || !isSourceKind(kindRaw)) return undefined;
-	const conflictRaw = optionalString(value["conflict"]);
-	const actionRaw = optionalString(value["action"]);
-	const expiresAt = optionalFiniteNumber(value["expiresAt"]);
-	const ticketExpiresAt = optionalFiniteNumber(value["ticketExpiresAt"]);
-	const warnings = Array.isArray(value["warnings"])
-		? value["warnings"].map(safeWarning).filter((entry): entry is string => entry !== undefined)
+	const conflictRaw = optionalString(value.conflict);
+	const actionRaw = optionalString(value.action);
+	const expiresAt = optionalFiniteNumber(value.expiresAt);
+	const ticketExpiresAt = optionalFiniteNumber(value.ticketExpiresAt);
+	const warnings = Array.isArray(value.warnings)
+		? value.warnings.map(safeWarning).filter((entry): entry is string => entry !== undefined)
 		: [];
 	return {
 		previewId,
 		kind: kindRaw,
-		displayPath: safeDisplayPath(value["displayPath"], kindRaw),
-		confirmOverwriteRequired: value["confirmOverwriteRequired"] === true,
+		displayPath: safeDisplayPath(value.displayPath, kindRaw),
+		confirmOverwriteRequired: value.confirmOverwriteRequired === true,
 		warnings,
 		...(expiresAt === undefined ? {} : { expiresAt }),
 		...(ticketExpiresAt === undefined ? {} : { ticketExpiresAt }),
@@ -685,7 +681,7 @@ function parsePreview(value: unknown): SourcePreview | undefined {
 
 function parseCommitAction(value: unknown): SourceCommitAction | undefined {
 	if (!isRecord(value)) return undefined;
-	const action = optionalString(value["action"]);
+	const action = optionalString(value.action);
 	return action !== undefined && isSourceCommitAction(action) ? action : undefined;
 }
 
@@ -712,37 +708,37 @@ function emptyCapabilitySettings(): CapabilitySettingsView {
 function parseCapabilitySettings(value: unknown): CapabilitySettingsView {
 	const source = isRecord(value) ? value : {};
 	return {
-		codexSearch: source["codexSearch"] === true,
-		codexImages: source["codexImages"] === true,
-		codexImageEdits: source["codexImageEdits"] === true,
-		codexUsage: source["codexUsage"] === true,
-		codexFast: source["codexFast"] === true,
-		grokImagineImage: source["grokImagineImage"] === true,
-		grokImagineVideo: source["grokImagineVideo"] === true,
-		searchResults: boundedInteger(source["searchResults"], 1, 20, 5),
-		imageCount: boundedInteger(source["imageCount"], 1, 4, 1),
-		videoArtifactTtlMs: boundedInteger(source["videoArtifactTtlMs"], HOUR_MS, 7 * 24 * HOUR_MS, 7 * 24 * HOUR_MS),
+		codexSearch: source.codexSearch === true,
+		codexImages: source.codexImages === true,
+		codexImageEdits: source.codexImageEdits === true,
+		codexUsage: source.codexUsage === true,
+		codexFast: source.codexFast === true,
+		grokImagineImage: source.grokImagineImage === true,
+		grokImagineVideo: source.grokImagineVideo === true,
+		searchResults: boundedInteger(source.searchResults, 1, 20, 5),
+		imageCount: boundedInteger(source.imageCount, 1, 4, 1),
+		videoArtifactTtlMs: boundedInteger(source.videoArtifactTtlMs, HOUR_MS, 7 * 24 * HOUR_MS, 7 * 24 * HOUR_MS),
 	};
 }
 
 function parseCapabilities(value: unknown): CapabilitySnapshot | undefined {
 	if (!isRecord(value)) return undefined;
-	const nested = isRecord(value["value"]) ? value["value"] : value;
-	const revision = optionalFiniteNumber(value["revision"]);
-	if (revision === undefined && !isRecord(value["value"]) && value["writable"] === undefined) return undefined;
+	const nested = isRecord(value.value) ? value.value : value;
+	const revision = optionalFiniteNumber(value.revision);
+	if (revision === undefined && !isRecord(value.value) && value.writable === undefined) return undefined;
 	return {
 		value: parseCapabilitySettings(nested),
 		revision: revision ?? 0,
-		writable: value["writable"] === true,
+		writable: value.writable === true,
 	};
 }
 
 function parseUsageWindow(value: unknown): UsageWindowView | undefined {
 	if (!isRecord(value)) return undefined;
-	const usedPercent = optionalPercent(value["usedPercent"] ?? value["used_percent"]);
-	const remainingPercent = optionalPercent(value["remainingPercent"] ?? value["remaining_percent"]);
-	const windowSeconds = optionalFiniteNumber(value["windowSeconds"] ?? value["limit_window_seconds"]);
-	const resetsAt = optionalFiniteNumber(value["resetsAt"] ?? value["reset_at"]);
+	const usedPercent = optionalPercent(value.usedPercent ?? value.used_percent);
+	const remainingPercent = optionalPercent(value.remainingPercent ?? value.remaining_percent);
+	const windowSeconds = optionalFiniteNumber(value.windowSeconds ?? value.limit_window_seconds);
+	const resetsAt = optionalFiniteNumber(value.resetsAt ?? value.reset_at);
 	if (
 		usedPercent === undefined &&
 		remainingPercent === undefined &&
@@ -761,23 +757,23 @@ function parseUsageWindow(value: unknown): UsageWindowView | undefined {
 
 function parseUsageLimit(value: unknown, fallbackId: string): UsageLimitView | undefined {
 	if (!isRecord(value)) return undefined;
-	const id = optionalString(value["id"]) ?? optionalString(value["metered_feature"]) ?? fallbackId;
-	const name = optionalString(value["name"]) ?? optionalString(value["limit_name"]);
-	const nested = isRecord(value["rate_limit"]) ? value["rate_limit"] : value;
-	const windows = Array.isArray(value["windows"])
-		? value["windows"].map(parseUsageWindow).filter((entry): entry is UsageWindowView => entry !== undefined)
+	const id = optionalString(value.id) ?? optionalString(value.metered_feature) ?? fallbackId;
+	const name = optionalString(value.name) ?? optionalString(value.limit_name);
+	const nested = isRecord(value.rate_limit) ? value.rate_limit : value;
+	const windows = Array.isArray(value.windows)
+		? value.windows.map(parseUsageWindow).filter((entry): entry is UsageWindowView => entry !== undefined)
 		: [
-				parseUsageWindow(nested["primary_window"]),
-				parseUsageWindow(nested["secondary_window"]),
+				parseUsageWindow(nested.primary_window),
+				parseUsageWindow(nested.secondary_window),
 				parseUsageWindow(nested),
 			].filter((entry): entry is UsageWindowView => entry !== undefined);
-	if (windows.length === 0 && name === undefined && optionalString(value["id"]) === undefined) return undefined;
+	if (windows.length === 0 && name === undefined && optionalString(value.id) === undefined) return undefined;
 	return { id, windows, ...(name === undefined ? {} : { name }) };
 }
 
 function parseUsage(value: unknown): UsageView | undefined {
 	if (!isRecord(value)) return undefined;
-	const payload = isRecord(value["usage"]) ? value["usage"] : value;
+	const payload = isRecord(value.usage) ? value.usage : value;
 	const rateLimits: UsageLimitView[] = [];
 	const seen = new Set<string>();
 	const add = (limit: UsageLimitView | undefined): void => {
@@ -785,48 +781,47 @@ function parseUsage(value: unknown): UsageView | undefined {
 		seen.add(limit.id);
 		rateLimits.push(limit);
 	};
-	if (Array.isArray(payload["rateLimits"])) {
-		payload["rateLimits"].forEach((entry, index) => add(parseUsageLimit(entry, `limit-${String(index)}`)));
-	} else {
-		add(parseUsageLimit(payload["rate_limit"], "codex"));
-		if (Array.isArray(payload["additional_rate_limits"])) {
-			payload["additional_rate_limits"].forEach((entry, index) =>
-				add(parseUsageLimit(entry, `extra-${String(index)}`)),
-			);
+	if (Array.isArray(payload.rateLimits)) {
+		for (const [index, entry] of payload.rateLimits.entries()) {
+			add(parseUsageLimit(entry, `limit-${String(index)}`));
 		}
-		add(parseUsageLimit(payload["code_review_rate_limit"], "code_review"));
+	} else {
+		add(parseUsageLimit(payload.rate_limit, "codex"));
+		if (Array.isArray(payload.additional_rate_limits)) {
+			for (const [index, entry] of payload.additional_rate_limits.entries()) {
+				add(parseUsageLimit(entry, `extra-${String(index)}`));
+			}
+		}
+		add(parseUsageLimit(payload.code_review_rate_limit, "code_review"));
 	}
-	const credits = isRecord(payload["credits"]) ? payload["credits"] : undefined;
-	const spend = isRecord(payload["individualLimit"])
-		? payload["individualLimit"]
-		: isRecord(payload["spend_control"])
-			? isRecord(payload["spend_control"]["individual_limit"])
-				? payload["spend_control"]["individual_limit"]
-				: payload["spend_control"]
+	const credits = isRecord(payload.credits) ? payload.credits : undefined;
+	const spend = isRecord(payload.individualLimit)
+		? payload.individualLimit
+		: isRecord(payload.spend_control)
+			? isRecord(payload.spend_control.individual_limit)
+				? payload.spend_control.individual_limit
+				: payload.spend_control
 			: undefined;
-	const resetRaw = isRecord(payload["resetCredits"])
-		? payload["resetCredits"]["availableCount"]
-		: isRecord(payload["rate_limit_reset_credits"])
-			? payload["rate_limit_reset_credits"]["available_count"]
+	const resetRaw = isRecord(payload.resetCredits)
+		? payload.resetCredits.availableCount
+		: isRecord(payload.rate_limit_reset_credits)
+			? payload.rate_limit_reset_credits.available_count
 			: undefined;
 	const resetCredits = optionalFiniteNumber(resetRaw);
-	const fetchedAt = optionalFiniteNumber(payload["fetchedAt"]);
+	const fetchedAt = optionalFiniteNumber(payload.fetchedAt);
 	const spendControlReached =
-		optionalBoolean(payload["spendControlReached"]) ??
-		(isRecord(payload["spend_control"]) ? optionalBoolean(payload["spend_control"]["reached"]) : undefined);
-	const creditsBalance = credits === undefined ? undefined : optionalString(credits["balance"]);
-	const individualLimit = spend === undefined ? undefined : optionalString(spend["limit"]);
-	const individualUsed = spend === undefined ? undefined : optionalString(spend["used"]);
-	const individualRemaining = spend === undefined ? undefined : optionalString(spend["remaining"]);
+		optionalBoolean(payload.spendControlReached) ??
+		(isRecord(payload.spend_control) ? optionalBoolean(payload.spend_control.reached) : undefined);
+	const creditsBalance = credits === undefined ? undefined : optionalString(credits.balance);
+	const individualLimit = spend === undefined ? undefined : optionalString(spend.limit);
+	const individualUsed = spend === undefined ? undefined : optionalString(spend.used);
+	const individualRemaining = spend === undefined ? undefined : optionalString(spend.remaining);
 	const individualRemainingPercent =
-		spend === undefined ? undefined : optionalPercent(spend["remainingPercent"] ?? spend["remaining_percent"]);
-	const individualResetsAt =
-		spend === undefined ? undefined : optionalFiniteNumber(spend["resetsAt"] ?? spend["reset_at"]);
+		spend === undefined ? undefined : optionalPercent(spend.remainingPercent ?? spend.remaining_percent);
+	const individualResetsAt = spend === undefined ? undefined : optionalFiniteNumber(spend.resetsAt ?? spend.reset_at);
 	return {
 		rateLimits,
-		...(credits !== undefined && typeof credits["unlimited"] === "boolean"
-			? { creditsUnlimited: credits["unlimited"] }
-			: {}),
+		...(credits !== undefined && typeof credits.unlimited === "boolean" ? { creditsUnlimited: credits.unlimited } : {}),
 		...(creditsBalance === undefined ? {} : { creditsBalance }),
 		...(individualLimit === undefined ? {} : { individualLimit }),
 		...(individualUsed === undefined ? {} : { individualUsed }),
@@ -864,16 +859,16 @@ interface GatewayView {
 
 function parseGateway(value: unknown): GatewayView | undefined {
 	if (!isRecord(value)) return undefined;
-	const bind = optionalString(value["bind"]);
-	const port = optionalFiniteNumber(value["port"]);
+	const bind = optionalString(value.bind);
+	const port = optionalFiniteNumber(value.port);
 	if (bind === undefined || port === undefined) return undefined;
 	return {
-		enabled: value["enabled"] === true,
-		running: value["running"] === true,
+		enabled: value.enabled === true,
+		running: value.running === true,
 		bind,
 		port,
-		keyHint: optionalString(value["keyHint"]) ?? "",
-		warning: optionalString(value["warning"]) ?? "",
+		keyHint: optionalString(value.keyHint) ?? "",
+		warning: optionalString(value.warning) ?? "",
 	};
 }
 
@@ -930,10 +925,10 @@ async function copyText(text: string): Promise<boolean> {
 
 function parseImagineCredential(value: unknown): ImagineCredentialView | undefined {
 	if (!isRecord(value)) return undefined;
-	const configured = optionalBoolean(value["configured"]);
-	if (configured === undefined && value["source"] === undefined && value["writable"] === undefined) return undefined;
-	const source = optionalString(value["source"]);
-	const writable = optionalBoolean(value["writable"]);
+	const configured = optionalBoolean(value.configured);
+	if (configured === undefined && value.source === undefined && value.writable === undefined) return undefined;
+	const source = optionalString(value.source);
+	const writable = optionalBoolean(value.writable);
 	return {
 		configured: configured === true,
 		...(source === undefined || looksSecret(source) ? {} : { source }),

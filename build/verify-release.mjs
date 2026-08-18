@@ -33,7 +33,10 @@ assert.equal(manifest.exports?.["./client"], "./lib/client.js");
 assert.equal(manifest.license, "MIT AND Apache-2.0");
 assert.equal(manifest.bin?.["dsh-coding-oauth"], "lib/bin.js");
 assert.equal(manifest.bin?.["dsh-grok-build"], "lib/bin.js");
-assert.equal(manifest.exports?.["./invariant"]?.import ?? manifest.exports?.["./invariant"]?.default, "./lib/invariant.js");
+assert.equal(
+	manifest.exports?.["./invariant"]?.import ?? manifest.exports?.["./invariant"]?.default,
+	"./lib/invariant.js",
+);
 
 const files = await readdir(resolve(root, "lib"));
 for (const stale of ["usage.js", "accounts.js", "balance.js", "subscriptions.js", "oauth-device.js"]) {

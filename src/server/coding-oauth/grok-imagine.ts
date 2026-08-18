@@ -3,7 +3,7 @@
  * per-operation API-key resolver. Generated remote media is fetched under a
  * pinned HTTPS/host/DNS allowlist and persisted locally; results never include
  * a signed upstream URL.
- * @module dsh-coding-subscription-oauth/grok-imagine
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/grok-imagine
  */
 
 import { Buffer } from "node:buffer";
@@ -1121,14 +1121,14 @@ function classifyOfficialVideoStatus(raw: unknown): ImagineVideoJobStatus {
 }
 
 function officialVideoUrl(payload: Record<string, unknown>): string | undefined {
-	const video = isRecord(payload["video"]) ? payload["video"] : undefined;
-	const url = video?.["url"];
+	const video = isRecord(payload.video) ? payload.video : undefined;
+	const url = video?.url;
 	return typeof url === "string" && url.length > 0 ? url : undefined;
 }
 
 function officialVideoError(payload: Record<string, unknown>): string | undefined {
-	const error = isRecord(payload["error"]) ? payload["error"] : undefined;
-	const message = error?.["message"];
+	const error = isRecord(payload.error) ? payload.error : undefined;
+	const message = error?.message;
 	return typeof message === "string" && message.length > 0 ? redactImagineMessage(message) : undefined;
 }
 
@@ -1281,10 +1281,10 @@ export class GrokImagineClient {
 				n,
 				response_format: "url",
 			};
-			if (aspectRatio !== undefined) body["aspect_ratio"] = aspectRatio;
-			if (resolution !== undefined) body["resolution"] = resolution;
+			if (aspectRatio !== undefined) body.aspect_ratio = aspectRatio;
+			if (resolution !== undefined) body.resolution = resolution;
 			const payload = await this.apiJson("POST", GROK_IMAGINE_IMAGE_PATH, apiKey, body, external);
-			const rows = Array.isArray(payload["data"]) ? payload["data"] : undefined;
+			const rows = Array.isArray(payload.data) ? payload.data : undefined;
 			if (rows === undefined) {
 				throw new GrokImagineError("UPSTREAM", "Imagine image response did not include data");
 			}
@@ -1322,11 +1322,11 @@ export class GrokImagineClient {
 			const resolution = optionalEnum(input.resolution, VIDEO_RESOLUTION_SET, "resolution");
 			const apiKey = requireApiKey(await this.resolveCredential("video.start"), "video.start");
 			const body: Record<string, unknown> = { model, prompt };
-			if (duration !== undefined) body["duration"] = duration;
-			if (aspectRatio !== undefined) body["aspect_ratio"] = aspectRatio;
-			if (resolution !== undefined) body["resolution"] = resolution;
+			if (duration !== undefined) body.duration = duration;
+			if (aspectRatio !== undefined) body.aspect_ratio = aspectRatio;
+			if (resolution !== undefined) body.resolution = resolution;
 			const payload = await this.apiJson("POST", GROK_IMAGINE_VIDEO_START_PATH, apiKey, body, external);
-			const requestId = payload["request_id"];
+			const requestId = payload.request_id;
 			if (typeof requestId !== "string" || !VIDEO_REQUEST_ID_PATTERN.test(requestId)) {
 				throw new GrokImagineError("UPSTREAM", "Imagine video start did not return a safe request_id");
 			}
@@ -1383,7 +1383,7 @@ export class GrokImagineClient {
 	): Promise<ImagineVideoStatusResult> {
 		const apiKey = requireApiKey(await this.resolveCredential("video.status"), "video.status");
 		const payload = await this.apiJson("GET", grokImagineVideoStatusPath(requestId), apiKey, undefined, options.signal);
-		const status = classifyOfficialVideoStatus(payload["status"]);
+		const status = classifyOfficialVideoStatus(payload.status);
 		if (status === "pending") return { requestId, status };
 		if (status === "failed") {
 			const result: ImagineVideoStatusResult = { requestId, status };
@@ -1392,8 +1392,8 @@ export class GrokImagineClient {
 			this.rememberVideo(requestId, result);
 			return result;
 		}
-		const video = isRecord(payload["video"]) ? payload["video"] : undefined;
-		if (video?.["respect_moderation"] === false) {
+		const video = isRecord(payload.video) ? payload.video : undefined;
+		if (video?.respect_moderation === false) {
 			const result: ImagineVideoStatusResult = {
 				requestId,
 				status: "failed",
@@ -1459,9 +1459,9 @@ export class GrokImagineClient {
 		name: string | undefined,
 		signal: AbortSignal,
 	): Promise<ImaginePersistedImage> {
-		const b64 = typeof row["b64_json"] === "string" ? row["b64_json"] : undefined;
-		const url = typeof row["url"] === "string" ? row["url"] : undefined;
-		const declaredMime = typeof row["mime_type"] === "string" ? parseContentType(row["mime_type"]) : undefined;
+		const b64 = typeof row.b64_json === "string" ? row.b64_json : undefined;
+		const url = typeof row.url === "string" ? row.url : undefined;
+		const declaredMime = typeof row.mime_type === "string" ? parseContentType(row.mime_type) : undefined;
 		let data: Uint8Array;
 		let declared = declaredMime;
 		if (b64 !== undefined) {

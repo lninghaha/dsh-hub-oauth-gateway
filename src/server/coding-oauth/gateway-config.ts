@@ -1,6 +1,6 @@
 /**
  * Opt-in local API gateway configuration.
- * @module dsh-coding-subscription-oauth/gateway-config
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-config
  */
 
 import z from "@deepseek-ai/schemastery";

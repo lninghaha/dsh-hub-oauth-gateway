@@ -1,6 +1,6 @@
 /**
  * OpenAI Responses API subset for the local gateway.
- * @module dsh-coding-subscription-oauth/gateway-openai-responses
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-openai-responses
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -15,7 +15,7 @@ export async function handleOpenAiResponses(
 ): Promise<void> {
 	const payload = await readGatewayJsonBody(req);
 	const request = parseOpenAiResponsesRequest(payload);
-	const stream = payload["stream"] !== false;
+	const stream = payload.stream !== false;
 	const id = `resp_gateway_${Date.now().toString(36)}`;
 	if (!stream) {
 		let text = "";

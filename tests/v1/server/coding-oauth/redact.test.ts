@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { redactProxyUrl, safeMessage } from "../../../src/server/coding-oauth/redact.js";
+import { redactProxyUrl, safeMessage } from "../../../../src/server/coding-oauth/redact.js";
 
 describe("safeMessage", () => {
 	it("redacts jwt-shaped tokens and oauth query values", () => {

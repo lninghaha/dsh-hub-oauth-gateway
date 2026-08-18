@@ -1,6 +1,6 @@
 /**
  * Owner-only gateway API key file.
- * @module dsh-coding-subscription-oauth/gateway-auth
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-auth
  */
 
 import { randomBytes, timingSafeEqual } from "node:crypto";
@@ -48,17 +48,17 @@ export async function loadGatewayKeyDocument(path: string): Promise<GatewayKeyDo
 		}
 		const document = value as Record<string, unknown>;
 		if (
-			document["version"] !== KEY_FORMAT_VERSION ||
-			typeof document["apiKey"] !== "string" ||
-			document["apiKey"].length === 0
+			document.version !== KEY_FORMAT_VERSION ||
+			typeof document.apiKey !== "string" ||
+			document.apiKey.length === 0
 		) {
 			throw new Error("gateway key file is invalid");
 		}
-		const port = document["port"];
+		const port = document.port;
 		return {
 			version: KEY_FORMAT_VERSION,
-			apiKey: document["apiKey"],
-			...(typeof document["enabled"] === "boolean" ? { enabled: document["enabled"] } : {}),
+			apiKey: document.apiKey,
+			...(typeof document.enabled === "boolean" ? { enabled: document.enabled } : {}),
 			...(typeof port === "number" && Number.isSafeInteger(port) && port >= 1024 && port <= 65_535 ? { port } : {}),
 		};
 	} catch (error) {

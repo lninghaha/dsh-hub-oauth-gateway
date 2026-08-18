@@ -1,6 +1,6 @@
 /**
  * Shared request/stream types for the local coding-subscription gateway.
- * @module dsh-coding-subscription-oauth/gateway-protocol
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-protocol
  */
 
 export interface GatewayToolCall {

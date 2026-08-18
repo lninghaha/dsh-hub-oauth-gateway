@@ -1,6 +1,6 @@
 /**
  * Grok Build OAuth orchestration shared by the plugin and standalone CLI.
- * @module dsh-coding-subscription-oauth/auth
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/auth
  */
 
 import type { AuthInteraction } from "@earendil-works/pi-ai";

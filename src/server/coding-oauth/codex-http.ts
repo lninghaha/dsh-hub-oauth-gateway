@@ -6,7 +6,7 @@
  * Status policy: 401 invalidate+refresh once; 403 entitlement; 429 rate;
  * limited 5xx/transport retries. Only private chatgpt.com backend-api URLs.
  *
- * @module dsh-coding-subscription-oauth/codex-http
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/codex-http
  */
 
 import { LlmError } from "@deepseek-ai/dsh-llm";
@@ -22,8 +22,8 @@ const OPENAI_AUTH_CLAIM = "https://api.openai.com/auth";
 const DEFAULT_MAX_SERVER_RETRIES = 2;
 const DEFAULT_JSON_MAX_BYTES = 1_048_576;
 export const DEFAULT_CODEX_REQUEST_TIMEOUT_MS = 60_000;
-const DEFAULT_ORIGINATOR = "dsh-coding-subscription-oauth";
-const DEFAULT_USER_AGENT = "dsh-coding-subscription-oauth";
+const DEFAULT_ORIGINATOR = "dsh-hub-oauth-gateway";
+const DEFAULT_USER_AGENT = "dsh-hub-oauth-gateway";
 const FORBIDDEN_CALLER_HEADERS = new Set(["authorization", "chatgpt-account-id", "accept"]);
 
 export type CodexHttpMethod = "GET" | "POST";
@@ -106,7 +106,7 @@ export function chatgptAccountIdFromAccessToken(accessToken: string): string | u
 		if (!isRecord(payload)) return undefined;
 		const auth = payload[OPENAI_AUTH_CLAIM];
 		if (!isRecord(auth)) return undefined;
-		return optionalNonEmptyString(auth["chatgpt_account_id"]);
+		return optionalNonEmptyString(auth.chatgpt_account_id);
 	} catch {
 		return undefined;
 	}
@@ -155,14 +155,14 @@ export function providerDetail(value: unknown): string | undefined {
 		return trimmed.length === 0 ? undefined : safeMessage(trimmed);
 	}
 	if (!isRecord(value)) return undefined;
-	const error = value["error"];
+	const error = value.error;
 	const raw =
 		typeof error === "string"
 			? error
-			: isRecord(error) && typeof error["message"] === "string"
-				? error["message"]
-				: typeof value["message"] === "string"
-					? value["message"]
+			: isRecord(error) && typeof error.message === "string"
+				? error.message
+				: typeof value.message === "string"
+					? value.message
 					: undefined;
 	return raw === undefined ? undefined : safeMessage(raw);
 }

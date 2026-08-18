@@ -1,12 +1,8 @@
 /**
- * Optional xAI Grok Build bundle with OAuth, account model catalog,
- * and an account section inside dsh Settings.
- *
- * Ported from the grok-build `src/index.ts` into the usage-stats plugin.
- * The public plugin entry point here is `applyCodingOAuth` (not the Cordis
- * `apply`), and the plugin identity string is kept compatible under
- * `CODING_OAUTH_PLUGIN_NAME` so logs/settings remain compatible.
- * @module dsh-coding-subscription-oauth
+ * Coding OAuth composition for this plugin: Grok Build, Codex, Kimi Code,
+ * Claude Code, optional capabilities, Imagine, and the opt-in local gateway.
+ * The public entry point is `applyCodingOAuth` (not a second Cordis plugin).
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/compose
  */
 
 import { dirname, join } from "node:path";
@@ -204,8 +200,8 @@ export {
 	oauthCredentialPath,
 } from "./store.js";
 
-/** Stable identity string for the coding OAuth plugin (compat with grok-build logs/settings). */
-export const CODING_OAUTH_PLUGIN_NAME = "llm-grok-build-oauth";
+/** Nested logger / credential-assertion identity under the `usage-stats` plugin. */
+export const CODING_OAUTH_PLUGIN_NAME = "coding-oauth";
 
 /** Separate API-key credential used only by official xAI Imagine REST calls. */
 export const XAI_API_KEY_CREDENTIAL = "XAI_API_KEY";
@@ -220,7 +216,7 @@ function fixedCredentialRef(value: string): CredentialRef {
 }
 
 /** Owner-private artifact directory below the resolved DSH home. */
-export const IMAGINE_MEDIA_STORE_DIRNAME = ".dsh-coding-subscription-oauth-media";
+export const IMAGINE_MEDIA_STORE_DIRNAME = ".dsh-hub-oauth-gateway-media";
 
 /** Plugin configuration; every field is optional. */
 export interface Config {
@@ -368,7 +364,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		() => () => {
 			active = false;
 		},
-		"dsh-coding-subscription-oauth: startup lifetime",
+		"dsh-hub-oauth-gateway: startup lifetime",
 	);
 	let invalidateOptionalAuthState = (): void => undefined;
 	const notifyCatalogChange = (): void => {
@@ -414,7 +410,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			bindCodexFastRoute(runtime, codexModels, adapterRegistration, {
 				onError: () => logger.warn("Codex Fast eligibility refresh failed closed"),
 			}),
-		"dsh-coding-subscription-oauth: Codex Fast route",
+		"dsh-hub-oauth-gateway: Codex Fast route",
 	);
 
 	void Promise.allSettled([grok.loadCachedCatalog(), ...subscriptions.map((session) => session.loadCachedModels())])
@@ -433,7 +429,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 
 	let settingsOwner = 0;
 	let releaseActiveSettings = (): void => undefined;
-	ctx.effect(() => () => releaseActiveSettings(), "dsh-coding-subscription-oauth: capability settings bridge");
+	ctx.effect(() => () => releaseActiveSettings(), "dsh-hub-oauth-gateway: capability settings bridge");
 	ctx.inject(["settings"], (settingsCtx) => {
 		// Re-injection may happen before Cordis runs the previous child effect's
 		// disposer. Release it synchronously so an obsolete watcher cannot race a
@@ -461,7 +457,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			}
 		};
 		releaseActiveSettings = release;
-		settingsCtx.effect(() => release, "dsh-coding-subscription-oauth: capability settings");
+		settingsCtx.effect(() => release, "dsh-hub-oauth-gateway: capability settings");
 		settingsCtx.inject(["webServer"], (webCtx) => {
 			registerCapabilityRoutes(webCtx, {
 				controller,
@@ -489,7 +485,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		return () => {
 			void gateway.stop();
 		};
-	}, "dsh-coding-subscription-oauth: local API gateway");
+	}, "dsh-hub-oauth-gateway: local API gateway");
 
 	ctx.inject(["webServer"], (webCtx) => {
 		registerGatewayRoutes(webCtx, gateway);
@@ -510,7 +506,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 	});
 	ctx.inject(["web"], (webCtx) => {
 		const web = webCtx.get("web") as CapabilitySearchRegistry;
-		webCtx.effect(() => bindCapabilitySearch(runtime, web, search), "dsh-coding-subscription-oauth: Codex search");
+		webCtx.effect(() => bindCapabilitySearch(runtime, web, search), "dsh-hub-oauth-gateway: Codex search");
 	});
 
 	ctx.inject(["tools", "attachments"], async (toolCtx) => {
@@ -525,10 +521,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 				resolveCodexImageRoute,
 			})
 		).filter((definition) => CODEX_TOOL_NAMES.has(definition.name));
-		toolCtx.effect(
-			() => bindCapabilityTools(runtime, tools, definitions),
-			"dsh-coding-subscription-oauth: Codex image tools",
-		);
+		toolCtx.effect(() => bindCapabilityTools(runtime, tools, definitions), "dsh-hub-oauth-gateway: Codex image tools");
 	});
 
 	ctx.inject(["tools", "attachments", "credentials", "webServer"], async (toolCtx) => {
@@ -585,10 +578,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 				.then(() => undefined)
 				.catch(() => logger.warn("Imagine media retention cleanup failed"));
 		});
-		toolCtx.effect(
-			() => bindCapabilityTools(runtime, tools, definitions),
-			"dsh-coding-subscription-oauth: Grok Imagine tools",
-		);
+		toolCtx.effect(() => bindCapabilityTools(runtime, tools, definitions), "dsh-hub-oauth-gateway: Grok Imagine tools");
 		toolCtx.effect(
 			() => async () => {
 				// Abort new/in-flight work before cleanup regardless of Cordis disposer
@@ -601,7 +591,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 					logger.warn("Imagine media cleanup failed");
 				}
 			},
-			"dsh-coding-subscription-oauth: Imagine client and media lifetime",
+			"dsh-hub-oauth-gateway: Imagine client and media lifetime",
 		);
 	});
 

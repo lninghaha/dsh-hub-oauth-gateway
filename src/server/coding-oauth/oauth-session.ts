@@ -1,6 +1,6 @@
 /**
  * Persistent OAuth session and static model selection for one subscription provider.
- * @module dsh-coding-subscription-oauth/oauth-session
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/oauth-session
  */
 
 import { mkdir, readFile, rm } from "node:fs/promises";
@@ -45,8 +45,8 @@ function parseCache(text: string): string[] | undefined {
 	}
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
 	const document = value as Record<string, unknown>;
-	if (document["version"] !== MODELS_CACHE_VERSION) return undefined;
-	const selected = parseIdList(document["selected"]);
+	if (document.version !== MODELS_CACHE_VERSION) return undefined;
+	const selected = parseIdList(document.selected);
 	return selected.length === 0 ? undefined : selected;
 }
 

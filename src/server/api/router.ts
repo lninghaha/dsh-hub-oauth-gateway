@@ -9,7 +9,6 @@ import {
 	type PricingData,
 	type UsageAlert,
 } from "../../shared/contracts.js";
-import type { ProvidersData } from "../../shared/providers.js";
 import type { AccountSnapshot, PriceRule, UsageQuery } from "../../shared/domain.js";
 import {
 	CurrencyCodeSchema,
@@ -20,6 +19,7 @@ import {
 	UsageQuerySchema,
 } from "../../shared/domain.js";
 import { UserPreferencesSchema } from "../../shared/preferences.js";
+import type { ProvidersData } from "../../shared/providers.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageQueryService } from "../usage/query.js";

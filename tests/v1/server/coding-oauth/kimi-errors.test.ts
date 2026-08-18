@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isMisclassifiedContextWindowError, remapAuthFailureIfContextOverflow } from "../../../src/server/coding-oauth/kimi-errors.js";
+import {
+	isMisclassifiedContextWindowError,
+	remapAuthFailureIfContextOverflow,
+} from "../../../../src/server/coding-oauth/kimi-errors.js";
 
 describe("isMisclassifiedContextWindowError", () => {
 	it("recognizes Kimi Code's 401 context-capacity payload", () => {

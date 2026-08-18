@@ -1,6 +1,6 @@
 /**
  * Anthropic Messages API subset for the local gateway.
- * @module dsh-coding-subscription-oauth/gateway-anthropic-messages
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-anthropic-messages
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -16,7 +16,7 @@ export async function handleAnthropicMessages(
 	const payload = await readGatewayJsonBody(req);
 	const request = parseAnthropicMessagesRequest(payload);
 	const maxTokens = anthropicMaxTokens(payload);
-	const stream = payload["stream"] === true;
+	const stream = payload.stream === true;
 	const id = `msg_gateway_${Date.now().toString(36)}`;
 	if (!stream) {
 		let text = "";

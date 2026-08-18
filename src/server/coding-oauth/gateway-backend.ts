@@ -1,6 +1,6 @@
 /**
  * Session-backed model listing and event streaming for the local gateway.
- * @module dsh-coding-subscription-oauth/gateway-backend
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-backend
  */
 
 import type { Api, Context, Message, Model, ThinkingLevel, Tool } from "@earendil-works/pi-ai";
@@ -129,7 +129,11 @@ export function selectOwnedModel(owned: readonly OwnedModel[], modelId: string):
 	if (owners.size > 1) {
 		throw new GatewayRequestError(404, "model_not_found", `Model ${modelId} is owned by multiple signed-in providers`);
 	}
-	return matches[0]!;
+	const match = matches[0];
+	if (match === undefined) {
+		throw new GatewayRequestError(404, "model_not_found", `Unknown model ${modelId}`);
+	}
+	return match;
 }
 
 export function buildGatewayContext(messages: readonly GatewayChatMessage[], tools?: readonly GatewayTool[]): Context {

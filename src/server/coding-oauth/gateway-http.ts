@@ -1,6 +1,6 @@
 /**
  * Isolated node:http server for the opt-in local gateway.
- * @module dsh-coding-subscription-oauth/gateway-http
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-http
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";

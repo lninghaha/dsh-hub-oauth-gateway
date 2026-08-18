@@ -2,7 +2,7 @@
  * Optional Codex / Grok Imagine tool definitions. The factory only returns
  * public `ToolDefinition` objects — it never registers on `ctx.tools`.
  * Feature flags and `imageCount` are re-read from `current()` at execute time.
- * @module dsh-coding-subscription-oauth/capability-tools
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/capability-tools
  */
 
 import type { ImageAttachmentRef } from "@deepseek-ai/dsh-attachment";

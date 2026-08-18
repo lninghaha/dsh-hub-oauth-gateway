@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codingOAuthProxyUnreachableHint, ensureCodingOAuthProxy } from "../../../src/server/coding-oauth/proxy.js";
+import { codingOAuthProxyUnreachableHint, ensureCodingOAuthProxy } from "../../../../src/server/coding-oauth/proxy.js";
 
 describe("codingOAuthProxyUnreachableHint", () => {
 	it("names CODING_OAUTH_PROXY after a scoped proxy is installed", () => {

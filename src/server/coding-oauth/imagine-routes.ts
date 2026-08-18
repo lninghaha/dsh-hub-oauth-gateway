@@ -3,7 +3,7 @@
  * The Host webServer only accepts exact paths, so this registrar keeps a
  * bounded table of opaque ids and registers one exact disposer per remembered
  * image ref or media artifact.
- * @module dsh-coding-subscription-oauth/imagine-routes
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/imagine-routes
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -289,7 +289,7 @@ export function registerImagineRoutes(ctx: ImagineRouteContext, options: Imagine
 	};
 
 	if (typeof ctx.effect === "function") {
-		ctx.effect(() => dispose, "dsh-coding-subscription-oauth: imagine download routes");
+		ctx.effect(() => dispose, "dsh-hub-oauth-gateway: imagine download routes");
 	}
 
 	return {

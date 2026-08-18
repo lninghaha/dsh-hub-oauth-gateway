@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
-import type { CodexFetch } from "../../../src/server/coding-oauth/codex-http.js";
+import type { CodexFetch } from "../../../../src/server/coding-oauth/codex-http.js";
 import {
 	applyCodexFastStreamOptions,
 	CODEX_OAUTH_FAST_ROUTE,
@@ -13,7 +13,7 @@ import {
 	createCodexModelCapabilities,
 	parseCodexModelCapabilities,
 	withCodexFastRouting,
-} from "../../../src/server/coding-oauth/codex-model-capabilities.js";
+} from "../../../../src/server/coding-oauth/codex-model-capabilities.js";
 
 function jwtWithAccount(accountId: string): string {
 	const header = Buffer.from(JSON.stringify({ alg: "none" })).toString("base64url");

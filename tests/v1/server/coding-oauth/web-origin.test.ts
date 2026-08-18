@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { describe, expect, it } from "vitest";
-import { isTrustedLoopbackWebRequest } from "../../../src/server/coding-oauth/web-origin.js";
+import { isTrustedLoopbackWebRequest } from "../../../../src/server/coding-oauth/web-origin.js";
 
 function request(
 	host: string | undefined,

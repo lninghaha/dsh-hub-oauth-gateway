@@ -7,11 +7,7 @@ import type {} from "@deepseek-ai/dsh-client-ui-slots";
 import uplotStyles from "uplot/dist/uPlot.min.css";
 import type { GrokBuildSettingsInjected } from "./coding-oauth/GrokBuildSettings.js";
 import { GrokBuildSettings } from "./coding-oauth/GrokBuildSettings.js";
-import {
-	en as codingOAuthEn,
-	type GrokBuildSettingsKey,
-	zh as codingOAuthZh,
-} from "./coding-oauth/locales.js";
+import { en as codingOAuthEn, zh as codingOAuthZh, type GrokBuildSettingsKey } from "./coding-oauth/locales.js";
 import { SettingsSection } from "./components/SettingsSection.js";
 import { SidebarAction } from "./components/SidebarAction.js";
 import { UsageOverlay } from "./components/UsageOverlay.js";
@@ -77,5 +73,4 @@ export function apply(ctx: ClientContext): void {
 	});
 }
 
-export { SettingsSection, SidebarAction, UsageOverlay };
-export { GrokBuildSettings };
+export { GrokBuildSettings, SettingsSection, SidebarAction, UsageOverlay };

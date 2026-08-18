@@ -7,6 +7,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Register Coding OAuth under this package identity (`dsh-hub-oauth-gateway`,
+  nested logger/settings `coding-oauth`). Composition receives the full Cordis
+  context and fails closed when enabled OAuth cannot start. `codingOAuth.retryPolicy`
+  is validated by `@deepseek-ai/dsh-llm` `RetryPolicySchema`.
+
 ### Added
 
 - Integrate coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code),

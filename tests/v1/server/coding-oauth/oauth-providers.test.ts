@@ -6,7 +6,7 @@ import {
 	type CodexStreamModel,
 	codexRoutingHint,
 	withCodexFastRouting,
-} from "../../../src/server/coding-oauth/codex-model-capabilities.js";
+} from "../../../../src/server/coding-oauth/codex-model-capabilities.js";
 import {
 	CLAUDE_CODE_OAUTH_ROUTE,
 	CLAUDE_PI_PROVIDER,
@@ -17,8 +17,12 @@ import {
 	CODING_OAUTH_ROUTES,
 	KIMI_CODE_OAUTH_ROUTE,
 	KIMI_PI_PROVIDER,
-} from "../../../src/server/coding-oauth/ids.js";
-import { CLAUDE_CODE_OAUTH_PROVIDER, CODEX_OAUTH_PROVIDER, KIMI_CODE_OAUTH_PROVIDER } from "../../../src/server/coding-oauth/oauth-providers.js";
+} from "../../../../src/server/coding-oauth/ids.js";
+import {
+	CLAUDE_CODE_OAUTH_PROVIDER,
+	CODEX_OAUTH_PROVIDER,
+	KIMI_CODE_OAUTH_PROVIDER,
+} from "../../../../src/server/coding-oauth/oauth-providers.js";
 
 const ctx: AuthContext = {
 	env: async () => undefined,
@@ -69,7 +73,9 @@ describe("OAuth request providers", () => {
 			}),
 		);
 		const provider = KIMI_CODE_OAUTH_PROVIDER.requestProvider();
-		const model = provider.getModels()[0]!;
+		const model = provider.getModels()[0];
+		expect(model).toBeDefined();
+		if (model === undefined) throw new Error("expected a Kimi model fixture");
 		const stream = provider.streamSimple(
 			model,
 			{ messages: [] },
@@ -86,7 +92,9 @@ describe("OAuth request providers", () => {
 	it("keeps Claude model identity native and filters selected ids", () => {
 		const all = CLAUDE_CODE_OAUTH_PROVIDER.requestProvider().getModels();
 		expect(all.length).toBeGreaterThan(1);
-		const chosen = all[0]!;
+		const chosen = all[0];
+		expect(chosen).toBeDefined();
+		if (chosen === undefined) throw new Error("expected a Claude model fixture");
 		const provider = CLAUDE_CODE_OAUTH_PROVIDER.requestProvider([chosen.id]);
 		expect(provider.id).toBe(CLAUDE_PI_PROVIDER);
 		expect(provider.getModels().map((model) => model.id)).toEqual([chosen.id]);

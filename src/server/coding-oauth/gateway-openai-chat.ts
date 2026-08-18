@@ -1,6 +1,6 @@
 /**
  * OpenAI-compatible chat completions for the local gateway.
- * @module dsh-coding-subscription-oauth/gateway-openai-chat
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/gateway-openai-chat
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -16,7 +16,7 @@ export async function handleOpenAiChatCompletions(
 ): Promise<void> {
 	const payload = await readGatewayJsonBody(req);
 	const request = parseOpenAiChatRequest(payload);
-	const stream = payload["stream"] !== false;
+	const stream = payload.stream !== false;
 	const id = `chatcmpl_gateway_${Date.now().toString(36)}`;
 	if (!stream) {
 		const aggregated = await aggregate(backend, request);

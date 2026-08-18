@@ -1,6 +1,6 @@
 /**
  * Kimi Code error remapping.
- * @module dsh-coding-subscription-oauth/kimi-errors
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/kimi-errors
  */
 
 import { CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError } from "@deepseek-ai/dsh-llm";

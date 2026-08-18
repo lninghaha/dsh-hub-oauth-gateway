@@ -43,6 +43,77 @@ const patchBlock = `# dsh-hub-oauth-gateway: local usage, cost, account, and quo
 `;
 const emptySequenceRoot = /^\[\](?:[ \t]+#.*)?$/;
 
+/** Minimal host-peer stubs so installer validation can import the bundled entry without a live DSH profile. */
+const HOST_PEER_STUBS = Object.freeze([
+	{
+		name: "@deepseek-ai/dsh-llm",
+		files: {
+			"index.js": `export class LlmError extends Error {}\nexport class LlmAdapter {}\nexport function resolveRetryPolicy() { return {}; }\nexport function assertUsableApiKey() {}\nexport const CONTEXT_WINDOW_EXCEEDED_CODE = "context_window_exceeded";\nexport function isContextWindowExceededError() { return false; }\nexport const RetryPolicySchema = { parse(value) { return value; } };\n`,
+		},
+	},
+	{
+		name: "@deepseek-ai/dsh-llm-pi-ai",
+		files: {
+			"index.js": `export class PiAiAdapter {}\n`,
+		},
+	},
+	{
+		name: "@deepseek-ai/dsh-atomic-write",
+		files: {
+			"index.js": `export async function writeFileAtomic() {}\nexport async function withFileLock(_path, fn) { return await fn(); }\n`,
+		},
+	},
+	{
+		name: "@deepseek-ai/dsh-home-paths",
+		files: {
+			"index.js": `export function resolveDshHome() { return "/tmp/dsh-sandbox-home"; }\n`,
+		},
+	},
+	{
+		name: "@deepseek-ai/schemastery",
+		files: {
+			"index.js": `const schema = () => ({ parse(value) { return value; }, default() { return this; }, optional() { return this; }, required() { return this; } });\nexport default Object.assign(schema, { object: schema, string: schema, boolean: schema, number: schema, array: schema, const: schema, union: schema, any: schema, record: schema });\n`,
+		},
+	},
+	{
+		name: "@earendil-works/pi-ai",
+		files: {
+			"index.js": `export function createModels() { return { login: async () => {}, get: () => undefined }; }\nexport function createProvider() { return { id: "stub", getModels() { return []; }, streamSimple() { return { result: async () => ({ stopReason: "error" }) }; } }; }\nexport default {};\n`,
+			"providers/xai.js": `export const xaiProvider = { id: "xai" };\n`,
+			"providers/anthropic.js": `export const anthropicProvider = { id: "anthropic", getModels() { return [{ id: "claude-stub", provider: "anthropic" }, { id: "claude-stub-2", provider: "anthropic" }]; }, streamSimple() { return { result: async () => ({ stopReason: "error" }) }; } };\n`,
+			"providers/kimi-coding.js": `export const kimiCodingProvider = { id: "kimi-coding", getModels() { return [{ id: "kimi-stub", provider: "kimi-coding" }]; }, streamSimple() { return { result: async () => ({ stopReason: "error" }) }; } };\n`,
+			"providers/openai-codex.js": `export const openaiCodexProvider = { id: "openai-codex", getModels() { return [{ id: "codex-stub", provider: "openai-codex" }]; } };\n`,
+			"api/openai-responses.lazy.js": `export const openAIResponsesApi = {};\n`,
+		},
+		exports: {
+			".": "./index.js",
+			"./providers/xai": "./providers/xai.js",
+			"./providers/anthropic": "./providers/anthropic.js",
+			"./providers/kimi-coding": "./providers/kimi-coding.js",
+			"./providers/openai-codex": "./providers/openai-codex.js",
+			"./api/openai-responses.lazy": "./api/openai-responses.lazy.js",
+		},
+	},
+]);
+
+async function ensureHostPeerStubs(root) {
+	for (const stub of HOST_PEER_STUBS) {
+		const packageRoot = join(root, "node_modules", ...stub.name.split("/"));
+		await mkdir(packageRoot, { recursive: true });
+		const manifest = {
+			name: stub.name,
+			type: "module",
+			exports: stub.exports ?? { ".": "./index.js" },
+		};
+		await writeFile(join(packageRoot, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+		for (const [relativePath, source] of Object.entries(stub.files)) {
+			const absolute = join(packageRoot, relativePath);
+			await mkdir(dirname(absolute), { recursive: true });
+			await writeFile(absolute, source, "utf8");
+		}
+	}
+}
+
 function meaningfulPatchLines(text) {
 	return String(text)
 		.split(/\r?\n/)
@@ -115,6 +186,7 @@ async function validatePackageRoot(root) {
 	}
 	const serverPath = join(root, "lib", "index.js");
 	if ((await readOptional(serverPath)) === null) throw new Error(`server bundle is missing from ${root}`);
+	await ensureHostPeerStubs(root);
 	const plugin = await import(`${pathToFileURL(serverPath).href}?installer=${Date.now()}`);
 	if (plugin.name !== "usage-stats" || typeof plugin.apply !== "function") {
 		throw new Error(`server plugin contract validation failed in ${root}`);

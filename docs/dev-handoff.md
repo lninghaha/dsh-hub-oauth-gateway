@@ -6,8 +6,8 @@
 >
 > 中文摘要见文末。
 
-Status of this tree: **WIP — coding-oauth UI + lockfile refresh in progress;
-Docker `verify` must still pass before any release cut.**
+Status of this tree: **WIP — old-package identity purged; capability alignment next.
+Workspace `pnpm run check` is the day-to-day gate.**
 
 ## 1. Repository identity
 
@@ -45,38 +45,34 @@ Relative to the previous WIP snapshot (`7f5a189`):
    again; `pnpm-workspace.yaml` `allowBuilds` covers `@google/genai` /
    `protobufjs` (denied) and `esbuild` (allowed).
 
+5. **Old-package identity purged**
+   - Runtime names now use `dsh-hub-oauth-gateway` / nested `coding-oauth`.
+   - `apply()` passes the real Cordis context (no object spread) and fails
+     closed when `codingOAuth.enabled` cannot compose.
+   - `retryPolicy` is validated; README no longer calls OAuth unpublished.
+   - HTTP `/plugins/dsh-grok-build/*`, CLI names, and credential filenames stay
+     as Grok Build product contracts.
+
 ## 3. Remaining blockers before release
 
-1. Rebuild committed `lib/` via Docker `artifacts`, review under
-   `output/docker-artifacts/`, then replace. Must include `lib/bin.js` and
-   `lib/invariant.js`.
-2. Docker `check` / `verify` on Node `22.19.0` (and ideally Node 24) must be
-   green.
-3. Broader coding-oauth tests (gateway, auth-routes, media-store, composition,
-   CLI) still outstanding; keep mocks only — no live providers or real
-   `${DSH_HOME}` credentials.
+1. Rebuild and commit `lib/` from `src/` (`pnpm run release:build`). Must include
+   `lib/bin.js` and `lib/invariant.js`.
+2. `pnpm run check` on the declared Node range must be green.
+3. Broader coding-oauth tests (gateway, auth-routes, media-store, CLI) still
+   outstanding; keep mocks only — no live providers or real `${DSH_HOME}`
+   credentials.
 4. Do not `npm publish` until §6–§7 of `docs/00-project-rules.md` are
    satisfied and a human approves.
 5. Agents must not restart DSH Web. After a successful install, the operator
    runs `dsh-web restart` themselves.
 
-Suggested Docker commands (host = Docker lifecycle only):
+Suggested workspace commands:
 
 ```bash
-docker build --target lockfile --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-lockfile .
-# review then: cp output/docker-lockfile/pnpm-lock.yaml pnpm-lock.yaml
-
-docker build --target check --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:check .
-
-rm -rf output/docker-artifacts
-docker build --target artifacts --build-arg NODE_VERSION=22.19.0 \
-  --output type=local,dest=output/docker-artifacts .
-# review output/docker-artifacts/lib, then replace committed lib/
-
-docker build --target verify --build-arg NODE_VERSION=22.19.0 \
-  --tag dsh-hub-oauth-gateway-sandbox:verify .
+pnpm install --frozen-lockfile
+pnpm run check:next
+pnpm run release:build
+pnpm run check
 ```
 
 ## 4. Privacy / security invariants (unchanged)
@@ -93,10 +89,8 @@ docker build --target verify --build-arg NODE_VERSION=22.19.0 \
 
 ## 中文摘要
 
-相对上一份 WIP 快照，本轮已：修复 `redact`/`proxy` 回归；迁入 Coding OAuth
-设置页与中英文文案；补了一批 coding-oauth 单测；对齐 Dockerfile 目标并重生
-`pnpm-lock.yaml`。
+相对上一份 WIP 快照：已清除旧 npm 包名运行时身份；`apply()` 传入完整
+Context 并在 OAuth 启用失败时 fail-closed；README 不再写「尚未发布」。
 
-**仍未发布**：需在 Docker 中重建并替换 `lib/`（含 `bin.js` /
-`invariant.js`），跑通 `check`/`verify`，再考虑安装到 DSH Web profile。不要
-npm publish，也不要由 Agent 重启 `dsh-web`。
+**仍未发布**：工作区内重建并提交 `lib/`，跑通 `pnpm run check`，再考虑安装到
+DSH Web profile。不要 npm publish，也不要由 Agent 重启 `dsh-web`。

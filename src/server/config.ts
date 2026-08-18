@@ -1,3 +1,4 @@
+import { type RetryPolicyConfig, RetryPolicySchema } from "@deepseek-ai/dsh-llm";
 import { z } from "zod";
 import { CurrencyCodeSchema } from "../shared/domain.js";
 
@@ -51,12 +52,22 @@ const CodingOAuthGatewaySchema = z
 	})
 	.strict();
 
+const RetryPolicyInputSchema = z.unknown().transform((value, context): RetryPolicyConfig => {
+	try {
+		const schema = RetryPolicySchema as unknown as (input: unknown) => RetryPolicyConfig;
+		return schema(value);
+	} catch {
+		context.addIssue({ code: "custom", message: "invalid codingOAuth.retryPolicy" });
+		return z.NEVER;
+	}
+});
+
 const CodingOAuthConfigSchema = z
 	.object({
 		enabled: z.boolean().default(DEFAULT_CODING_OAUTH.enabled),
 		proxy: z.string().trim().min(1).max(2048).optional(),
 		proxyKimi: z.boolean().default(DEFAULT_CODING_OAUTH.proxyKimi),
-		retryPolicy: z.record(z.string(), z.unknown()).optional(),
+		retryPolicy: RetryPolicyInputSchema.optional(),
 		capabilities: CodingOAuthCapabilityPatchSchema.optional(),
 		gateway: CodingOAuthGatewaySchema.optional(),
 	})
@@ -98,7 +109,7 @@ const RuntimeConfigInputSchema = z
 				baseCurrency: CurrencyCodeSchema.default(DEFAULT_PRICING.baseCurrency),
 			})
 			.default(DEFAULT_PRICING),
-		/** Integrated coding-subscription OAuth owner. Disable only for isolated tests. */
+		/** Integrated Coding OAuth owner. Disable only for isolated tests. */
 		codingOAuth: CodingOAuthConfigSchema.default(DEFAULT_CODING_OAUTH),
 		debug: z.boolean().default(false),
 	})

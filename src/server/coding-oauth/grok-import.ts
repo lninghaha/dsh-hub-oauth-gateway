@@ -2,7 +2,7 @@
  * One-shot import of Grok CLI credentials into the dsh-owned store.
  * The source file is never written. Refresh tokens rotate, so later dsh
  * refresh may invalidate ~/.grok/auth.json — that is documented, not a bug.
- * @module dsh-coding-subscription-oauth/grok-import
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/grok-import
  */
 
 import { readFile, stat } from "node:fs/promises";
@@ -48,7 +48,7 @@ function parseTime(value: string): number {
 }
 
 function parseExpires(record: Record<string, unknown>): number {
-	const expiresAt = record["expires_at"];
+	const expiresAt = record.expires_at;
 	if (typeof expiresAt === "string" && expiresAt.length > 0) {
 		const parsed = parseTime(expiresAt);
 		if (Number.isFinite(parsed)) return parsed;
@@ -56,11 +56,11 @@ function parseExpires(record: Record<string, unknown>): number {
 	if (typeof expiresAt === "number" && Number.isFinite(expiresAt) && expiresAt > 0) {
 		return expiresAt < 1_000_000_000_000 ? expiresAt * 1000 : expiresAt;
 	}
-	const expires = record["expires"];
+	const expires = record.expires;
 	if (typeof expires === "number" && Number.isFinite(expires) && expires > 0) {
 		return expires < 1_000_000_000_000 ? expires * 1000 : expires;
 	}
-	const expiresIn = record["expires_in"];
+	const expiresIn = record.expires_in;
 	if (typeof expiresIn === "number" && Number.isFinite(expiresIn) && expiresIn > 0) {
 		return Date.now() + expiresIn * 1000;
 	}

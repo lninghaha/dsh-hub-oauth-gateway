@@ -2,7 +2,7 @@
  * Owner-private content-addressed store for Grok Imagine video artifacts.
  * Public identifiers are opaque; callers never receive a filesystem path,
  * content hash, or a signed upstream URL.
- * @module dsh-coding-subscription-oauth/media-store
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/media-store
  */
 
 import { createHash, randomBytes } from "node:crypto";
@@ -28,7 +28,7 @@ export const MEDIA_ARTIFACT_ID_PATTERN = /^[a-f0-9]{32}$/;
 export const IMAGINE_MEDIA_ROUTE_PREFIX = "/plugins/dsh-grok-build/imagine/media/";
 
 const NOFOLLOW = process.platform === "win32" ? 0 : (fsConstants.O_NOFOLLOW ?? 0);
-const TRUSTED_IMAGINE = Symbol.for("dsh-coding-subscription-oauth.trusted-imagine");
+const TRUSTED_IMAGINE = Symbol.for("dsh-hub-oauth-gateway.trusted-imagine");
 
 export type MediaStoreVideoType = "video/mp4" | "video/webm";
 
@@ -427,15 +427,15 @@ function parseIndexDocument(text: string): IndexDocument {
 		throw new MediaStoreError("CORRUPT", "media index must contain an object");
 	}
 	const document = value as Record<string, unknown>;
-	if (document["version"] !== MEDIA_STORE_INDEX_VERSION) {
+	if (document.version !== MEDIA_STORE_INDEX_VERSION) {
 		throw new MediaStoreError("CORRUPT", "media index has an unsupported version");
 	}
-	const artifactId = document["artifactId"];
-	const sha256 = document["sha256"];
-	const mediaType = document["mediaType"];
-	const bytes = document["bytes"];
-	const createdAt = document["createdAt"];
-	const expiresAt = document["expiresAt"];
+	const artifactId = document.artifactId;
+	const sha256 = document.sha256;
+	const mediaType = document.mediaType;
+	const bytes = document.bytes;
+	const createdAt = document.createdAt;
+	const expiresAt = document.expiresAt;
 	if (typeof artifactId !== "string" || parseMediaArtifactId(artifactId) === undefined) {
 		throw new MediaStoreError("CORRUPT", "media index artifact id is invalid");
 	}
@@ -454,7 +454,7 @@ function parseIndexDocument(text: string): IndexDocument {
 	if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt) || expiresAt <= createdAt) {
 		throw new MediaStoreError("CORRUPT", "media index expiresAt is invalid");
 	}
-	const name = typeof document["name"] === "string" ? sanitizeDisplayName(document["name"]) : undefined;
+	const name = typeof document.name === "string" ? sanitizeDisplayName(document.name) : undefined;
 	const parsed: IndexDocument = {
 		version: MEDIA_STORE_INDEX_VERSION,
 		artifactId,

@@ -230,7 +230,8 @@ export const en = {
 	"settings.saving": "Saving…",
 	"settings.saved": "Settings saved",
 	"settings.credentials": "Providers and credentials",
-	"settings.credentialsIntro": "Connection state is assembled on the local server. Credential values, device codes, and raw provider payloads are never returned to the browser.",
+	"settings.credentialsIntro":
+		"Connection state is assembled on the local server. Credential values, device codes, and raw provider payloads are never returned to the browser.",
 	"providers.connected": "Connected",
 	"providers.needsAttention": "Needs attention",
 	"providers.unconfigured": "Unconfigured",

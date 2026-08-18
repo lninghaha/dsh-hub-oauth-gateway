@@ -3,7 +3,7 @@
  * two-phase import into destination stores. Preview tickets live only in the
  * process-local session; `peekPreview` supplies ticket.kind as the destination
  * authority before the store lock. Persist happens inside that lock.
- * @module dsh-coding-subscription-oauth/oauth-import-routes
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/oauth-import-routes
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -175,7 +175,7 @@ export function registerOAuthImportRoutes(
 		]);
 
 	if (typeof ctx.effect === "function") {
-		ctx.effect(attach, "dsh-coding-subscription-oauth: OAuth source import routes");
+		ctx.effect(attach, "dsh-hub-oauth-gateway: OAuth source import routes");
 		return () => undefined;
 	}
 	return attach();
@@ -278,14 +278,14 @@ export function oauthImportErrorStatus(error: unknown): number {
 function readExactKind(body: unknown): OAuthSourceKind | undefined {
 	const record = asRecord(body);
 	if (record === undefined) return undefined;
-	const kind = record["kind"];
+	const kind = record.kind;
 	return typeof kind === "string" && isOAuthSourceKind(kind) ? kind : undefined;
 }
 
 function readPreviewId(body: unknown): string | undefined {
 	const record = asRecord(body);
 	if (record === undefined) return undefined;
-	const previewId = record["previewId"];
+	const previewId = record.previewId;
 	return typeof previewId === "string" && previewId.length > 0 ? previewId : undefined;
 }
 
@@ -298,13 +298,13 @@ function readCommitBody(
 	if (previewId === undefined) return { error: "previewId must be a non-empty string" };
 	const record = asRecord(body);
 	if (record === undefined) return { error: "request body must be a JSON object" };
-	if (!("confirmOverwrite" in record) || record["confirmOverwrite"] === undefined) {
+	if (!("confirmOverwrite" in record) || record.confirmOverwrite === undefined) {
 		return { kind, previewId };
 	}
-	if (typeof record["confirmOverwrite"] !== "boolean") {
+	if (typeof record.confirmOverwrite !== "boolean") {
 		return { error: "confirmOverwrite must be a boolean" };
 	}
-	return { kind, previewId, confirmOverwrite: record["confirmOverwrite"] };
+	return { kind, previewId, confirmOverwrite: record.confirmOverwrite };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

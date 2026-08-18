@@ -3,7 +3,7 @@
  *
  * This module contains no Cordis service lookup. The parent supplies structural
  * registries, which keeps live flag transitions deterministic and unit-testable.
- * @module dsh-coding-subscription-oauth/capability-runtime
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/capability-runtime
  */
 
 import { LlmError } from "@deepseek-ai/dsh-llm";

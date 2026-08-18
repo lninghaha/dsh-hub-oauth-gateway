@@ -2,15 +2,15 @@ import Schema from "@deepseek-ai/schemastery";
 
 /**
  * Integration-ready capability settings controller for the
- * `coding-subscription-oauth` namespace. Schema defaults sit under the
+ * `coding-oauth` namespace. Schema defaults sit under the
  * composition/YAML `base`, and the user section layers on top. The controller
  * talks to an injected structural settings service while registering a real
  * Schemastery section that the Host settings service can render and validate.
- * @module dsh-coding-subscription-oauth/capability-settings
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/capability-settings
  */
 
 /** Settings namespace owned by this plugin. */
-export const CAPABILITY_SETTINGS_NAMESPACE = "coding-subscription-oauth";
+export const CAPABILITY_SETTINGS_NAMESPACE = "coding-oauth";
 
 /** Default-off capability flags. Presence in the user section marks an override. */
 export const CAPABILITY_FLAG_KEYS = [
@@ -304,16 +304,16 @@ export function normalizeCapabilitySettingsPatch(input?: unknown): CapabilitySet
 		videoArtifactTtlMs?: number;
 	} = {};
 	const flags = input as Record<string, unknown>;
-	assignFlag(patch, "codexSearch", flags["codexSearch"]);
-	assignFlag(patch, "codexImages", flags["codexImages"]);
-	assignFlag(patch, "codexImageEdits", flags["codexImageEdits"]);
-	assignFlag(patch, "codexUsage", flags["codexUsage"]);
-	assignFlag(patch, "codexFast", flags["codexFast"]);
-	assignFlag(patch, "grokImagineImage", flags["grokImagineImage"]);
-	assignFlag(patch, "grokImagineVideo", flags["grokImagineVideo"]);
-	assignLimit(patch, "searchResults", flags["searchResults"]);
-	assignLimit(patch, "imageCount", flags["imageCount"]);
-	assignLimit(patch, "videoArtifactTtlMs", flags["videoArtifactTtlMs"]);
+	assignFlag(patch, "codexSearch", flags.codexSearch);
+	assignFlag(patch, "codexImages", flags.codexImages);
+	assignFlag(patch, "codexImageEdits", flags.codexImageEdits);
+	assignFlag(patch, "codexUsage", flags.codexUsage);
+	assignFlag(patch, "codexFast", flags.codexFast);
+	assignFlag(patch, "grokImagineImage", flags.grokImagineImage);
+	assignFlag(patch, "grokImagineVideo", flags.grokImagineVideo);
+	assignLimit(patch, "searchResults", flags.searchResults);
+	assignLimit(patch, "imageCount", flags.imageCount);
+	assignLimit(patch, "videoArtifactTtlMs", flags.videoArtifactTtlMs);
 	return Object.freeze(patch);
 }
 
@@ -495,18 +495,19 @@ export class CapabilitySettingsController {
 		}
 		const normalized = normalizeCapabilitySettingsPatch(input);
 		if (mode === "update" && !hasOwnKeys(normalized)) return current;
-		const settings = this.settings!;
+		const settings = this.settings;
+		if (settings === undefined) throw new CapabilitySettingsReadOnlyError("absent");
 		try {
 			if (mode === "update") {
 				if (typeof settings.update === "function") {
 					await settings.update(CAPABILITY_SETTINGS_NAMESPACE, { ...normalized }, expectedRevision);
 				} else {
-					await this.scope!.update({ ...normalized });
+					await this.scope?.update({ ...normalized });
 				}
 			} else if (typeof settings.replace === "function") {
 				await settings.replace(CAPABILITY_SETTINGS_NAMESPACE, { ...normalized }, expectedRevision);
 			} else {
-				await this.scope!.replace({ ...normalized });
+				await this.scope?.replace({ ...normalized });
 			}
 		} catch (error) {
 			throw toConflictError(error) ?? error;

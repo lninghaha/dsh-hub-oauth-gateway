@@ -1,7 +1,12 @@
 import type { IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
 import { describe, expect, it } from "vitest";
-import { JSON_BODY_LIMIT_BYTES, JsonRequestError, readJsonRequest, requestErrorStatus } from "../../../src/server/coding-oauth/http-json.js";
+import {
+	JSON_BODY_LIMIT_BYTES,
+	JsonRequestError,
+	readJsonRequest,
+	requestErrorStatus,
+} from "../../../../src/server/coding-oauth/http-json.js";
 
 function request(body: string | Buffer = "", headers: IncomingMessage["headers"] = {}): IncomingMessage {
 	const stream = Readable.from([body]) as unknown as IncomingMessage;

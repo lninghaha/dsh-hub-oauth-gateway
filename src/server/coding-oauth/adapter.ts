@@ -77,10 +77,7 @@ function profile(
 		provider,
 		displayName,
 		streamIdleTimeoutMs: GROK_BUILD_STREAM_IDLE_TIMEOUT_MS,
-		retryPolicy: resolveRetryPolicy(
-			retryPolicy ?? CODING_OAUTH_RETRY_POLICY,
-			"dsh-coding-subscription-oauth retryPolicy",
-		),
+		retryPolicy: resolveRetryPolicy(retryPolicy ?? CODING_OAUTH_RETRY_POLICY, "dsh-hub-oauth-gateway retryPolicy"),
 		configuredMaxTokens: new Map(),
 		...(headers === undefined ? {} : { headers }),
 		piProvider,

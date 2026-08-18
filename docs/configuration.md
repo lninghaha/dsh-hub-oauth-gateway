@@ -212,10 +212,11 @@ Integrated coding-subscription OAuth owner. Keep this enabled after cutover so G
 | `enabled` | `true` | Register OAuth LLM routes, compatibility HTTP paths, CLI-backed sessions, and optional capabilities |
 | `proxy` | unset | HTTPS proxy URL for the audited coding-subscription host allowlist |
 | `proxyKimi` | `false` | Also send Kimi China traffic through the proxy |
-| `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-subscription-oauth` settings namespace |
+| `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-oauth` settings namespace |
 | `gateway` | disabled | Opt-in isolated local OpenAI-compatible gateway; loopback bind only |
+| `retryPolicy` | harness + AUTH | Optional provider retry policy; validated by `@deepseek-ai/dsh-llm` `RetryPolicySchema` |
 
-Do not enable this owner in the same Cordis process as a live `dsh-coding-subscription-oauth` bundle. The two implementations share routes, settings, and credential files.
+YAML lives under `usage-stats` → `config.codingOAuth`. Invalid `retryPolicy` objects fail startup.
 
 ## `debug`
 

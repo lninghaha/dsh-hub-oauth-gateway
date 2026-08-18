@@ -11,7 +11,7 @@
  * - `clear()` drops the stored projection and detaches any in-flight GET so
  *   its later completion cannot repopulate the cache.
  *
- * @module dsh-coding-subscription-oauth/codex-usage
+ * @module dsh-hub-oauth-gateway/server/coding-oauth/codex-usage
  */
 
 import { LlmError } from "@deepseek-ai/dsh-llm";
@@ -101,10 +101,10 @@ function decimalAmount(value: unknown): string | undefined {
 
 function parseWindow(value: unknown): CodexRateLimitWindow | undefined {
 	if (!isRecord(value)) return undefined;
-	const usedPercent = finitePercent(value["used_percent"]);
-	const windowSeconds = positiveInt(value["limit_window_seconds"]);
+	const usedPercent = finitePercent(value.used_percent);
+	const windowSeconds = positiveInt(value.limit_window_seconds);
 	if (usedPercent === undefined || windowSeconds === undefined) return undefined;
-	const resetsAt = epochSeconds(value["reset_at"]);
+	const resetsAt = epochSeconds(value.reset_at);
 	return {
 		usedPercent,
 		remainingPercent: 100 - usedPercent,
@@ -115,7 +115,7 @@ function parseWindow(value: unknown): CodexRateLimitWindow | undefined {
 
 function parseLimit(id: string, name: string | undefined, value: unknown): CodexRateLimit | undefined {
 	if (!isRecord(value)) return undefined;
-	const windows = [parseWindow(value["primary_window"]), parseWindow(value["secondary_window"])].filter(
+	const windows = [parseWindow(value.primary_window), parseWindow(value.secondary_window)].filter(
 		(window): window is CodexRateLimitWindow => window !== undefined,
 	);
 	if (windows.length === 0) return undefined;
@@ -123,24 +123,24 @@ function parseLimit(id: string, name: string | undefined, value: unknown): Codex
 }
 
 function parseCredits(value: unknown): CodexCredits | undefined {
-	if (!isRecord(value) || value["has_credits"] !== true || typeof value["unlimited"] !== "boolean") return undefined;
-	const balance = decimalAmount(value["balance"]);
+	if (!isRecord(value) || value.has_credits !== true || typeof value.unlimited !== "boolean") return undefined;
+	const balance = decimalAmount(value.balance);
 	return {
-		unlimited: value["unlimited"],
+		unlimited: value.unlimited,
 		...(balance === undefined ? {} : { balance }),
 	};
 }
 
 function parseIndividualLimit(value: unknown): CodexIndividualLimit | undefined {
 	if (!isRecord(value)) return undefined;
-	const individual = value["individual_limit"];
+	const individual = value.individual_limit;
 	if (!isRecord(individual)) return undefined;
-	const remainingPercent = finitePercent(individual["remaining_percent"]);
-	const limit = decimalAmount(individual["limit"]);
-	const used = decimalAmount(individual["used"]);
+	const remainingPercent = finitePercent(individual.remaining_percent);
+	const limit = decimalAmount(individual.limit);
+	const used = decimalAmount(individual.used);
 	if (remainingPercent === undefined || limit === undefined || used === undefined) return undefined;
-	const remaining = decimalAmount(individual["remaining"]);
-	const resetsAt = epochSeconds(individual["reset_at"]);
+	const remaining = decimalAmount(individual.remaining);
+	const resetsAt = epochSeconds(individual.reset_at);
 	return {
 		limit,
 		used,
@@ -169,26 +169,26 @@ export function normalizeCodexUsage(value: unknown, fetchedAt = Date.now()): Cod
 		seen.add(limit.id);
 		rateLimits.push(limit);
 	};
-	add(parseLimit("codex", "Codex", value["rate_limit"]));
-	const additional = value["additional_rate_limits"];
+	add(parseLimit("codex", "Codex", value.rate_limit));
+	const additional = value.additional_rate_limits;
 	if (Array.isArray(additional)) {
 		for (const entry of additional) {
 			if (!isRecord(entry)) continue;
-			const id = optionalNonEmptyString(entry["metered_feature"]);
+			const id = optionalNonEmptyString(entry.metered_feature);
 			if (id === undefined) continue;
-			const name = optionalNonEmptyString(entry["limit_name"]);
-			add(parseLimit(id, name, entry["rate_limit"]));
+			const name = optionalNonEmptyString(entry.limit_name);
+			add(parseLimit(id, name, entry.rate_limit));
 		}
 	}
-	add(parseLimit("code_review", "Code review", value["code_review_rate_limit"]));
-	const credits = parseCredits(value["credits"]);
-	const individualLimit = parseIndividualLimit(value["spend_control"]);
+	add(parseLimit("code_review", "Code review", value.code_review_rate_limit));
+	const credits = parseCredits(value.credits);
+	const individualLimit = parseIndividualLimit(value.spend_control);
 	const spendControlReached =
-		isRecord(value["spend_control"]) && typeof value["spend_control"]["reached"] === "boolean"
-			? value["spend_control"]["reached"]
+		isRecord(value.spend_control) && typeof value.spend_control.reached === "boolean"
+			? value.spend_control.reached
 			: undefined;
-	const resetRaw = value["rate_limit_reset_credits"];
-	const resetCount = isRecord(resetRaw) ? resetRaw["available_count"] : undefined;
+	const resetRaw = value.rate_limit_reset_credits;
+	const resetCount = isRecord(resetRaw) ? resetRaw.available_count : undefined;
 	const resetCredits =
 		typeof resetCount === "number" && Number.isSafeInteger(resetCount) && resetCount >= 0
 			? { availableCount: resetCount }

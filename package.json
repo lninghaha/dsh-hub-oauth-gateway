@@ -1,6 +1,6 @@
 {
   "name": "dsh-hub-oauth-gateway",
-  "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web; coding-plan OAuth sign-in and an API gateway are planned next",
+  "description": "Local-first usage, cost, quota, and forecast analytics for DeepSeek Harness Web, plus coding-plan OAuth sign-in and an opt-in local API gateway",
   "version": "1.1.0",
   "private": false,
   "packageManager": "pnpm@11.21.0",
@@ -181,11 +181,6 @@
     },
     "@deepseek-ai/dsh-tools": {
       "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "@earendil-works/pi-ai": "0.84.2"
     }
   },
   "license": "MIT AND Apache-2.0"

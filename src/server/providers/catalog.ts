@@ -1,10 +1,5 @@
 import type { AccountSnapshot } from "../../shared/domain.js";
-import {
-	type ProviderConnection,
-	type ProviderRecord,
-	type ProvidersData,
-	type TokenLifecycle,
-} from "../../shared/providers.js";
+import type { ProviderConnection, ProviderRecord, ProvidersData, TokenLifecycle } from "../../shared/providers.js";
 import { grokBuildAuthStatus } from "../coding-oauth/auth.js";
 import type { CodingOAuthRuntime } from "../coding-oauth/compose.js";
 import { ANTIGRAVITY_ROUTE } from "../coding-oauth/ids.js";
@@ -46,10 +41,7 @@ function modelState(available: readonly string[], selected: readonly string[]): 
 	return selected.length > 0 ? "enabled" : "available-not-enabled";
 }
 
-function accountByHints(
-	accounts: readonly AccountSnapshot[],
-	hints: readonly string[],
-): AccountSnapshot | undefined {
+function accountByHints(accounts: readonly AccountSnapshot[], hints: readonly string[]): AccountSnapshot | undefined {
 	const wanted = new Set(hints);
 	return accounts.find(
 		(account) => wanted.has(account.providerId) || (account.adapterId !== null && wanted.has(account.adapterId)),
@@ -167,14 +159,16 @@ export async function collectProvidersData(options: {
 		const grokAccount = accountByHints(options.accounts, ["grok-build", "grok", "xai", "xai-grok"]);
 		const grokAvailable = options.codingOAuth.grok.availableModels().map((model) => model.id);
 		const grokSelected = options.codingOAuth.grok.selectedModelIds() ?? [];
+		const grokAuth: { authenticated: boolean; expiresAt?: number } = {
+			authenticated: grokStatus.authenticated,
+		};
+		const grokExpiresAt = grokStatus.expiresAt?.getTime();
+		if (grokExpiresAt !== undefined) grokAuth.expiresAt = grokExpiresAt;
 		const grok = await oauthRecord(
 			"grok-build",
 			"Grok Build",
 			"grok-build",
-			{
-				authenticated: grokStatus.authenticated,
-				expiresAt: grokStatus.expiresAt?.getTime(),
-			},
+			grokAuth,
 			grokAvailable,
 			grokSelected,
 			grokAccount,
@@ -212,7 +206,8 @@ export async function collectProvidersData(options: {
 	}
 
 	for (const account of options.accounts) {
-		if (oauthIds.has(account.providerId) || oauthIds.has(account.adapterId)) continue;
+		if (oauthIds.has(account.providerId)) continue;
+		if (account.adapterId !== null && oauthIds.has(account.adapterId)) continue;
 		records.push(apiKeyRecord(account));
 	}
 
