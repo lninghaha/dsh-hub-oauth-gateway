@@ -69,8 +69,10 @@ require live provider access.
   `package-lock.json`.
 
 Architecture and configuration contracts are documented in
-[`docs/architecture.md`](docs/architecture.md) and
-[`docs/configuration.md`](docs/configuration.md).
+[`docs/02-architecture.md`](docs/02-architecture.md) and
+[`docs/03-configuration.md`](docs/03-configuration.md). Install detail is in
+[`INSTALL.md`](INSTALL.md). Community README translations must stay in sync with
+[`README.md`](README.md) (same sections and version pins).
 
 ## Change workflow
 
@@ -93,9 +95,10 @@ Architecture and configuration contracts are documented in
    it, run `pnpm run check`, and smoke-test with an isolated DSH install when
    UI or install behavior changed.
 
-User-visible copy must remain available in Simplified Chinese and English.
-Usage and costs must stay clearly identified as analytics/estimates; an
-unpriced token category is unknown, not free.
+User-visible UI copy must remain available in Simplified Chinese and English.
+`README.md` is English-first; keep community-language READMEs aligned when the
+overview changes. Usage and costs must stay clearly identified as
+analytics/estimates; an unpriced token category is unknown, not free.
 
 ## Required checks
 

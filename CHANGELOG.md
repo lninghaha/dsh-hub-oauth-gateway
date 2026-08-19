@@ -7,6 +7,15 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Documentation
+
+- Align public docs with the coding-subscription OAuth README conventions:
+  English-first `README.md`, nine community-language READMEs with a shared
+  language switcher, extracted `INSTALL.md`, and numbered docs
+  (`docs/02-architecture.md` + zh-CN, `docs/03-configuration.md`,
+  `docs/04-migration-v1.md`). Update the publish allowlist and release inspect
+  checks accordingly.
+
 ## 1.7.1
 
 ### Fixed

@@ -84,11 +84,37 @@ if (releaseVersions[0] !== manifest.version) {
 }
 if (!readme.includes(manifest.version)) fail(`README.md does not mention release ${manifest.version}`);
 
+const readmeLocales = [
+	"README.zh-CN.md",
+	"README.ja.md",
+	"README.ko.md",
+	"README.pt-BR.md",
+	"README.es.md",
+	"README.fr.md",
+	"README.de.md",
+	"README.ru.md",
+];
+for (const localeFile of readmeLocales) {
+	const localeText = await readFile(join(root, localeFile), "utf8");
+	if (!localeText.includes(manifest.version)) {
+		fail(`${localeFile} does not mention release ${manifest.version}`);
+	}
+}
+
 const expectedAllowlist = [
 	"lib/",
 	"cordis.patch.yml",
 	"scripts/install.mjs",
 	"README.md",
+	"README.zh-CN.md",
+	"README.ja.md",
+	"README.ko.md",
+	"README.pt-BR.md",
+	"README.es.md",
+	"README.fr.md",
+	"README.de.md",
+	"README.ru.md",
+	"INSTALL.md",
 	"CHANGELOG.md",
 	"CONTRIBUTING.md",
 	"CODE_OF_CONDUCT.md",
@@ -98,9 +124,10 @@ const expectedAllowlist = [
 	"LICENSES/Apache-2.0.txt",
 	"docs/00-project-rules.md",
 	"docs/oauth-provenance.md",
-	"docs/architecture.md",
-	"docs/configuration.md",
-	"docs/migration-v1.md",
+	"docs/02-architecture.md",
+	"docs/02-architecture.zh-CN.md",
+	"docs/03-configuration.md",
+	"docs/04-migration-v1.md",
 	"docs/research/usage-analytics-landscape.md",
 	"docs/research/token-monitor.md",
 	"docs/research/token-monitor-supplement-proposal.md",
@@ -137,6 +164,8 @@ const packed = new Set(packedFiles);
 for (const required of [
 	"package.json",
 	"README.md",
+	"README.zh-CN.md",
+	"INSTALL.md",
 	"LICENSE",
 	"CHANGELOG.md",
 	"CONTRIBUTING.md",
@@ -145,6 +174,9 @@ for (const required of [
 	"NOTICE",
 	"LICENSES/Apache-2.0.txt",
 	"docs/00-project-rules.md",
+	"docs/02-architecture.md",
+	"docs/03-configuration.md",
+	"docs/04-migration-v1.md",
 	"cordis.patch.yml",
 	"scripts/install.mjs",
 	"lib/index.js",

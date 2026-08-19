@@ -1,117 +1,148 @@
+<!-- banner -->
+<div align="center">
+
 # dsh-hub-oauth-gateway
+
+**v1.7.1** · formerly `dsh-usage-stats`
+
+**Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-DeepSeek Harness Web 的本地优先用量中心：Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出。
+*[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
-A local-first usage center for DeepSeek Harness Web: tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports.
+</div>
 
-> 1.0.0 是独立 TypeScript 重构。服务端使用 SQLite，客户端是一个符合 DSH classic-script loader 契约的单文件插件。提示词、回复、工作目录、凭据值和供应商原始响应不会写入统计数据库或返回浏览器。
+---
 
-> **更名说明 / Renamed**：本项目前身为 `dsh-usage-stats`（原仓库 `Ychris12138/dsh-usage-stats`）。包名与仓库已更名为 `dsh-hub-oauth-gateway`，旧包名不再收到更新；已安装旧版本的用户请先移除旧 entry，再按下方说明重新安装。本地数据文件与内部插件 id 保持不变，历史统计数据不受影响。本次更名随 1.1.0 版本发布生效。
->
-> **1.5.0**：完整仪表盘与 Settings → 用量中心改为顶部页签（一次只展示一块），Peek/仪表盘改为内容高度 + `max-height`，缩短瀑布流。
->
-> **1.5.1**：公开安装说明改为优先推荐 npm 包名与 `npx dsh-hub-oauth-gateway-install`；验证改为云环境 `pnpm` + 隔离 DSH 冒烟（不再强制 Docker sandbox）。
->
-> **1.6.1**：用量中心设置信息架构优化——去掉独立「凭据」页签；订阅账号卡内嵌 CLI 拉取；供应商页可操作；显示设置更紧凑。发版须 npm 上架且 GitHub Release 附带 `.tgz`。
->
-> **1.7.1**：Codex / Grok / Kimi OAuth 额度探测对齐 Token Monitor 路径；失败原因脱敏可见。
->
-> **1.6.0**：编码订阅 OAuth 登录（合并 `dsh-coding-subscription-oauth`）与可选本地 API 网关正式并入本插件：设置页新增 订阅账号 / 网关 / 能力 三个标签，支持 Grok Build（SuperGrok / X Premium）、ChatGPT Plus/Pro Codex、Kimi Code、Claude Pro/Max 的 OAuth 登录与模型挂接；新增 token-monitor 风格的本机监控（默认关闭）：只读本机 CLI 认证快照与跨工具本地用量扫描。
+## Name change
 
-## 功能 / Highlights
+First published as **`dsh-usage-stats`**. The package and repository are now **`dsh-hub-oauth-gateway`** (effective with **1.1.0**). Remove any old entry before reinstalling. Local data files and the internal Cordis plugin id stay the same, so historical usage is preserved.
 
-- **Quick Peek + Full Dashboard**：默认悬浮小窗（可改回侧栏按钮）快速查看；完整仪表盘用顶部页签（概览 / 趋势 / 账户 / 明细）一次只展示一块，支持 today / 7d / 30d / month、自定义维度、上一周期对比和手动刷新。设置页始终可打开速览与仪表盘。
-- **设置页签**：Settings → 用量中心拆成显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用六个顶部标签，缩短瀑布流滚动。
-- **四种展示预设与模块编排**：Minimal、Quota、Cost、Analyst；可自定义模块显示/顺序并重置为当前预设；另有紧凑/舒适密度、动态效果、供应商顺序、隐藏、别名和颜色。
-- **活动热力图**：配置时区下滚动 370 天日历热力图与 streak（连续活跃天），metric 跟随仪表盘。
-- **本地历史**：按 `(session, turn, step)` 投影 DSH usage 事件到 SQLite；重复采样以最新事实替换，不累计放大。
-- **成本分析**：用户维护每百万 Token 价格；分别计算 input、output、cache read、cache write，并显示价格覆盖率。插件不会猜测未配置价格。
-- **订阅费用账本**：本地记录订阅/充值费用；账户卡片可显示月均与回本倍数（仅货币一致且本月成本可估算时）。
-- **趋势与预测**：按时区生成小时/日/周/月桶；预测为有界线性外推，并以虚线和历史数据区分。
-- **账户与配额**：内置余额/订阅适配器（含 Volcengine Coding Plan、Z.ai Team、多 profile），统一显示余额、额度窗口、重置时间、陈旧/上次成功状态和健康提醒。
-- **本地软提醒**：低配额、每日估算成本、账户异常；提醒不向外发送，也不实施硬阻断。
-- **CSV / JSON 导出**：过滤结果、日序列 CSV、打包 JSON；可隐藏会话标识，CSV 自动防御电子表格公式注入；费用账本不进入默认导出。
-- **订阅 OAuth 登录**：在 设置 → 订阅账号 完成 Grok Build、Codex、Kimi Code、Claude Code 的 OAuth 授权（设备码/浏览器/PKCE 粘贴），登录后对应模型直接进入 DSH 模型选择器（标注 OAuth）；每个订阅卡片内可从本机官方 CLI 凭据单向拉取（发现 → 预览 → 确认）。
-- **可选本地 API 网关**：默认关闭的回环 OpenAI/Anthropic 兼容服务（`/v1/chat/completions`、`/v1/responses`、`/v1/messages`），复用已登录会话，Bearer 密钥可显示/轮换；仅供本机工具使用。
-- **可选能力开关**：Codex 搜索/图像/用量/Fast 与 Grok Imagine 图像/视频默认全部关闭，在 设置 → 能力 中逐项打开并立即生效。
-- **本机认证监控（默认关闭）**：`localMonitor.enabled: true` 后，仪表盘「本机」页签只读展示白名单内官方 CLI（Grok/Codex/Kimi/Claude）的登录态、令牌到期与刷新能力，以及本插件保存的 OAuth 会话；不读取任何令牌内容。
-- **跨工具本机用量（默认关闭）**：`localUsage.enabled: true` 后，增量扫描 Claude Code / Codex CLI / Kimi Code / OpenCode 的本机会话日志，只提取时间、模型与 Token 计数（硬化读、字节预算、SQLite 聚合），绝不读取对话内容。
-- **中英文界面**：复用 DSH UI、locale、layout、settings、sidebar 和 slots 服务。
+| | Use this | Still works / unchanged |
+|---|---|---|
+| npm (recommended) | `dsh plugin --profile web add dsh-hub-oauth-gateway` | Old npm name is no longer updated |
+| GitHub / development | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
+| Cordis plugin id | `usage-stats` | unchanged |
+| SQLite database | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | unchanged |
+| CLI | `dsh-coding-oauth` | `dsh-grok-build` (alias) |
 
-产品调研与设计取舍见 [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)，实现架构见 [`docs/architecture.md`](docs/architecture.md)。
+Release history lives in [`CHANGELOG.md`](CHANGELOG.md).
 
-## 要求 / Requirements
+## Features
 
-- DeepSeek Harness Web，已验证 `@deepseek-ai/dsh 0.1.0-rc.6`
+- **Quick Peek + Full Dashboard** — floating HUD (or sidebar button); tabbed overview / trends / accounts / details / local; today / 7d / 30d / month; compare prior period; manual refresh.
+- **Tabbed Settings** — Display / Accounts / Gateway / Capabilities / Providers / Fees under Settings → Usage Center.
+- **Presets and modules** — Minimal, Quota, Cost, Analyst; custom module order; density, motion, provider aliases and colors.
+- **Activity heatmap** — 370-day calendar + streak in the configured timezone.
+- **Local history** — projects DSH usage into SQLite by `(session, turn, step)`; later samples replace, never double-count.
+- **Cost estimates** — user-owned per-million prices with coverage ratio; missing prices are never treated as free.
+- **Subscription fee ledger** — local subscription/top-up costs; payback multiples when currencies match.
+- **Trends and forecasts** — hour/day/week/month buckets; bounded linear extrapolation as a distinct series.
+- **Account and quota adapters** — balances, windows, reset times, stale/last-success, soft alerts (no hard blocks, no outbound notify).
+- **CSV / JSON export** — filtered, daily, or bundle layouts; optional session redaction; spreadsheet-injection defense.
+- **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; models appear as `(OAuth)`; one-way CLI credential Pull.
+- **Optional loopback API gateway** — default-off OpenAI/Anthropic-compatible server for your own tools.
+- **Optional capabilities** — Codex search / images / usage / Fast and Grok Imagine default off; apply live.
+- **Opt-in local monitor** — read-only CLI auth snapshots and cross-tool token scans (never conversation content).
+- **Bilingual UI** — Chinese and English through DSH locale services.
+
+Product research: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Architecture: [`docs/02-architecture.md`](docs/02-architecture.md).
+
+## Problems this plugin solves
+
+| You searched / saw | What was actually broken | What this plugin does |
+|---|---|---|
+| Usage / cost / quota scattered across CLIs and providers | No single local history or coverage-aware cost view | SQLite projection + price rules + account adapters in one Usage Center |
+| SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro in DSH without another API bill | Built-in routes are often pay-as-you-go API keys | Local OAuth routes coexist with existing API-key providers |
+| `本轮运行失败` **API key is invalid** / `AUTH` mid-turn | GUI maps every `AUTH` to that banner; OAuth access tokens expire | Proactive refresh and AUTH-aware retry on coding OAuth routes |
+| Want OpenAI/Anthropic-compatible tools against subscription sessions | No safe local bridge | Opt-in loopback gateway (not a public relay) |
+| Token Monitor-style CLI status without pasting secrets | Manual file digging or chat paste | Opt-in localMonitor / localUsage on hardened allowlisted paths |
+
+## Quick start
+
+```bash
+# 1. install the current npm release into the web profile
+dsh plugin --profile web add dsh-hub-oauth-gateway
+
+# 2. restart the resident dsh web service (operator chooses when)
+systemctl --user restart dsh-web.service
+# or: dsh-web restart
+```
+
+Then open **Settings → Usage Center**. For Accounts / Gateway / Capabilities, sign in or enable switches as needed. Full install options (npx installer, GitHub tarball, proxy) are in [`INSTALL.md`](INSTALL.md).
+
+## Table of contents
+
+- [Name change](#name-change)
+- [Features](#features)
+- [Problems this plugin solves](#problems-this-plugin-solves)
+- [Quick start](#quick-start)
+- [Requirements](#requirements)
+- [Install](#install)
+- [Usage](#usage)
+- [Settings](#settings)
+- [Coding OAuth](#coding-oauth)
+- [Local API gateway](#local-api-gateway)
+- [Optional capabilities](#optional-capabilities)
+- [Runtime configuration](#runtime-configuration)
+- [Credentials](#credentials)
+- [Data and migration](#data-and-migration)
+- [Privacy and security](#privacy-and-security)
+- [Architecture](#architecture)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Requirements
+
+- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.0-rc.6`
 - Node.js `^22.19.0 || >=24.0.0`
-- DSH Web 后端保持回环监听；可通过受控的本机 HTTPS 反向代理向已认证私网提供完整 DSH Web，但不要单独暴露插件 API，也不要无认证发布到公网
+- Loopback DSH Web backend; a controlled local HTTPS reverse proxy to an authenticated private network is OK. Do not expose the plugin API alone or publish unauthenticated to the public internet.
 
-## 安装 / Installation
-
-优先从 **npm** 用 DSH 插件管理器安装已发布版本：
+## Install
 
 ```bash
 dsh plugin --profile web add dsh-hub-oauth-gateway
-```
-
-升级和移除：
-
-```bash
 dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-如果当前 DSH 版本没有插件管理器，可使用兼容安装器（同样从 npm 拉取）：
+Compatible installer when the plugin manager is missing: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` and development path installs are documented in [`INSTALL.md`](INSTALL.md). After install, restart Web yourself (`dsh-web restart` or `systemctl --user restart dsh-web.service`), then refresh `http://127.0.0.1:3080`.
 
-```bash
-npx --yes dsh-hub-oauth-gateway-install
-npx --yes dsh-hub-oauth-gateway-install --check
-```
+## Usage
 
-未发布改动、需要跟 GitHub `main`、或本仓库开发冒烟时，再使用 Git 引用或本地路径，例如 `github:lninghaha/dsh-hub-oauth-gateway` 或 `"$PWD"`（见下文验证节）。
+1. Open Quick Peek from the floating HUD (or sidebar button under **Settings → Display → entry mode**). Settings also links Peek / Full Dashboard.
+2. In Full Dashboard, switch overview / trends / accounts / details / local; pick range, metric, and provider/model dimensions.
+3. Use the refresh button for immediate projection and account refresh. Ordinary GET reads local snapshots only.
+4. Configure Display / Accounts / Gateway / Capabilities / Providers / Fees under **Settings → Usage Center**.
+5. Costs are always estimates — watch the coverage percentage; unpriced tokens are not free.
 
-也可以从 [GitHub Releases](https://github.com/lninghaha/dsh-hub-oauth-gateway/releases) 下载该版本附带的 `dsh-hub-oauth-gateway-<version>.tgz`，交给 Agent 或本地直接安装（无需再构建）：
+CLI: `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-build` is an alias).
 
-```bash
-dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.7.1.tgz
-```
+## Settings
 
-正式发版时每个 GitHub Release **必须**附带与 npm 包一致的该 `.tgz` 资产（见 [`docs/00-project-rules.md`](docs/00-project-rules.md) §8）。
+**Settings → Usage Center** uses six top tabs: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers**, and **Fees**. Signed-in provider cards collapse until expanded. API Key / Copilot device auth lives under Providers.
 
-兼容安装器会原子替换 `~/.dsh/profiles/node_modules/dsh-hub-oauth-gateway`，并幂等维护 `profiles/web/cordis.patch.yml`。包目录和 Cordis patch 会一起备份到最终校验完成；任一步失败都会完整回滚。如果检测到 `dsh.profile.bundles` 已注册本插件，或 web profile 清单无法严格解析，它会拒绝修改并要求改用插件管理器，避免 bundle 与手工 Cordis entry 重复挂载。
+## Coding OAuth
 
-安装或升级后需要由用户自行选择时机重启 Web：
+On the **Accounts** tab, sign in to Grok Build, Codex, Kimi Code, or Claude Code (device code preferred on remote/headless hosts; browser/PKCE can paste a code or full redirect URL). Authenticated models appear in the selector with `(OAuth)`.
 
-```bash
-dsh-web restart
-```
+Allowlisted official CLI OAuth files are discovered read-only. Sync is an explicit one-way **Pull** (discover → preview → confirm), never auto-import and never writes official CLI files.
 
-等价命令：
+## Local API gateway
 
-```bash
-systemctl --user restart dsh-web.service
-```
+Default **off**. When enabled, an isolated `node:http` listener (not the DSH web port) serves `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /v1/messages` on loopback, reusing signed-in OAuth sessions. Bind stays YAML-only; non-loopback bind requires a Bearer key. This is not a remote relay. Details: [`INSTALL.md`](INSTALL.md).
 
-然后刷新 `http://127.0.0.1:3080`。插件开发或安装工具不会主动重启 DSH Web。
+## Optional capabilities
 
-## 使用 / Usage
+Seven switches default **off** and apply **live**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoints and Grok Imagine stay fail-closed until enabled. See [`INSTALL.md`](INSTALL.md) and [`docs/03-configuration.md`](docs/03-configuration.md).
 
-1. 默认点击悬浮用量小窗（或在 **Settings → 显示 → 入口形态** 改回侧栏按钮）打开 Quick Peek；设置页标题区也可打开速览 / 完整仪表盘。
-2. 进入 Full Dashboard 后用顶部页签切换概览 / 趋势 / 账户 / 明细 / 本机，并选择时间范围、指标和 provider/model 维度。
-3. 点击刷新按钮才会立即重新投影用量并刷新账户；普通 GET 只读取本地快照，不触发带凭据的上游请求。
-4. 在 **Settings → Usage Center** 用顶部页签调整显示、订阅账号、网关、能力、供应商与费用（含价格口径）。API Key / Copilot 设备授权在「供应商」页内完成。
-5. 在 **订阅账号** 页签登录 Grok Build / Codex / Kimi Code / Claude Code：远程或无头环境优先设备码；浏览器/PKCE 登录可粘贴授权码或完整回调地址。登录成功后模型选择器会自动列出对应 `(OAuth)` 路由。
-6. 成本始终标记为估算值；关注 coverage 百分比，避免把未定价 Token 当作零成本。
+## Runtime configuration
 
-CLI 等价入口：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-build` 为同一命令的别名）。
-
-## 运行配置 / Runtime configuration
-
-在现有 `dsh-hub-oauth-gateway` Cordis entry 下合并 `config`，不要新增第二个 entry：
+Merge `config` under the existing Cordis entry — do not add a second entry:
 
 ```yaml
 # ~/.dsh/profiles/web/cordis.patch.yml
@@ -132,140 +163,81 @@ CLI 等价入口：`dsh-coding-oauth login [--pkce] | import | status | logout`�
           baseCurrency: USD
         accounts:
           monitors: {}
-        # 可选。只填你自己控制或明确信任的 GitHub OAuth App 公共 client ID。
         oauthDevice:
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
-        # 编码订阅 OAuth（默认启用；disable 仅用于隔离测试）
         codingOAuth:
           enabled: true
-          # proxy: http://127.0.0.1:7890   # 仅代理审核过的订阅域名
-          # proxyKimi: false               # Kimi 中国流量默认直连
-          # gateway: { enabled: false, bind: 127.0.0.1, port: 18080 }
-        # token-monitor 风格本机监控（默认全部关闭）
         localMonitor:
-          enabled: false   # 只读本机 CLI 认证快照
+          enabled: false
         localUsage:
-          enabled: false   # 跨工具本地用量扫描（硬化读 + 字节预算）
+          enabled: false
           intervalMinutes: 30
 ```
 
-完整字段、monitor 示例与网络策略见 [`docs/configuration.md`](docs/configuration.md)。
+Full field reference, monitors, proxy, and pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) and [`INSTALL.md`](INSTALL.md). Legacy root `config.monitors` maps to `config.accounts.monitors` (do not set both).
 
-### v0.3 配置兼容
+## Credentials
 
-旧版根级 `config.monitors` 会自动映射到 `config.accounts.monitors`：
+- Stored through the DSH credential seam; the browser only receives `configured` / `source` / `writable` metadata — never values.
+- Local CLI import (Claude, Codex, Gemini, Grok, Amp) never logs absolute paths.
+- Copilot device flow keeps the device code server-side; the browser holds only a random flow ID. Configure your own public OAuth client ID before enabling.
+- Coding OAuth files: `$DSH_HOME/.grok-build-auth.json` and other `*-oauth-auth.json` (`0600`, atomic write). **No HTTP status, log, or UI may return a token.**
 
-```yaml
-config:
-  monitors:
-    relay-a:
-      adapter: new-api
-      credentialRef: RELAY_A_TOKEN
-```
-
-不能同时配置 `accounts` 和旧 `monitors`。建议迁移到新命名空间，以便后续扩展。
-
-## 价格配置 / Pricing
-
-Settings 支持导入数组或 `{ "rules": [...] }`。模式只支持字面文本和 `*` 通配符；更具体的用户规则优先于导入规则，较新的 `effectiveFrom` 再优先。
-
-```json
-{
-  "rules": [
-    {
-      "id": "example-provider-model-2025",
-      "providerPattern": "example-provider",
-      "modelPattern": "example-model*",
-      "effectiveFrom": 0,
-      "currency": "USD",
-      "inputPerMillion": 1.0,
-      "outputPerMillion": 2.0,
-      "cacheReadPerMillion": 0.1,
-      "cacheWritePerMillion": null
-    }
-  ]
-}
-```
-
-`null` 表示该 Token 类别未定价，而不是免费。内置价格表默认为空，因为供应商价格会变化；请以供应商官方价格页为准并显式导入。
-
-## 凭据 / Credentials
-
-- 凭据通过 DSH credential seam 存储；服务端只接受当前 provider 配置实际引用的凭据名，以及受支持的本地导入/OAuth 引用。
-- 浏览器只收到 `configured/source/writable` 元数据，永远收不到值。
-- 可导入 Claude、Codex、Gemini、Grok、Amp 的本地 CLI 凭据；响应和日志不会暴露本地路径。
-- Copilot 设备流把 device code 保留在服务端短期内存中；浏览器只持有随机 flow ID。项目不内置来源不明的第三方 OAuth client ID，启用前必须配置自己的公共 client ID。
-- 不要把真实 key、cookie、token 或 credential 文件内容提交到 Git、issue、文档或聊天。
-
-## 数据、迁移与回滚 / Data and migration
-
-主数据库：
+## Data and migration
 
 ```text
 ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 ```
 
-打开已有文件时先识别库归属和 schema，确认后再把数据库目录修复为 `0700`、主文件修复为 `0600`，并启用 WAL。默认保留 730 天 usage facts 和 180 天账户快照。
+Directory `0700`, main file `0600`, WAL. Default retention: 730 days usage facts, 180 days account snapshots. First-start migration and rollback notes: [`docs/04-migration-v1.md`](docs/04-migration-v1.md).
 
-首次启动会：
+## Privacy and security
 
-1. 先投影当前 DSH session inventory；单个损坏会话不会阻断其他会话。
-2. 导入旧 `usage-stats-prefs.json`。
-3. 仅为当前 inventory 中不存在的 session 导入旧 `usage-stats-cache.json`，避免重复计算。
-4. 失败的 usage 迁移会在下一次成功的投影同步时重试；旧文件不会删除或改写。
+- Loopback peer + loopback Host; JSON write bodies; same-origin / forwarded-host rules for reverse proxies (`x-dsh-hub-oauth-gateway: 1`).
+- Ordinary GET is local-only; credential-bearing refresh is explicit POST or scheduled.
+- Monitors: HTTPS by default, no URL-embedded credentials, manual redirects, size limits, DNS pinning before connect.
+- SQLite excludes credentials, prompts, responses, cwd, and raw provider payloads.
+- Analytics and estimates are not invoices. Query only accounts and endpoints you own or are authorized to use.
 
-详见 [`docs/migration-v1.md`](docs/migration-v1.md)。1.0 移除了旧的内部 JavaScript 子路径导出（`./usage`、`./oauth-device`）；稳定集成面是根 Cordis 插件、`./client` 和版本化 HTTP API。
+Threat model and reporting: [`SECURITY.md`](SECURITY.md).
 
-## 隐私与安全 / Privacy and security
+## Architecture
 
-- API 始终校验回环 peer socket 与回环后端 Host；写请求还必须是 JSON。直接访问时，浏览器上下文与客户端 target authority 必须匹配后端。经本机反向代理访问时，仅信任回环请求携带的单值 `X-Forwarded-Host`/`X-Forwarded-Proto`，并要求 `x-dsh-hub-oauth-gateway: 1` 与客户端 target authority 精确匹配该浏览器侧 origin；代理重写后的本地 Origin 和仍为公开 HTTPS origin 的 Referer 都可被一致校验。任何异常、重复或与后端/forwarded origin 均不匹配的上下文仍拒绝，且自定义 header 会强制真正的跨源浏览器先通过本 API 不允许的 CORS preflight。
-- 所有普通 GET 只读本地快照；带凭据的刷新仅允许显式 POST。
-- monitor 默认 HTTPS、禁止 URL 内嵌凭据、手动处理 redirect、限制响应大小，并在连接前校验全部 DNS 结果。
-- 内置适配器默认只能把 provider 凭据发送到 provider 原始 origin。`usageBaseURL` 跨 origin 必须显式 `allowCrossOrigin: true`。
-- 私网和 HTTP 分别需要 `allowPrivateNetwork` / `allowInsecure`；除非完全理解风险，否则不要开启。
-- SQLite 不保存 credential、prompt、response、cwd 或 provider 原始响应。会话标识默认在 API/UI 中匿名化，导出还可强制 redact。
-- 统计和价格估算不等于供应商账单；账户 API 与本地 usage event 可能有不同延迟和计费口径。
-- 仅监测你拥有或获授权使用的账户与 endpoint；不支持凭据共享、批量账号运营、额度转售、付费限制绕过、客户端冒充或未授权监测。
-
-安全报告与威胁模型见 [`SECURITY.md`](SECURITY.md)。
-
-## 开发与贡献 / Development and contributing
-
-在 Cursor Cloud / 开发工作区直接用仓库声明的 Node.js 与 pnpm 验证即可；**不再强制 Docker sandbox**。插件冒烟请使用隔离的 `DSH_HOME` 安装 DeepSeek Harness，勿读写个人真实 profile 或凭据。
-
-快速门禁：
-
-```bash
-pnpm install --frozen-lockfile
-pnpm run check:next
+```mermaid
+flowchart LR
+    subgraph DSH["DSH Harness Web"]
+        UI[Settings / Peek / Dashboard] --> API[usage-stats v1 API]
+        UI --> OAuthUI[Accounts / Gateway / Capabilities]
+    end
+    API --> SQLite[(Local SQLite)]
+    API --> Adapters[Account adapters]
+    OAuthUI --> CodingOAuth[coding-oauth routes]
+    CodingOAuth --> Creds["$DSH_HOME/*-oauth-auth.json"]
+    CodingOAuth --> LLM[LLM OAuth routes]
+    LLM --> Providers[Grok / Codex / Kimi / Claude]
 ```
 
-交付门禁：
+Details: [`docs/02-architecture.md`](docs/02-architecture.md) · [中文](docs/02-architecture.zh-CN.md). OAuth attribution: [`docs/oauth-provenance.md`](docs/oauth-provenance.md).
 
-```bash
-pnpm run check
-npm pack --dry-run --json --ignore-scripts
-```
+## Documentation
 
-可选 DSH 冒烟（隔离目录）：
+| Doc | Purpose |
+|---|---|
+| [`INSTALL.md`](INSTALL.md) | Installation, proxy, gateway, capabilities, troubleshooting |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+| [`docs/00-project-rules.md`](docs/00-project-rules.md) | Publication layers, versioning, release loop |
+| [`docs/02-architecture.md`](docs/02-architecture.md) | Internal architecture · [中文](docs/02-architecture.zh-CN.md) |
+| [`docs/03-configuration.md`](docs/03-configuration.md) | Runtime configuration reference |
+| [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 data migration |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution guide |
+| [`SECURITY.md`](SECURITY.md) | Security policy |
 
-```bash
-export DSH_HOME=/tmp/dsh-verify-$USER
-# install @deepseek-ai/dsh, then add this plugin and start web
-dsh plugin --profile web add "$PWD"
-dsh web --host 127.0.0.1 --port 3080
-```
+## Contributing
 
-测试覆盖 SQLite、投影、迁移、时区/DST、价格、预测、账户 transport、SSRF/DNS pinning、API/CSRF、凭据、导出、安装器、server bundle、client bundle 和 React 组件。
+Verify in Cursor Cloud / this repo’s cloud workspace with the declared Node.js and pnpm (Docker sandbox is optional, not required). Use an isolated `DSH_HOME` for DSH smoke tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md). Keep secrets, prompts, and personal paths out of issues, PRs, screenshots, and logs.
 
-公开文档：
-
-- [配置参考](docs/configuration.md) · [架构](docs/architecture.md) · [1.0 迁移](docs/migration-v1.md)
-- [变更记录](CHANGELOG.md) · [贡献指南](CONTRIBUTING.md) · [项目规则](docs/00-project-rules.md)
-- [行为准则](CODE_OF_CONDUCT.md) · [安全策略](SECURITY.md)
-
-欢迎经过脱敏的 bug report、文档、测试和 PR。不要在 issue、PR、截图或日志中提交真实凭据、账户/会话数据、prompt/response、上游原始响应或本机路径。
+If your language is missing from the switcher, open a PR with a README translation and we will add it.
 
 ## License
 
-[MIT](LICENSE) · Independent community project; no vendor endorsement is implied.
+[MIT](LICENSE) · see [NOTICE](NOTICE). Independent community project; no vendor endorsement is implied. Coding-OAuth portions retain Apache-2.0 attribution where required (`LICENSES/Apache-2.0.txt`).

@@ -421,7 +421,7 @@ TM 通过 `ollama.com/settings` + session cookie 解析 session/weekly。属 **�
 3. P1-G lastGood 全 adapter 回归  
 4. P1-H 多 profile 配置模型（至少 OpenRouter + New API + Z.ai）  
 
-**验收**：各 adapter 脱敏 fixture；负向（错钥、私网 URL、超大响应、跨 origin 无 allow）；configuration.md / README 双语更新。
+**验收**：各 adapter 脱敏 fixture；负向（错钥、私网 URL、超大响应、跨 origin 无 allow）；`docs/03-configuration.md` / README 多语种更新。
 
 ### Wave 3 — 运维与可选（`1.4.0` 或按需）
 
@@ -447,7 +447,7 @@ TM 通过 `ollama.com/settings` + session cookie 解析 session/weekly。属 **�
 | 导出 | `router.ts` export 分支；CSV 公式注入沿用现有防护 |
 | 调度 | `src/server/scheduler.ts`、`config.ts` |
 | Adapter | `src/server/accounts/adapters/*`、`registry.ts`、`PROVIDER_DEFAULTS` |
-| 文档 | `docs/configuration.md`、`README.md`、`CHANGELOG.md`；本建议书可在实现后改「状态」列 |
+| 文档 | `docs/03-configuration.md`、`README.md`（及社区语种 README）、`CHANGELOG.md`；本建议书可在实现后改「状态」列 |
 
 **许可证**  
 参考 Token Monitor / CC Switch 仅为行为与 endpoint 研究；实现用自有 TypeScript + 脱敏自建 fixture，不复制对方源码。Volcengine 签名等按官方文档实现。
