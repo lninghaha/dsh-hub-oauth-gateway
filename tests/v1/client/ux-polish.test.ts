@@ -18,9 +18,15 @@ describe("client UX polish contracts", () => {
 			"alert.level.critical",
 			"alert.dailyCost",
 			"accounts.emptyGuide",
+			"accounts.configure",
+			"accounts.roiBadge",
+			"peek.quotaStrip",
 			"breakdown.priced",
 			"pricing.providerPattern",
 			"pricing.remove",
+			"pricing.preset.openai",
+			"gateway.snippetsTitle",
+			"activity.dayDetail",
 			"fees.datePlaceholder",
 		] as const) {
 			expect(zh[key]).toBeTruthy();

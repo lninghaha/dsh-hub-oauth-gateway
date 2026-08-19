@@ -6,6 +6,7 @@
  */
 
 import type { LocalAuthCliStatus, LocalUsageRow } from "../../shared/local-monitor.js";
+import { usageUiController } from "../controller.js";
 import { formatCompact, formatRelativeTime } from "../format.js";
 import type { Translate } from "../locales.js";
 import { useLocalAuthQuery, useLocalUsageQuery, useLocalUsageScanMutation } from "../queries.js";
@@ -126,7 +127,16 @@ export function LocalMonitorSection({ t }: { readonly t: Translate }) {
 				{authData === null ? (
 					<div className="dus-chart-empty dus-empty-small">{t("dashboard.loading")}</div>
 				) : !authData.enabled ? (
-					<p className="dus-row-hint">{t("local.auth.disabled")}</p>
+					<div className="dus-empty-guide">
+						<p className="dus-row-hint">{t("local.auth.disabled")}</p>
+						<button
+							type="button"
+							className="dus-button is-small"
+							onClick={() => usageUiController.requestSettingsTab("capabilities")}
+						>
+							{t("local.openCapabilities")}
+						</button>
+					</div>
 				) : (
 					<div className="dus-account-grid is-compact">
 						{authData.cli.map((cli) => (
@@ -189,7 +199,16 @@ export function LocalMonitorSection({ t }: { readonly t: Translate }) {
 				{usageData === null ? (
 					<div className="dus-chart-empty dus-empty-small">{t("dashboard.loading")}</div>
 				) : !usageData.enabled ? (
-					<p className="dus-row-hint">{t("local.usage.disabled")}</p>
+					<div className="dus-empty-guide">
+						<p className="dus-row-hint">{t("local.usage.disabled")}</p>
+						<button
+							type="button"
+							className="dus-button is-small"
+							onClick={() => usageUiController.requestSettingsTab("capabilities")}
+						>
+							{t("local.openCapabilities")}
+						</button>
+					</div>
 				) : (
 					<UsageTable rows={usageData.rows} t={t} />
 				)}

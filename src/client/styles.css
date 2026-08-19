@@ -897,6 +897,7 @@ body {
 }
 
 .dus-chart-wrap {
+  position: relative;
   min-height: 270px;
   margin-top: 8px;
 }
@@ -1376,7 +1377,7 @@ body {
 }
 
 .dus-modal.is-peek .dus-kpi-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1950,6 +1951,291 @@ body {
   .dus-segmented button {
     flex: 1 1 0;
   }
+}
+
+.dus-quota-dual-track {
+  display: grid;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.dus-quota-reset-track {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--dus-warning), transparent);
+  opacity: 0.85;
+}
+
+.dus-quota-reset-icon {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.dus-quota-reset-ring .is-healthy {
+  color: var(--dus-success);
+}
+
+.dus-quota-reset-ring .is-warning {
+  color: var(--dus-warning);
+}
+
+.dus-quota-reset-ring .is-critical {
+  color: var(--dus-danger);
+}
+
+.dus-account-roi {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--dus-accent);
+  background: var(--dus-accent-soft);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.dus-empty-guide {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 12px 0;
+}
+
+.dus-peek-quota-strip {
+  display: grid;
+  gap: 8px;
+}
+
+.dus-peek-quota-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dus-peek-quota-item {
+  padding: 10px 12px;
+  border: 1px solid var(--dus-border);
+  border-radius: 12px;
+  background: var(--dus-card);
+}
+
+.dus-peek-quota-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dus-peek-quota-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dus-peek-quota-bar-row .dus-quota-track {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+
+.dus-peek-quota-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-skeleton {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 16px;
+}
+
+.dus-skeleton-kpi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dus-skeleton-kpi.is-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dus-skeleton-card,
+.dus-skeleton-block,
+.dus-skeleton-chart,
+.dus-skeleton-strip {
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--dus-control) 0%,
+    color-mix(in srgb, var(--dus-control) 55%, var(--dus-card)) 50%,
+    var(--dus-control) 100%
+  );
+  background-size: 200% 100%;
+  animation: dus-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.dus-skeleton-card {
+  min-height: 72px;
+}
+
+.dus-skeleton-block {
+  min-height: 28px;
+}
+
+.dus-skeleton-chart {
+  min-height: 220px;
+}
+
+.dus-skeleton-strip {
+  min-height: 120px;
+}
+
+@keyframes dus-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+
+.dus-chart-tooltip {
+  position: absolute;
+  z-index: 2;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--dus-border-strong);
+  border-radius: 10px;
+  color: var(--dus-fg);
+  background: color-mix(in srgb, var(--dus-card) 94%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--dus-fg) 16%, transparent);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.dus-chart-tooltip-time {
+  margin-bottom: 6px;
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-chart-tooltip-rows {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dus-chart-tooltip-rows li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.dus-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.dus-chart-tooltip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dus-chart-tooltip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dus-chart-tooltip-share {
+  color: var(--dus-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dus-heatmap-cell-group {
+  cursor: pointer;
+}
+
+.dus-heatmap-axis-label {
+  fill: var(--dus-muted);
+  font-size: 9px;
+}
+
+.dus-heatmap-cell.is-selected {
+  stroke: var(--dus-accent);
+  stroke-width: 1.5;
+}
+
+.dus-heatmap-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+  background: var(--dus-card);
+}
+
+.dus-gateway-snippets {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.dus-snippet-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dus-snippet-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.dus-snippet-panel pre {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+  background: var(--dus-control);
+  color: var(--dus-fg);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dus-pricing-presets {
+  display: grid;
+  gap: 8px;
+}
+
+.dus-hud.is-collapsed {
+  opacity: 0.72;
+  transform: scale(0.96);
+}
+
+.dus-hud.is-collapsed .dus-hud-blocks {
+  max-width: 0;
+  opacity: 0;
 }
 
 .dus-dashboard.is-reduced-motion *,

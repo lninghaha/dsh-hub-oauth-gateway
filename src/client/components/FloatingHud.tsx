@@ -4,7 +4,7 @@
  */
 
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountSnapshot } from "../../shared/domain.js";
 import { defaultUserPreferences, type HudPosition, type UserPreferences } from "../../shared/preferences.js";
 import { usageUiController } from "../controller.js";
@@ -15,6 +15,8 @@ import { filtersFromPreferences, resolveUsageQuery } from "../range.js";
 
 const MAX_HUD_BLOCKS = 6;
 const DRAG_THRESHOLD_PX = 4;
+const EDGE_SNAP_PX = 28;
+const HUD_COLLAPSE_MS = 4_500;
 
 type FloatingHudProps = PropsLocale<"usage-stats">;
 
@@ -69,13 +71,28 @@ function defaultHudPosition(): HudPosition {
 	};
 }
 
+function snapToEdge(position: HudPosition, width: number, height: number): HudPosition {
+	const maxLeft = Math.max(8, window.innerWidth - width - 8);
+	const maxTop = Math.max(8, window.innerHeight - height - 8);
+	let { left, top } = position;
+	if (left < EDGE_SNAP_PX) left = 8;
+	else if (left > maxLeft - EDGE_SNAP_PX) left = maxLeft;
+	if (top < EDGE_SNAP_PX) top = 8;
+	else if (top > maxTop - EDGE_SNAP_PX) top = maxTop;
+	return { left, top };
+}
+
 function clampPosition(position: HudPosition, width: number, height: number): HudPosition {
 	const maxLeft = Math.max(8, window.innerWidth - width - 8);
 	const maxTop = Math.max(8, window.innerHeight - height - 8);
-	return {
-		left: Math.min(maxLeft, Math.max(8, position.left)),
-		top: Math.min(maxTop, Math.max(8, position.top)),
-	};
+	return snapToEdge(
+		{
+			left: Math.min(maxLeft, Math.max(8, position.left)),
+			top: Math.min(maxTop, Math.max(8, position.top)),
+		},
+		width,
+		height,
+	);
 }
 
 function shortName(name: string): string {
@@ -113,10 +130,27 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 		moved: boolean;
 	} | null>(null);
 	const suppressClickRef = useRef(false);
+	const [collapsed, setCollapsed] = useState(false);
+	const collapseTimerRef = useRef<number | null>(null);
+
+	const bumpCollapseTimer = useCallback((): void => {
+		setCollapsed(false);
+		if (collapseTimerRef.current !== null) window.clearTimeout(collapseTimerRef.current);
+		if (preferences.display.reducedMotion === "always") return;
+		collapseTimerRef.current = window.setTimeout(() => setCollapsed(true), HUD_COLLAPSE_MS);
+	}, [preferences.display.reducedMotion]);
 
 	useEffect(() => {
 		positionRef.current = position;
 	}, [position]);
+
+	useEffect(() => {
+		if (!enabled) return;
+		bumpCollapseTimer();
+		return () => {
+			if (collapseTimerRef.current !== null) window.clearTimeout(collapseTimerRef.current);
+		};
+	}, [enabled, bumpCollapseTimer]);
 
 	useEffect(() => {
 		if (preferences.display.hudPosition !== null) {
@@ -183,6 +217,7 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 
 	const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>): void => {
 		if (event.button !== 0) return;
+		bumpCollapseTimer();
 		const node = shellRef.current;
 		if (node === null) return;
 		suppressClickRef.current = false;
@@ -242,9 +277,11 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 		<button
 			type="button"
 			ref={shellRef}
-			className={`dus-hud${preferences.display.density === "compact" ? " is-density-compact" : ""}${motionClass}`}
+			className={`dus-hud${preferences.display.density === "compact" ? " is-density-compact" : ""}${collapsed ? " is-collapsed" : ""}${motionClass}`}
 			style={{ left: position.left, top: position.top }}
 			aria-label={t("hud.openPeek")}
+			onPointerEnter={() => setCollapsed(false)}
+			onPointerLeave={bumpCollapseTimer}
 			onPointerDown={onPointerDown}
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}

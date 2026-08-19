@@ -36,7 +36,9 @@ import {
 import { AccountGrid } from "./AccountGrid.js";
 import { ActivityHeatmap } from "./ActivityHeatmap.js";
 import { BreakdownTable } from "./BreakdownTable.js";
+import { DashboardSkeleton } from "./DashboardSkeleton.js";
 import { LocalMonitorSection } from "./LocalMonitorSection.js";
+import { PeekQuotaSummary } from "./PeekQuotaSummary.js";
 import { UsageChart } from "./UsageChart.js";
 
 type UsageOverlayProps = PropsLocale<"usage-stats">;
@@ -414,6 +416,10 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 		usageUiController.selectProvider(next);
 		setFilters((current) => ({ ...current, providerIds: next === null ? [] : [next] }));
 	};
+	const openAccountsSettings = (): void => {
+		usageUiController.close();
+		usageUiController.requestSettingsTab("accounts");
+	};
 	const exportFilteredCsv = exportUrl(query, "csv", dimension, "filtered");
 	const exportDailyCsv = exportUrl(query, "csv", dimension, "daily");
 	const exportBundleJson = exportUrl(query, "json", dimension, "bundle");
@@ -471,7 +477,8 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						<h3 className="dus-section-title">{t("accounts.title")}</h3>
 						<AccountGrid
 							accounts={accountData}
-							emptyLabel={t("accounts.empty")}
+							emptyLabel={t("accounts.emptyGuide")}
+							onConfigureAccounts={openAccountsSettings}
 							selectedProviderId={selectedProvider}
 							onSelect={setProvider}
 							fees={feeRecords}
@@ -600,28 +607,22 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						{error !== null ? (
 							<div className="dus-error">{t("dashboard.error", { message: error })}</div>
 						) : overview.isPending ? (
-							<div className="dus-loading">{t("dashboard.loading")}</div>
+							<DashboardSkeleton peek={ui.surface === "peek"} />
 						) : overviewData === null ? (
 							<div className="dus-empty">{t("dashboard.empty")}</div>
 						) : ui.surface === "peek" ? (
 							<div className="dus-peek-content">
 								<OverviewCards data={overviewData} t={t} />
 								<AlertList alerts={alertData} title={t("metric.alerts")} t={t} limit={2} />
-								<section className="dus-section">
-									<div className="dus-section-head">
-										<h3 className="dus-section-title">{t("accounts.title")}</h3>
-										<span>{formatCompact(overviewData.activeProviders)}</span>
+								<PeekQuotaSummary accounts={accountData} t={t} />
+								{accountData.length === 0 ? (
+									<div className="dus-empty dus-empty-small dus-empty-guide">
+										<p>{t("accounts.emptyGuide")}</p>
+										<button type="button" className="dus-button is-primary is-small" onClick={openAccountsSettings}>
+											{t("accounts.configure")}
+										</button>
 									</div>
-									<AccountGrid
-										accounts={accountData}
-										emptyLabel={t("accounts.emptyGuide")}
-										compact
-										fees={feeRecords}
-										monthEstimatedCost={monthCostAmount}
-										baseCurrency={preferences.display.baseCurrency}
-										t={t}
-									/>
-								</section>
+								) : null}
 							</div>
 						) : (
 							<>

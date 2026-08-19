@@ -8,7 +8,7 @@ import {
 	defaultUserPreferences,
 	resetModulesToPreset,
 } from "../../shared/preferences.js";
-import { usageUiController } from "../controller.js";
+import { SETTINGS_OPEN_EVENT, SETTINGS_TAB_STORAGE_KEY, usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
 import {
 	useAccountsQuery,
@@ -563,6 +563,24 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 	);
 	const [initialized, setInitialized] = useState(false);
 	const [activeSettingsTab, setActiveSettingsTab] = useState<(typeof SETTINGS_TABS)[number]>("display");
+	useEffect(() => {
+		try {
+			const stored = sessionStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
+			if (stored !== null && (SETTINGS_TABS as readonly string[]).includes(stored)) {
+				setActiveSettingsTab(stored as (typeof SETTINGS_TABS)[number]);
+			}
+		} catch {
+			// ignore
+		}
+		const openHandler = (event: Event): void => {
+			const tab = (event as CustomEvent<{ tab?: string }>).detail?.tab;
+			if (tab !== undefined && (SETTINGS_TABS as readonly string[]).includes(tab)) {
+				setActiveSettingsTab(tab as (typeof SETTINGS_TABS)[number]);
+			}
+		};
+		window.addEventListener(SETTINGS_OPEN_EVENT, openHandler);
+		return () => window.removeEventListener(SETTINGS_OPEN_EVENT, openHandler);
+	}, []);
 	useEffect(() => {
 		if (initialized || preferences.data?.ok !== true) return;
 		setDraft(preferences.data.data);

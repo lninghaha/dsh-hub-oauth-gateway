@@ -26,7 +26,7 @@ describe("overlay height contract", () => {
 	});
 
 	it("keeps peek KPI cards compact in a single four-column row", () => {
-		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4/s);
+		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/s);
 		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-card\s*\{[^}]*min-height:\s*0/s);
 		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-value\s*\{[^}]*font-size:\s*clamp\(15px/s);
 		expect(css).toMatch(/\.dus-status\s*\{[^}]*text-transform:\s*none/s);

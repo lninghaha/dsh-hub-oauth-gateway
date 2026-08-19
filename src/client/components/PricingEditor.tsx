@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type PriceRule, PriceRuleSchema } from "../../shared/domain.js";
 import type { Translate } from "../locales.js";
+import { materializePresetRules, PRICING_PRESETS } from "../pricing-presets.js";
 import { usePricingQuery, useSavePricingMutation } from "../queries.js";
 import { parseNonNegativeNumber } from "./form-utils.js";
 
@@ -113,6 +114,21 @@ export function PricingEditor({ t }: { readonly t: Translate }) {
 				))}
 			</div>
 			{importError === null ? null : <span className="dus-error-inline">{importError}</span>}
+			<div className="dus-pricing-presets">
+				<span className="dus-row-hint">{t("pricing.presetsHint")}</span>
+				<div className="dus-inline-actions">
+					{PRICING_PRESETS.map((preset) => (
+						<button
+							key={preset.id}
+							type="button"
+							className="dus-button is-small"
+							onClick={() => setRules(materializePresetRules(preset, currency))}
+						>
+							{t(preset.labelKey)}
+						</button>
+					))}
+				</div>
+			</div>
 			<div className="dus-settings-actions">
 				<label className="dus-button is-small">
 					{t("pricing.import")}

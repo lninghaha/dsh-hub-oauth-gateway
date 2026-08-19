@@ -33,23 +33,45 @@ function QuotaBar({ window }: { readonly window: QuotaWindow }) {
 				? "—"
 				: `${formatNumber(window.remaining)} ${window.unit}`
 			: `${percent}%`;
+	const reset = resetLabel(window);
+	const resetUrgency =
+		window.resetsAt === null
+			? null
+			: Math.max(0, Math.min(1, 1 - Math.max(0, window.resetsAt - Date.now()) / 3_600_000 / 24));
 	return (
 		<div className="dus-quota-row">
 			<div className="dus-quota-meta">
 				<span>{window.label}</span>
 				<span className={`dus-quota-value is-${ratioClass(ratio)}`}>{label}</span>
 			</div>
-			<div
-				className="dus-quota-track"
-				role="progressbar"
-				aria-label={`${window.label} ${label}`}
-				aria-valuemin={0}
-				aria-valuemax={100}
-				aria-valuenow={percent ?? undefined}
-			>
-				<div className={`dus-quota-fill is-${ratioClass(ratio)}`} style={{ width: `${percent ?? 0}%` }} />
+			<div className="dus-quota-dual-track">
+				<div
+					className="dus-quota-track"
+					role="progressbar"
+					aria-label={`${window.label} ${label}`}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-valuenow={percent ?? undefined}
+				>
+					<div className={`dus-quota-fill is-${ratioClass(ratio)}`} style={{ width: `${percent ?? 0}%` }} />
+				</div>
+				{resetUrgency === null ? null : (
+					<div
+						className="dus-quota-reset-track"
+						role="presentation"
+						title={reset ?? undefined}
+						style={{ width: `${Math.round(resetUrgency * 100)}%` }}
+					/>
+				)}
 			</div>
-			{resetLabel(window) === null ? null : <span className="dus-quota-reset">↻ {resetLabel(window)}</span>}
+			{reset === null ? null : (
+				<span className="dus-quota-reset">
+					<span className="dus-quota-reset-icon" aria-hidden="true">
+						↻
+					</span>
+					{reset}
+				</span>
+			)}
 		</div>
 	);
 }
@@ -146,12 +168,31 @@ function fetchedHint(account: AccountSnapshot, t: Translate | undefined): string
 	return null;
 }
 
+function roiBadge(
+	fee: AccountFeeRecord | undefined,
+	monthEstimatedCost: number | null,
+	baseCurrency: string,
+	t: Translate | undefined,
+): string | null {
+	if (fee === undefined || t === undefined) return null;
+	const payback = paybackMultiplier(fee, monthEstimatedCost, baseCurrency);
+	if (payback === null) return null;
+	const monthly = monthlyEquivalent(fee);
+	if (monthly === null) return null;
+	return t("accounts.roiBadge", {
+		monthly: formatCurrency(monthly, fee.currency),
+		usage: formatCurrency(monthEstimatedCost, baseCurrency),
+		payback: String(payback),
+	});
+}
+
 export function AccountGrid({
 	accounts,
 	emptyLabel,
 	compact = false,
 	selectedProviderId,
 	onSelect,
+	onConfigureAccounts,
 	fees = [],
 	monthEstimatedCost = null,
 	baseCurrency = "USD",
@@ -162,12 +203,24 @@ export function AccountGrid({
 	readonly compact?: boolean;
 	readonly selectedProviderId?: string | null;
 	readonly onSelect?: (providerId: string) => void;
+	readonly onConfigureAccounts?: () => void;
 	readonly fees?: readonly AccountFeeRecord[];
 	readonly monthEstimatedCost?: number | null;
 	readonly baseCurrency?: string;
 	readonly t?: Translate;
 }) {
-	if (accounts.length === 0) return <div className="dus-empty dus-empty-small">{emptyLabel}</div>;
+	if (accounts.length === 0) {
+		return (
+			<div className="dus-empty dus-empty-small dus-empty-guide">
+				<p>{emptyLabel}</p>
+				{onConfigureAccounts === undefined ? null : (
+					<button type="button" className="dus-button is-primary is-small" onClick={onConfigureAccounts}>
+						{t?.("accounts.configure") ?? "Configure accounts"}
+					</button>
+				)}
+			</div>
+		);
+	}
 	const visible = compact ? compactAccounts(accounts) : accounts;
 	const feeByKey = new Map(fees.map((fee) => [feeKey(fee.providerId, fee.profileId), fee]));
 	return (
@@ -175,6 +228,7 @@ export function AccountGrid({
 			{visible.map((account) => {
 				const fee = feeByKey.get(feeKey(account.providerId, account.profileId));
 				const tip = fee === undefined || t === undefined ? null : feeTooltip(fee, monthEstimatedCost, baseCurrency, t);
+				const roi = roiBadge(fee, monthEstimatedCost, baseCurrency, t);
 				const cardKey = feeKey(account.providerId, account.profileId);
 				const lastGood = fetchedHint(account, t);
 				return (
@@ -198,6 +252,7 @@ export function AccountGrid({
 								{statusLabel(account, t)}
 							</span>
 						</button>
+						{roi === null || compact ? null : <span className="dus-account-roi">{roi}</span>}
 						{lastGood === null || compact ? null : <p className="dus-account-last-good">{lastGood}</p>}
 						{balanceLabel(account) === null ? null : (
 							<strong className="dus-account-balance" title={tip ?? undefined}>

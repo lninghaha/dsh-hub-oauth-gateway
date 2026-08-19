@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type uPlot from "uplot";
 import type { SeriesData } from "../../shared/contracts.js";
 import type { UsageMetric } from "../../shared/domain.js";
@@ -17,6 +17,20 @@ interface ChartSeries {
 	readonly key: string;
 	readonly label: string;
 	readonly total: number;
+}
+
+interface ChartTooltipRow {
+	readonly label: string;
+	readonly value: string;
+	readonly share: string;
+	readonly color: string;
+}
+
+interface ChartTooltipState {
+	readonly left: number;
+	readonly top: number;
+	readonly timestamp: number;
+	readonly rows: readonly ChartTooltipRow[];
 }
 
 function chartSeries(data: SeriesData): ChartSeries[] {
@@ -62,6 +76,11 @@ function readChartTheme(element: HTMLElement): { stroke: string; grid: string; s
 	return { stroke: muted, grid: border, series };
 }
 
+function formatTimestamp(seconds: number): string {
+	const date = new Date(seconds * 1_000);
+	return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export function UsageChart({
 	data,
 	metric,
@@ -76,12 +95,15 @@ export function UsageChart({
 	emptyLabel?: string;
 }) {
 	const host = useRef<HTMLDivElement>(null);
+	const wrapRef = useRef<HTMLDivElement>(null);
+	const [tooltip, setTooltip] = useState<ChartTooltipState | null>(null);
 	const series = useMemo(() => chartSeries(data), [data]);
 	const aligned = useMemo(() => alignedData(data, series), [data, series]);
 
 	useEffect(() => {
 		const element = host.current;
-		if (element === null || data.points.length === 0 || series.length === 0) return;
+		const wrap = wrapRef.current;
+		if (element === null || wrap === null || data.points.length === 0 || series.length === 0) return;
 		let disposed = false;
 		let plot: uPlot | null = null;
 		let observer: ResizeObserver | null = null;
@@ -90,12 +112,56 @@ export function UsageChart({
 			if (disposed) return;
 			const theme = readChartTheme(element);
 			const width = Math.max(300, element.clientWidth || 720);
+			const strokeFor = (entry: ChartSeries, index: number): string =>
+				colors[entry.key] ?? theme.series[index % theme.series.length] ?? "#6f6af8";
 			plot = new UPlot(
 				{
 					width,
 					height: 270,
 					cursor: { drag: { x: true, y: false }, focus: { prox: 24 } },
 					legend: { show: true, live: true },
+					hooks: {
+						setCursor: [
+							(self) => {
+								const idx = self.cursor.idx;
+								if (idx === null || idx === undefined || idx < 0 || idx >= data.points.length) {
+									setTooltip(null);
+									return;
+								}
+								const point = data.points[idx];
+								if (point === undefined) {
+									setTooltip(null);
+									return;
+								}
+								const entries = series
+									.map((entry, index) => {
+										const raw = point.values.find((value) => value.key === entry.key)?.value ?? null;
+										if (raw === null) return null;
+										return { entry, raw, color: strokeFor(entry, index) };
+									})
+									.filter((row): row is NonNullable<typeof row> => row !== null)
+									.sort((left, right) => right.raw - left.raw);
+								const total = entries.reduce((sum, row) => sum + row.raw, 0);
+								if (entries.length === 0 || total <= 0) {
+									setTooltip(null);
+									return;
+								}
+								const left = self.cursor.left ?? 0;
+								const top = self.cursor.top ?? 0;
+								setTooltip({
+									left: Math.min(Math.max(8, left + 12), width - 220),
+									top: Math.max(8, top - 8),
+									timestamp: point.timestamp,
+									rows: entries.map(({ entry, raw, color }) => ({
+										label: entry.label,
+										value: formatMetric(metric, raw, currency),
+										share: `${Math.round((raw / total) * 1000) / 10}%`,
+										color,
+									})),
+								});
+							},
+						],
+					},
 					axes: [
 						{ stroke: theme.stroke, grid: { stroke: theme.grid, width: 1 } },
 						{
@@ -107,7 +173,7 @@ export function UsageChart({
 					series: [
 						{},
 						...series.map((entry, index) => {
-							const stroke = colors[entry.key] ?? theme.series[index % theme.series.length] ?? "#6f6af8";
+							const stroke = strokeFor(entry, index);
 							return {
 								label: entry.label,
 								stroke,
@@ -119,7 +185,7 @@ export function UsageChart({
 						...(data.forecast.length === 0
 							? []
 							: series.map((entry, index) => {
-									const stroke = colors[entry.key] ?? theme.series[index % theme.series.length] ?? "#6f6af8";
+									const stroke = strokeFor(entry, index);
 									return {
 										label: `${entry.label} · forecast`,
 										stroke,
@@ -141,16 +207,37 @@ export function UsageChart({
 		});
 		return () => {
 			disposed = true;
+			setTooltip(null);
 			observer?.disconnect();
 			if (resize !== null) window.removeEventListener("resize", resize);
 			plot?.destroy();
 		};
-	}, [aligned, colors, currency, data.forecast.length, data.points.length, metric, series]);
+	}, [aligned, colors, currency, data.forecast.length, data.points, metric, series]);
 
 	if (data.points.length === 0 || series.length === 0) return <div className="dus-chart-empty">{emptyLabel}</div>;
 	return (
-		<div className="dus-chart-wrap">
+		<div className="dus-chart-wrap" ref={wrapRef}>
 			<div ref={host} className="dus-chart" aria-hidden="true" />
+			{tooltip === null ? null : (
+				<div
+					className="dus-chart-tooltip"
+					style={{ left: tooltip.left, top: tooltip.top }}
+					role="status"
+					aria-live="polite"
+				>
+					<div className="dus-chart-tooltip-time">{formatTimestamp(tooltip.timestamp / 1_000)}</div>
+					<ul className="dus-chart-tooltip-rows">
+						{tooltip.rows.map((row) => (
+							<li key={row.label}>
+								<span className="dus-chart-tooltip-dot" style={{ background: row.color }} aria-hidden="true" />
+								<span className="dus-chart-tooltip-label">{row.label}</span>
+								<span className="dus-chart-tooltip-value">{row.value}</span>
+								<span className="dus-chart-tooltip-share">{row.share}</span>
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
 			<ul className="dus-sr-only">
 				{series.map((entry) => (
 					<li key={entry.key}>

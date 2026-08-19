@@ -27,7 +27,7 @@ function CopyButton({ value, t }: { readonly value: string; readonly t: Translat
 	return (
 		<button
 			type="button"
-			className="dus-button"
+			className="dus-button is-small"
 			onClick={() => {
 				void navigator.clipboard?.writeText(value).then(() => {
 					setCopied(true);
@@ -37,6 +37,88 @@ function CopyButton({ value, t }: { readonly value: string; readonly t: Translat
 		>
 			{copied ? t("gateway.copied") : t("gateway.copy")}
 		</button>
+	);
+}
+
+type SnippetId = "curl" | "python" | "node" | "cursor";
+
+function buildSnippets(bind: string, port: number, apiKey: string): Record<SnippetId, string> {
+	const openaiBase = `http://${bind}:${port}/v1`;
+	const anthropicBase = `http://${bind}:${port}`;
+	const key = apiKey || "YOUR_GATEWAY_KEY";
+	return {
+		curl: `curl ${openaiBase}/chat/completions \\
+  -H "Authorization: Bearer ${key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}'`,
+		python: `from openai import OpenAI
+
+client = OpenAI(base_url="${openaiBase}", api_key="${key}")
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(response.choices[0].message.content)`,
+		node: `import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "${openaiBase}",
+  apiKey: "${key}",
+});
+const response = await client.chat.completions.create({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "Hello" }],
+});
+console.log(response.choices[0]?.message?.content);`,
+		cursor: `{
+  "openai.api.baseUrl": "${openaiBase}",
+  "openai.api.key": "${key}",
+  "anthropic.api.baseUrl": "${anthropicBase}",
+  "anthropic.api.key": "${key}"
+}`,
+	};
+}
+
+function GatewaySnippets({
+	bind,
+	port,
+	apiKey,
+	t,
+}: {
+	readonly bind: string;
+	readonly port: number;
+	readonly apiKey: string;
+	readonly t: Translate;
+}) {
+	const [active, setActive] = useState<SnippetId>("curl");
+	const snippets = buildSnippets(bind, port, apiKey);
+	const tabs: readonly { id: SnippetId; label: string }[] = [
+		{ id: "curl", label: "cURL" },
+		{ id: "python", label: "Python" },
+		{ id: "node", label: "Node.js" },
+		{ id: "cursor", label: t("gateway.snippet.cursor") },
+	];
+	return (
+		<section className="dus-gateway-snippets">
+			<h3 className="dus-settings-subtitle">{t("gateway.snippetsTitle")}</h3>
+			<p className="dus-row-hint">{t("gateway.snippetsHint")}</p>
+			<nav className="dus-snippet-tabs" aria-label={t("gateway.snippetsTitle")}>
+				{tabs.map((tab) => (
+					<button
+						key={tab.id}
+						type="button"
+						className={`dus-tab${active === tab.id ? " is-active" : ""}`}
+						onClick={() => setActive(tab.id)}
+					>
+						{tab.label}
+					</button>
+				))}
+			</nav>
+			<div className="dus-snippet-panel">
+				<pre>{snippets[active]}</pre>
+				<CopyButton value={snippets[active]} t={t} />
+			</div>
+		</section>
 	);
 }
 
@@ -54,6 +136,8 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 	const operationError = [patch.error, reveal.error, rotate.error].find(
 		(value): value is Error => value instanceof Error,
 	);
+	const revealedKey =
+		reveal.data === undefined && rotate.data === undefined ? "" : ((rotate.data ?? reveal.data)?.apiKey ?? "");
 	return (
 		<div className="dus-settings-stack" data-settings-tab="gateway">
 			<p className="dus-settings-hint">{t("gateway.intro")}</p>
@@ -171,6 +255,7 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 							{operationError.message}
 						</p>
 					)}
+					<GatewaySnippets bind={data.bind} port={data.port} apiKey={revealedKey} t={t} />
 				</>
 			)}
 		</div>
