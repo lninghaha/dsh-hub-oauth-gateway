@@ -13,6 +13,7 @@ export interface BreakdownLabels {
 	readonly output?: string;
 	readonly cacheRead?: string;
 	readonly cacheWrite?: string;
+	readonly priced?: (value: number) => string;
 }
 
 export function BreakdownTable({
@@ -77,7 +78,7 @@ export function BreakdownTable({
 										<td>{formatCompact(row.buckets.cacheWriteTokens)}</td>
 									</>
 								) : null}
-								<td title={`${Math.round(row.cost.coverageRatio * 100)}% priced`}>
+								<td title={labels.priced?.(Math.round(row.cost.coverageRatio * 100)) ?? undefined}>
 									{formatCurrency(row.cost.amount, row.cost.currency)}
 								</td>
 							</tr>

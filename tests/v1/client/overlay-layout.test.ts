@@ -31,4 +31,25 @@ describe("overlay height contract", () => {
 		expect(css).toMatch(/\.dus-modal\.is-peek\s+\.dus-kpi-value\s*\{[^}]*font-size:\s*clamp\(15px/s);
 		expect(css).toMatch(/\.dus-status\s*\{[^}]*text-transform:\s*none/s);
 	});
+
+	it("unifies capsule buttons and keeps fee rows responsive under 760px", () => {
+		expect(css).toMatch(/\.dus-button\s*\{[^}]*border-radius:\s*18px/s);
+		expect(css).toMatch(/\.dus-button\.is-primary\s*\{/s);
+		expect(css).toMatch(/\.dus-export-menu-panel\s*\{/s);
+		expect(css).toMatch(/\.dus-fee-head\s*,\s*\.dus-fee-row\s*\{/s);
+		expect(css).toMatch(/\.dus-muted\s*\{[^}]*color:\s*var\(--dus-muted\)/s);
+		expect(css).toMatch(/\.dus-account-last-good\s*\{/s);
+		expect(css).not.toMatch(/\.dus-grid-main\s*\{/s);
+		expect(css).not.toMatch(/\.dus-provider-toggles\s*\{/s);
+		expect(css).toMatch(/\.dus-fee-head,\s*\n\s*\.dus-fee-row \{\s*\n\s*grid-template-columns:\s*1fr/s);
+		expect(css).toMatch(/\.dus-fee-field-label\s*\{[^}]*display:\s*none/s);
+	});
+
+	it("keeps secondary type at or above the 11px readability floor", () => {
+		expect(css).toMatch(/\.dus-kpi-delta\s*\{[^}]*font-size:\s*11px/s);
+		expect(css).toMatch(/\.dus-status\s*\{[^}]*font-size:\s*10px/s);
+		expect(css).toMatch(/\.dus-alert-level\s*\{[^}]*font-size:\s*10px/s);
+		expect(css).not.toMatch(/font-size:\s*8px/s);
+		expect(css).not.toMatch(/font-weight:\s*680/s);
+	});
 });

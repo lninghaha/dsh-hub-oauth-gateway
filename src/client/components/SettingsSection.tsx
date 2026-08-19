@@ -1,8 +1,6 @@
 import type { SettingsSectionOwnerProps } from "@deepseek-ai/dsh-client-ui-settings/client";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { type PriceRule, PriceRuleSchema } from "../../shared/domain.js";
-import type { AccountFeeRecord, FeeInterval, FeeKind } from "../../shared/fees.js";
 import type { UserPreferences } from "../../shared/preferences.js";
 import {
 	applyPresetToPreferences,
@@ -17,20 +15,19 @@ import {
 	useCredentialQuery,
 	useDeviceCodeMutation,
 	useDevicePollMutation,
-	useFeesQuery,
 	usePreferencesQuery,
-	usePricingQuery,
-	useSaveFeesMutation,
 	useSavePreferencesMutation,
-	useSavePricingMutation,
 	useSetCredentialMutation,
 	useUnsetCredentialMutation,
 } from "../queries.js";
 import { SETTINGS_TABS } from "../settings-tabs.js";
 import { SelectPill, SettingsRow, TextInput, Toggle } from "./controls.js";
+import { FeesEditor } from "./FeesEditor.js";
+import { parseNonNegativeNumber } from "./form-utils.js";
 import { AccountsTab } from "./oauth/AccountsTab.js";
 import { CapabilitiesTab } from "./oauth/CapabilitiesTab.js";
 import { GatewayTab } from "./oauth/GatewayTab.js";
+import { PricingEditor } from "./PricingEditor.js";
 import { ProviderManagement } from "./ProviderManagement.js";
 
 type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;
@@ -263,7 +260,7 @@ function PreferenceEditor({
 							<div className="dus-module-move">
 								<button
 									type="button"
-									className="dus-secondary-button"
+									className="dus-button is-small"
 									disabled={index === 0}
 									aria-label={t("settings.moveUp")}
 									onClick={() => {
@@ -286,7 +283,7 @@ function PreferenceEditor({
 								</button>
 								<button
 									type="button"
-									className="dus-secondary-button"
+									className="dus-button is-small"
 									disabled={index >= display.modules.order.length - 1}
 									aria-label={t("settings.moveDown")}
 									onClick={() => {
@@ -453,7 +450,7 @@ function PreferenceEditor({
 						onChange={(event) =>
 							onChange({
 								...draft,
-								alerts: { ...draft.alerts, dailyCostThreshold: numeric(event.target.value) },
+								alerts: { ...draft.alerts, dailyCostThreshold: parseNonNegativeNumber(event.target.value) },
 							})
 						}
 					/>
@@ -508,7 +505,7 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 				</span>
 				<button
 					type="button"
-					className="dus-primary-button"
+					className="dus-button is-primary"
 					disabled={value === "" || save.isPending}
 					onClick={() => save.mutate({ ref, value }, { onSuccess: () => setValue("") })}
 				>
@@ -516,7 +513,7 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 				</button>
 				<button
 					type="button"
-					className="dus-secondary-button"
+					className="dus-button is-small"
 					disabled={!info?.configured || unset.isPending}
 					onClick={() => unset.mutate(ref)}
 				>
@@ -529,7 +526,7 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 				{deviceData === null ? (
 					<button
 						type="button"
-						className="dus-secondary-button"
+						className="dus-button is-small"
 						disabled={device.isPending}
 						onClick={() => device.mutate("copilot")}
 					>
@@ -538,12 +535,12 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 				) : (
 					<>
 						<span>{t("credential.code", { code: deviceData.userCode })}</span>
-						<a className="dus-secondary-button" href={deviceData.verificationUri} target="_blank" rel="noreferrer">
+						<a className="dus-button is-small" href={deviceData.verificationUri} target="_blank" rel="noreferrer">
 							{t("credential.open")}
 						</a>
 						<button
 							type="button"
-							className="dus-primary-button"
+							className="dus-button is-primary"
 							disabled={poll.isPending}
 							onClick={() => poll.mutate({ providerId: "copilot", flowId: deviceData.flowId })}
 						>
@@ -551,314 +548,6 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 						</button>
 					</>
 				)}
-			</div>
-		</div>
-	);
-}
-
-function numeric(value: string): number | null {
-	if (value.trim() === "") return null;
-	const parsed = Number(value);
-	return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-
-function emptyFee(currency: string): AccountFeeRecord {
-	return {
-		id: `fee-${Date.now()}`,
-		providerId: "provider-a",
-		profileId: "",
-		accountLabel: null,
-		kind: "subscription",
-		planName: null,
-		amount: 0,
-		currency,
-		interval: "month",
-		anchorDate: null,
-		nextRenewalDate: null,
-		topups: [],
-		notes: null,
-		updatedAt: Date.now(),
-	};
-}
-
-function FeesEditor({ t, currency }: { readonly t: Translate; readonly currency: string }) {
-	const query = useFeesQuery();
-	const save = useSaveFeesMutation();
-	const [fees, setFees] = useState<AccountFeeRecord[]>([]);
-	const [initialized, setInitialized] = useState(false);
-	useEffect(() => {
-		if (initialized || query.data?.ok !== true) return;
-		setFees(query.data.data.fees.map((fee) => ({ ...fee })));
-		setInitialized(true);
-	}, [initialized, query.data]);
-	const update = (index: number, patch: Partial<AccountFeeRecord>): void =>
-		setFees((current) =>
-			current.map((fee, position) => (position === index ? { ...fee, ...patch, updatedAt: Date.now() } : fee)),
-		);
-	return (
-		<div className="dus-settings-card">
-			<div>
-				<h3>{t("settings.fees")}</h3>
-				<p>{t("settings.feesIntro")}</p>
-			</div>
-			<div className="dus-fee-table">
-				{fees.map((fee, index) => (
-					<div className="dus-fee-row" key={fee.id}>
-						<label className="dus-select-label">
-							<span className="dus-sr-only">{t("fees.kind")}</span>
-							<select
-								value={fee.kind}
-								onChange={(event) => {
-									const kind = event.target.value as FeeKind;
-									update(index, {
-										kind,
-										interval: kind === "subscription" ? (fee.interval ?? "month") : null,
-										topups: kind === "topup" ? fee.topups : [],
-									});
-								}}
-							>
-								<option value="subscription">{t("fees.subscription")}</option>
-								<option value="topup">{t("fees.topup")}</option>
-							</select>
-						</label>
-						<input
-							aria-label={t("fees.providerId")}
-							placeholder={t("fees.providerId")}
-							value={fee.providerId}
-							onChange={(event) => update(index, { providerId: event.target.value.trim() || "provider-a" })}
-						/>
-						<input
-							aria-label={t("fees.planName")}
-							placeholder={t("fees.planName")}
-							value={fee.planName ?? ""}
-							onChange={(event) => update(index, { planName: event.target.value.trim() || null })}
-						/>
-						<input
-							aria-label={t("fees.amount")}
-							inputMode="decimal"
-							value={fee.amount}
-							onChange={(event) => update(index, { amount: Math.max(0, Number(event.target.value) || 0) })}
-						/>
-						<input
-							aria-label={t("fees.currency")}
-							maxLength={8}
-							value={fee.currency}
-							onChange={(event) => update(index, { currency: event.target.value.toUpperCase() })}
-						/>
-						{fee.kind === "subscription" ? (
-							<select
-								aria-label={t("fees.interval")}
-								value={fee.interval ?? "month"}
-								onChange={(event) => update(index, { interval: event.target.value as FeeInterval })}
-							>
-								<option value="month">{t("fees.intervalMonth")}</option>
-								<option value="year">{t("fees.intervalYear")}</option>
-							</select>
-						) : (
-							<span className="dus-fee-placeholder">—</span>
-						)}
-						<input
-							aria-label={t("fees.nextRenewalDate")}
-							placeholder="YYYY-MM-DD"
-							value={fee.nextRenewalDate ?? ""}
-							onChange={(event) =>
-								update(index, {
-									nextRenewalDate: /^\d{4}-\d{2}-\d{2}$/.test(event.target.value)
-										? event.target.value
-										: event.target.value.trim() === ""
-											? null
-											: fee.nextRenewalDate,
-								})
-							}
-						/>
-						<input
-							aria-label={t("fees.notes")}
-							placeholder={t("fees.notes")}
-							value={fee.notes ?? ""}
-							onChange={(event) => update(index, { notes: event.target.value.trim() || null })}
-						/>
-						<button
-							type="button"
-							className="dus-icon-button"
-							aria-label={t("fees.remove")}
-							onClick={() => setFees((current) => current.filter((_, position) => position !== index))}
-						>
-							×
-						</button>
-					</div>
-				))}
-			</div>
-			<div className="dus-settings-actions">
-				<button
-					type="button"
-					className="dus-secondary-button"
-					onClick={() => setFees((current) => [...current, emptyFee(currency)])}
-				>
-					{t("fees.add")}
-				</button>
-				<button
-					type="button"
-					className="dus-primary-button"
-					disabled={save.isPending}
-					onClick={() => save.mutate(fees)}
-				>
-					{save.isPending ? t("settings.saving") : t("settings.save")}
-				</button>
-				{save.isSuccess ? <span className="dus-save-state">{t("settings.feesSaved")}</span> : null}
-			</div>
-		</div>
-	);
-}
-
-function PricingEditor({ t }: { readonly t: Translate }) {
-	const query = usePricingQuery();
-	const save = useSavePricingMutation();
-	const [rules, setRules] = useState<PriceRule[]>([]);
-	const [initialized, setInitialized] = useState(false);
-	const [importError, setImportError] = useState<string | null>(null);
-	const currency = query.data?.ok === true ? query.data.data.baseCurrency : "USD";
-	useEffect(() => {
-		if (initialized || query.data?.ok !== true) return;
-		setRules(query.data.data.rules.filter(({ source }) => source === "user"));
-		setInitialized(true);
-	}, [initialized, query.data]);
-	const update = (index: number, patch: Partial<PriceRule>): void =>
-		setRules((current) =>
-			current.map((rule, position) => (position === index ? { ...rule, ...patch, updatedAt: Date.now() } : rule)),
-		);
-	const importRules = async (file: File): Promise<void> => {
-		try {
-			if (file.size > 1_048_576) throw new Error("file-too-large");
-			const raw: unknown = JSON.parse(await file.text());
-			const candidate = Array.isArray(raw)
-				? raw
-				: raw !== null && typeof raw === "object" && "rules" in raw && Array.isArray(raw.rules)
-					? raw.rules
-					: null;
-			if (candidate === null) throw new Error("invalid-catalog");
-			const imported = candidate.map((value, index) => {
-				if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid-rule");
-				const source = value as Record<string, unknown>;
-				return PriceRuleSchema.parse({
-					...source,
-					id: source.id ?? `import-${Date.now()}-${index}`,
-					effectiveFrom: source.effectiveFrom ?? 0,
-					currency: source.currency ?? currency,
-					inputPerMillion: source.inputPerMillion ?? null,
-					outputPerMillion: source.outputPerMillion ?? null,
-					cacheReadPerMillion: source.cacheReadPerMillion ?? null,
-					cacheWritePerMillion: source.cacheWritePerMillion ?? null,
-					source: "user",
-					updatedAt: Date.now(),
-				});
-			});
-			setRules(imported);
-			setImportError(null);
-		} catch {
-			setImportError(t("pricing.invalid"));
-		}
-	};
-	return (
-		<div className="dus-settings-card">
-			<div>
-				<h3>{t("pricing.title")}</h3>
-				<p>{t("pricing.intro")}</p>
-			</div>
-			<div className="dus-price-table">
-				{rules.map((rule, index) => (
-					<div className="dus-price-row" key={rule.id}>
-						<input
-							aria-label="Provider pattern"
-							value={rule.providerPattern}
-							onChange={(event) => update(index, { providerPattern: event.target.value })}
-						/>
-						<input
-							aria-label="Model pattern"
-							value={rule.modelPattern}
-							onChange={(event) => update(index, { modelPattern: event.target.value })}
-						/>
-						<input
-							aria-label="Input per million"
-							inputMode="decimal"
-							value={rule.inputPerMillion ?? ""}
-							onChange={(event) => update(index, { inputPerMillion: numeric(event.target.value) })}
-						/>
-						<input
-							aria-label="Output per million"
-							inputMode="decimal"
-							value={rule.outputPerMillion ?? ""}
-							onChange={(event) => update(index, { outputPerMillion: numeric(event.target.value) })}
-						/>
-						<input
-							aria-label="Cache read per million"
-							inputMode="decimal"
-							value={rule.cacheReadPerMillion ?? ""}
-							onChange={(event) => update(index, { cacheReadPerMillion: numeric(event.target.value) })}
-						/>
-						<input
-							aria-label="Cache write per million"
-							inputMode="decimal"
-							value={rule.cacheWritePerMillion ?? ""}
-							onChange={(event) => update(index, { cacheWritePerMillion: numeric(event.target.value) })}
-						/>
-						<button
-							type="button"
-							className="dus-icon-button"
-							aria-label="Delete"
-							onClick={() => setRules((current) => current.filter((_, position) => position !== index))}
-						>
-							×
-						</button>
-					</div>
-				))}
-			</div>
-			{importError === null ? null : <span className="dus-error-inline">{importError}</span>}
-			<div className="dus-settings-actions">
-				<label className="dus-secondary-button">
-					{t("pricing.import")}
-					<input
-						className="dus-sr-only"
-						type="file"
-						accept="application/json,.json"
-						onChange={(event) => {
-							const file = event.target.files?.[0];
-							if (file !== undefined) void importRules(file);
-							event.target.value = "";
-						}}
-					/>
-				</label>
-				<button
-					type="button"
-					className="dus-secondary-button"
-					onClick={() =>
-						setRules((current) => [
-							...current,
-							{
-								id: `user-${Date.now()}`,
-								providerPattern: "*",
-								modelPattern: "*",
-								effectiveFrom: 0,
-								currency,
-								inputPerMillion: null,
-								outputPerMillion: null,
-								cacheReadPerMillion: null,
-								cacheWritePerMillion: null,
-								source: "user",
-								updatedAt: Date.now(),
-							},
-						])
-					}
-				>
-					＋
-				</button>
-				<button
-					type="button"
-					className="dus-primary-button"
-					disabled={save.isPending}
-					onClick={() => save.mutate({ baseCurrency: currency, rules })}
-				>
-					{t("settings.save")}
-				</button>
 			</div>
 		</div>
 	);
@@ -892,7 +581,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 				<div className="dus-settings-heading-actions">
 					<button
 						type="button"
-						className="dus-secondary-button"
+						className="dus-button is-small"
 						onClick={() => {
 							close();
 							usageUiController.openPeek();
@@ -902,7 +591,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					</button>
 					<button
 						type="button"
-						className="dus-secondary-button"
+						className="dus-button is-small"
 						onClick={() => {
 							close();
 							usageUiController.openDashboard();
@@ -932,7 +621,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					<div className="dus-settings-actions">
 						<button
 							type="button"
-							className="dus-primary-button"
+							className="dus-button is-primary"
 							disabled={save.isPending}
 							onClick={() => save.mutate(draft)}
 						>

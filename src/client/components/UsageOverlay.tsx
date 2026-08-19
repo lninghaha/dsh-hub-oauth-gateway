@@ -117,14 +117,53 @@ function OverviewCards({ data, t }: { readonly data: OverviewData; readonly t: T
 	);
 }
 
-function AlertList({ alerts, title }: { readonly alerts: readonly UsageAlert[]; readonly title: string }) {
+const ACCOUNT_STATUS_KEYS: ReadonlySet<string> = new Set([
+	"ok",
+	"pending",
+	"not-configured",
+	"unsupported",
+	"auth-error",
+	"rate-limited",
+	"unavailable",
+	"error",
+	"stale",
+]);
+
+function localizeAlertTitle(alert: UsageAlert, t: Translate): string {
+	if (alert.kind === "cost") {
+		const currency = /^[A-Z]{3}$/.test(alert.title)
+			? alert.title
+			: (/\(([A-Z]{3})\)/.exec(alert.title)?.[1] ?? alert.title);
+		return t("alert.dailyCost", { currency: currency || "—" });
+	}
+	const separator = alert.title.indexOf(": ");
+	if (separator < 0) return alert.title;
+	const name = alert.title.slice(0, separator);
+	const detail = alert.title.slice(separator + 2);
+	if (alert.kind === "account" && ACCOUNT_STATUS_KEYS.has(detail)) {
+		return `${name}: ${t(`status.${detail}` as "status.ok")}`;
+	}
+	return alert.title;
+}
+
+function AlertList({
+	alerts,
+	title,
+	t,
+	limit = 5,
+}: {
+	readonly alerts: readonly UsageAlert[];
+	readonly title: string;
+	readonly t: Translate;
+	readonly limit?: number;
+}) {
 	if (alerts.length === 0) return null;
 	return (
 		<section className="dus-alert-strip" aria-label={title}>
-			{alerts.slice(0, 5).map((alert) => (
+			{alerts.slice(0, limit).map((alert) => (
 				<article className={`dus-alert is-${alert.level}`} key={alert.id}>
-					<span className="dus-alert-level">{alert.level}</span>
-					<strong>{alert.title}</strong>
+					<span className="dus-alert-level">{t(`alert.level.${alert.level}`)}</span>
+					<strong>{localizeAlertTitle(alert, t)}</strong>
 					{alert.value === null ? null : (
 						<span>{alert.kind === "quota" ? formatPercent(alert.value) : alert.value.toLocaleString()}</span>
 					)}
@@ -165,7 +204,7 @@ function Toolbar({
 	return (
 		<div className="dus-toolbar">
 			<fieldset className="dus-segmented">
-				<legend className="dus-sr-only">Date range</legend>
+				<legend className="dus-sr-only">{t("toolbar.range")}</legend>
 				{ranges.map((range) => (
 					<button
 						type="button"
@@ -178,7 +217,7 @@ function Toolbar({
 				))}
 			</fieldset>
 			<label className="dus-select-label">
-				<span className="dus-sr-only">Metric</span>
+				<span className="dus-sr-only">{t("toolbar.metric")}</span>
 				<select
 					value={filters.metric}
 					onChange={(event) => onChange({ ...filters, metric: event.target.value as UsageMetric })}
@@ -190,7 +229,7 @@ function Toolbar({
 				</select>
 			</label>
 			<label className="dus-select-label">
-				<span className="dus-sr-only">Group</span>
+				<span className="dus-sr-only">{t("toolbar.group")}</span>
 				<select
 					value={filters.groupBy}
 					onChange={(event) => onChange({ ...filters, groupBy: event.target.value as DashboardFilters["groupBy"] })}
@@ -209,20 +248,23 @@ function Toolbar({
 				<span>{t("toolbar.compare")}</span>
 			</label>
 			<span className="dus-toolbar-spacer" />
-			<button type="button" className="dus-secondary-button" onClick={onRefresh} disabled={refreshing}>
+			<button type="button" className="dus-button is-small" onClick={onRefresh} disabled={refreshing}>
 				{refreshing ? t("toolbar.refreshing") : t("toolbar.refresh")}
 			</button>
-			<div className="dus-export-menu">
-				<a className="dus-secondary-button" href={exportFilteredCsv} download>
-					{t("toolbar.exportCsv")}
-				</a>
-				<a className="dus-secondary-button" href={exportDailyCsv} download>
-					{t("toolbar.exportDaily")}
-				</a>
-				<a className="dus-secondary-button" href={exportBundleJson} download>
-					{t("toolbar.exportBundle")}
-				</a>
-			</div>
+			<details className="dus-export-menu">
+				<summary className="dus-button is-small">{t("toolbar.export")}</summary>
+				<div className="dus-export-menu-panel">
+					<a className="dus-button is-small" href={exportFilteredCsv} download>
+						{t("toolbar.exportCsv")}
+					</a>
+					<a className="dus-button is-small" href={exportDailyCsv} download>
+						{t("toolbar.exportDaily")}
+					</a>
+					<a className="dus-button is-small" href={exportBundleJson} download>
+						{t("toolbar.exportBundle")}
+					</a>
+				</div>
+			</details>
 		</div>
 	);
 }
@@ -274,18 +316,27 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 		() => resolveUsageQuery({ ...effectiveFilters, range: "month", compare: false }, preferences.display.timeZone),
 		[effectiveFilters, preferences.display.timeZone],
 	);
-	const monthOverview = useOverviewQuery(monthQuery, open && (ui.surface === "peek" || showAccounts));
+	const showAccountsSurface =
+		ui.surface === "peek" || (ui.surface === "dashboard" && resolvedDashboardTab === "accounts");
+	const showAlertsSurface =
+		(ui.surface === "peek" && showAlerts) ||
+		(ui.surface === "dashboard" && resolvedDashboardTab === "overview" && showAlerts);
+	const monthOverview = useOverviewQuery(monthQuery, open && showAccountsSurface && showAccounts);
 	const accounts = useAccountsQuery(open);
-	const alerts = useAlertsQuery(open && (ui.surface === "peek" || showAlerts));
-	const series = useSeriesQuery(query, ui.surface === "dashboard" && showTrend);
+	const alerts = useAlertsQuery(open && showAlertsSurface);
+	const series = useSeriesQuery(query, ui.surface === "dashboard" && resolvedDashboardTab === "activity" && showTrend);
 	const activity = useActivityQuery(
 		filters.metric === "estimatedCost" || filters.metric === "requests" ? filters.metric : "tokens",
-		ui.surface === "dashboard" && showHeatmap,
+		ui.surface === "dashboard" && resolvedDashboardTab === "activity" && showHeatmap,
 		filters.providerIds,
 	);
-	const fees = useFeesQuery(open && (ui.surface === "peek" || showAccounts));
+	const fees = useFeesQuery(open && showAccountsSurface && showAccounts);
 	const dimension = filters.groupBy === "model" ? "model" : "provider";
-	const breakdown = useBreakdownQuery(query, dimension, ui.surface === "dashboard" && showBreakdown);
+	const breakdown = useBreakdownQuery(
+		query,
+		dimension,
+		ui.surface === "dashboard" && resolvedDashboardTab === "breakdown" && showBreakdown,
+	);
 	const refresh = useRefreshMutation();
 	const overviewData = overview.data?.ok === true ? overview.data.data : null;
 	const monthCostAmount =
@@ -373,7 +424,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 			case "kpi":
 				return <OverviewCards data={overviewData} t={t} key="kpi" />;
 			case "alerts":
-				return <AlertList alerts={alertData} title={t("metric.alerts")} key="alerts" />;
+				return <AlertList alerts={alertData} title={t("metric.alerts")} t={t} key="alerts" />;
 			case "heatmap":
 				return activityData === null ? (
 					<section className="dus-section" key="heatmap">
@@ -409,6 +460,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 								metric={filters.metric}
 								currency={overviewData.cost.currency}
 								colors={preferences.providers.colors}
+								emptyLabel={t("dashboard.empty")}
 							/>
 						)}
 					</section>
@@ -456,6 +508,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 									cacheRead: t("breakdown.cacheRead"),
 									cacheWrite: t("breakdown.cacheWrite"),
 									cost: t("breakdown.cost"),
+									priced: (value) => t("breakdown.priced", { value }),
 								}}
 							/>
 						)}
@@ -496,13 +549,17 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						</div>
 						<div className="dus-header-actions">
 							{ui.surface === "peek" ? (
-								<button type="button" className="dus-primary-button" onClick={() => usageUiController.openDashboard()}>
+								<button
+									type="button"
+									className="dus-button is-primary"
+									onClick={() => usageUiController.openDashboard()}
+								>
 									{t("peek.dashboard")}
 								</button>
 							) : null}
 							<button
 								type="button"
-								className="dus-icon-button"
+								className="dus-button is-small dus-icon-close"
 								aria-label={t("action.close")}
 								onClick={() => usageUiController.close()}
 							>
@@ -549,7 +606,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						) : ui.surface === "peek" ? (
 							<div className="dus-peek-content">
 								<OverviewCards data={overviewData} t={t} />
-								<AlertList alerts={alertData} title={t("metric.alerts")} />
+								<AlertList alerts={alertData} title={t("metric.alerts")} t={t} limit={2} />
 								<section className="dus-section">
 									<div className="dus-section-head">
 										<h3 className="dus-section-title">{t("accounts.title")}</h3>
@@ -557,7 +614,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 									</div>
 									<AccountGrid
 										accounts={accountData}
-										emptyLabel={t("accounts.empty")}
+										emptyLabel={t("accounts.emptyGuide")}
 										compact
 										fees={feeRecords}
 										monthEstimatedCost={monthCostAmount}

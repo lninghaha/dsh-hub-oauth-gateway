@@ -53,7 +53,7 @@ export function evaluateUsageAlerts(
 			id: `cost:daily:${dailyCost.currency}`,
 			kind: "cost",
 			level: dailyCost.amount >= costThreshold * 1.5 ? "critical" : "warning",
-			title: `Daily estimated cost (${dailyCost.currency})`,
+			title: dailyCost.currency,
 			providerId: null,
 			value: dailyCost.amount,
 			threshold: costThreshold,
