@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -51,6 +51,34 @@
 
 製品調査：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。アーキテクチャ：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
+## スクリーンショット
+
+DeepSeek Harness Web に本プラグインを入れた状態で撮影（新規隔離 profile ではローカル履歴が空でも正常）。
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="DSH シェル上のフローティング用量 HUD" width="760" />
+  <br />
+  <em>フローティング HUD — 本日の指標と複数アカウントのクォータチップ</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
+  <br />
+  <em>Quick Peek — ローカルのみの KPI。ワンクリックでフルダッシュボードへ</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Usage Center フルダッシュボード" width="760" />
+  <br />
+  <em>フルダッシュボード — 範囲・タブ・更新・CSV / JSON エクスポート</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="設定 → Usage Center" width="760" />
+  <br />
+  <em>設定 → Usage Center — 表示 / アカウント / ゲートウェイ / 機能 / プロバイダー / 費用</em>
+</p>
+
 ## 本プラグインが解決する問題
 
 | 検索 / 目にしたもの | 実際の問題 | 本プラグインの対応 |
@@ -72,12 +100,13 @@ systemctl --user restart dsh-web.service
 # or: dsh-web restart
 ```
 
-次に **Settings → Usage Center** を開く。Accounts / Gateway / Capabilities は必要に応じてサインインまたはスイッチを有効化。完全なインストールオプション（npx インストーラー、GitHub tarball、プロキシ）は [`INSTALL.md`](INSTALL.md)。
+次に **Settings → Usage Center** を開く。Accounts / Gateway / Capabilities は必要に応じてサインインまたはスイッチを有効化。完全なインストールオプション（npx インストーラー、GitHub tarball、プロキシ）は [`docs/01-install.md`](docs/01-install.md)。
 
 ## 目次
 
 - [名称変更](#名称変更)
 - [機能](#機能)
+- [スクリーンショット](#スクリーンショット)
 - [本プラグインが解決する問題](#本プラグインが解決する問題)
 - [クイックスタート](#クイックスタート)
 - [要件](#要件)
@@ -110,7 +139,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-プラグインマネージャーがない場合の互換インストーラー：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` と開発パスインストールは [`INSTALL.md`](INSTALL.md)。インストール後、Web を自分で再起動（`dsh-web restart` または `systemctl --user restart dsh-web.service`）、`http://127.0.0.1:3080` を更新。
+プラグインマネージャーがない場合の互換インストーラー：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` と開発パスインストールは [`docs/01-install.md`](docs/01-install.md)。インストール後、Web を自分で再起動（`dsh-web restart` または `systemctl --user restart dsh-web.service`）、`http://127.0.0.1:3080` を更新。
 
 ## 使い方
 
@@ -134,11 +163,11 @@ allowlist 内の公式 CLI OAuth ファイルは読み取り専用で発見。�
 
 ## ローカル API ゲートウェイ
 
-デフォルト **off**。有効時、独立した `node:http` リスナー（DSH web ポートではない）がループバックで `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages` を提供し、サインイン済み OAuth セッションを再利用。bind は YAML のみ；非ループバック bind には Bearer key が必要。リモートリレーではありません。詳細：[`INSTALL.md`](INSTALL.md)。
+デフォルト **off**。有効時、独立した `node:http` リスナー（DSH web ポートではない）がループバックで `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages` を提供し、サインイン済み OAuth セッションを再利用。bind は YAML のみ；非ループバック bind には Bearer key が必要。リモートリレーではありません。詳細：[`docs/01-install.md`](docs/01-install.md)。
 
 ## オプション機能
 
-7 つのスイッチはデフォルト **off**、**live** 適用：`codexSearch`、`codexImages`、`codexImageEdits`、`codexUsage`、`codexFast`、`grokImagineImage`、`grokImagineVideo`。Codex Fast / プライベートエンドポイントと Grok Imagine は有効化まで fail-closed。[`INSTALL.md`](INSTALL.md) と [`docs/03-configuration.md`](docs/03-configuration.md) を参照。
+7 つのスイッチはデフォルト **off**、**live** 適用：`codexSearch`、`codexImages`、`codexImageEdits`、`codexUsage`、`codexFast`、`grokImagineImage`、`grokImagineVideo`。Codex Fast / プライベートエンドポイントと Grok Imagine は有効化まで fail-closed。[`docs/01-install.md`](docs/01-install.md) と [`docs/03-configuration.md`](docs/03-configuration.md) を参照。
 
 ## ランタイム設定
 
@@ -174,7 +203,7 @@ allowlist 内の公式 CLI OAuth ファイルは読み取り専用で発見。�
           intervalMinutes: 30
 ```
 
-完全なフィールド参照、monitors、proxy、pricing import：[`docs/03-configuration.md`](docs/03-configuration.md) と [`INSTALL.md`](INSTALL.md)。レガシー root `config.monitors` は `config.accounts.monitors` にマップ（両方設定しない）。
+完全なフィールド参照、monitors、proxy、pricing import：[`docs/03-configuration.md`](docs/03-configuration.md) と [`docs/01-install.md`](docs/01-install.md)。レガシー root `config.monitors` は `config.accounts.monitors` にマップ（両方設定しない）。
 
 ## 凭据
 
@@ -199,7 +228,7 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 - SQLite は凭据、prompt、response、cwd、生プロバイダーペイロードを除外。
 - 分析と推定は請求書ではありません。所有または認可された口座と endpoint のみクエリ。
 
-脅威モデルと報告：[`SECURITY.md`](SECURITY.md)。
+脅威モデルと報告：[`.github/SECURITY.md`](.github/SECURITY.md)。
 
 ## アーキテクチャ
 
@@ -223,18 +252,18 @@ flowchart LR
 
 | Doc | 目的 |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | インストール、proxy、gateway、capabilities、トラブルシューティング |
+| [`docs/01-install.md`](docs/01-install.md) | インストール、proxy、gateway、capabilities、トラブルシューティング |
 | [`CHANGELOG.md`](CHANGELOG.md) | リリース履歴 |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | 公開レイヤー、バージョニング、リリースループ |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | 内部アーキテクチャ · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | ランタイム設定リファレンス |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 データ移行 |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | コントリビューションガイド |
-| [`SECURITY.md`](SECURITY.md) | セキュリティポリシー |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | コントリビューションガイド |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | セキュリティポリシー |
 
 ## コントリビューション
 
-Cursor Cloud / 本リポジトリのクラウドワークスペースで宣言された Node.js と pnpm で検証（Docker sandbox はオプション、必須ではありません）。DSH スモークテストには隔離 `DSH_HOME` を使用。[`CONTRIBUTING.md`](CONTRIBUTING.md) を参照。issue、PR、スクリーンショット、ログに秘密、prompt、個人パスを含めないでください。
+Cursor Cloud / 本リポジトリのクラウドワークスペースで宣言された Node.js と pnpm で検証（Docker sandbox はオプション、必須ではありません）。DSH スモークテストには隔離 `DSH_HOME` を使用。[`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) を参照。issue、PR、スクリーンショット、ログに秘密、prompt、個人パスを含めないでください。
 
 言語切り替え行にあなたの言語がない場合、README 翻訳の PR を開いてください。
 

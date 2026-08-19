@@ -8,12 +8,8 @@
 !biome.json
 !vitest.config.ts
 !tsconfig.json
-!tsconfig.base.json
-!tsconfig.build.json
-!tsconfig.client.json
-!tsconfig.host.json
-!tsconfig.dts-bin.json
-!tsconfig.dts-invariant.json
+!tsconfig
+!tsconfig/**
 
 # Sources, tests, and build/release helpers
 !src
@@ -32,10 +28,19 @@
 # Public package files required by release inspection
 !cordis.patch.yml
 !README.md
+!README.zh-CN.md
+!README.ja.md
+!README.ko.md
+!README.pt-BR.md
+!README.es.md
+!README.fr.md
+!README.de.md
+!README.ru.md
 !CHANGELOG.md
-!CONTRIBUTING.md
-!CODE_OF_CONDUCT.md
-!SECURITY.md
+!.github
+!.github/CONTRIBUTING.md
+!.github/CODE_OF_CONDUCT.md
+!.github/SECURITY.md
 !LICENSE
 !NOTICE
 !LICENSES

@@ -18,7 +18,7 @@ for (const path of [
 	"lib/invariant.js",
 	"cordis.patch.yml",
 	"README.md",
-	"SECURITY.md",
+	".github/SECURITY.md",
 	"NOTICE",
 	"LICENSES/Apache-2.0.txt",
 	"docs/oauth-provenance.md",

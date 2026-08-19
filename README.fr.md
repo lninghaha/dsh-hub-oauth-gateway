@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -51,6 +51,34 @@ Historique des releases dans [`CHANGELOG.md`](CHANGELOG.md).
 
 Recherche produit : [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Architecture : [`docs/02-architecture.md`](docs/02-architecture.md).
 
+## Captures d’écran
+
+Prises sur DeepSeek Harness Web avec ce plugin installé (un historique local vide est normal sur un profile isolé neuf).
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="HUD flottant d’usage sur le shell DSH" width="760" />
+  <br />
+  <em>HUD flottant — métrique du jour et puces de quota multi-comptes</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Aperçu Quick Peek du Usage Center" width="760" />
+  <br />
+  <em>Quick Peek — KPI locaux uniquement, avec accès au tableau de bord complet</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Tableau de bord complet du Usage Center" width="760" />
+  <br />
+  <em>Tableau de bord complet — plages, onglets, actualisation et export CSV / JSON</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="Réglages → Usage Center" width="760" />
+  <br />
+  <em>Réglages → Usage Center — Affichage / Comptes / Gateway / Capacités / Fournisseurs / Frais</em>
+</p>
+
 ## Problèmes résolus par ce plugin
 
 | Vous avez cherché / vu | Ce qui était réellement cassé | Ce que fait ce plugin |
@@ -72,12 +100,13 @@ systemctl --user restart dsh-web.service
 # or: dsh-web restart
 ```
 
-Puis ouvrez **Settings → Usage Center**. Pour Accounts / Gateway / Capabilities, connectez-vous ou activez les switches selon besoin. Options d’installation complètes (installateur npx, tarball GitHub, proxy) dans [`INSTALL.md`](INSTALL.md).
+Puis ouvrez **Settings → Usage Center**. Pour Accounts / Gateway / Capabilities, connectez-vous ou activez les switches selon besoin. Options d’installation complètes (installateur npx, tarball GitHub, proxy) dans [`docs/01-install.md`](docs/01-install.md).
 
 ## Table des matières
 
 - [Changement de nom](#changement-de-nom)
 - [Fonctionnalités](#fonctionnalités)
+- [Captures d’écran](#captures-décran)
 - [Problèmes résolus par ce plugin](#problèmes-résolus-par-ce-plugin)
 - [Démarrage rapide](#démarrage-rapide)
 - [Prérequis](#prérequis)
@@ -110,7 +139,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Installateur compatible si le gestionnaire de plugins manque : `npx --yes dsh-hub-oauth-gateway-install`. Installations GitHub `/path/to/*.tgz` et de développement documentées dans [`INSTALL.md`](INSTALL.md). Après installation, redémarrez Web vous-même (`dsh-web restart` ou `systemctl --user restart dsh-web.service`), puis rafraîchissez `http://127.0.0.1:3080`.
+Installateur compatible si le gestionnaire de plugins manque : `npx --yes dsh-hub-oauth-gateway-install`. Installations GitHub `/path/to/*.tgz` et de développement documentées dans [`docs/01-install.md`](docs/01-install.md). Après installation, redémarrez Web vous-même (`dsh-web restart` ou `systemctl --user restart dsh-web.service`), puis rafraîchissez `http://127.0.0.1:3080`.
 
 ## Utilisation
 
@@ -134,11 +163,11 @@ Fichiers OAuth CLI officiels allowlist découverts en read-only. Sync = **Pull**
 
 ## Passerelle API locale
 
-**Désactivée** par défaut. Une fois activée, un listener `node:http` isolé (pas le port web DSH) sert `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` et `POST /v1/messages` en loopback, réutilisant sessions OAuth connectées. bind YAML uniquement ; bind non-loopback exige Bearer key. Ce n’est pas un relais distant. Détails : [`INSTALL.md`](INSTALL.md).
+**Désactivée** par défaut. Une fois activée, un listener `node:http` isolé (pas le port web DSH) sert `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` et `POST /v1/messages` en loopback, réutilisant sessions OAuth connectées. bind YAML uniquement ; bind non-loopback exige Bearer key. Ce n’est pas un relais distant. Détails : [`docs/01-install.md`](docs/01-install.md).
 
 ## Capacités optionnelles
 
-Sept switches **désactivés** par défaut, application **live** : `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / endpoints privés et Grok Imagine restent fail-closed jusqu’à activation. Voir [`INSTALL.md`](INSTALL.md) et [`docs/03-configuration.md`](docs/03-configuration.md).
+Sept switches **désactivés** par défaut, application **live** : `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / endpoints privés et Grok Imagine restent fail-closed jusqu’à activation. Voir [`docs/01-install.md`](docs/01-install.md) et [`docs/03-configuration.md`](docs/03-configuration.md).
 
 ## Configuration runtime
 
@@ -174,7 +203,7 @@ Fusionnez `config` sous l’entry Cordis existante — n’ajoutez pas de second
           intervalMinutes: 30
 ```
 
-Référence complète des champs, monitors, proxy et import pricing : [`docs/03-configuration.md`](docs/03-configuration.md) et [`INSTALL.md`](INSTALL.md). `config.monitors` racine legacy mappe vers `config.accounts.monitors` (ne configurez pas les deux).
+Référence complète des champs, monitors, proxy et import pricing : [`docs/03-configuration.md`](docs/03-configuration.md) et [`docs/01-install.md`](docs/01-install.md). `config.monitors` racine legacy mappe vers `config.accounts.monitors` (ne configurez pas les deux).
 
 ## Credentials
 
@@ -199,7 +228,7 @@ Répertoire `0700`, fichier principal `0600`, WAL. Rétention par défaut : 730 
 - SQLite exclut credentials, prompts, responses, cwd et payloads bruts providers.
 - Analytics et estimations ne sont pas des factures. Interrogez uniquement comptes et endpoints que vous possédez ou êtes autorisé à utiliser.
 
-Modèle de menace et signalement : [`SECURITY.md`](SECURITY.md).
+Modèle de menace et signalement : [`.github/SECURITY.md`](.github/SECURITY.md).
 
 ## Architecture
 
@@ -223,18 +252,18 @@ Détails : [`docs/02-architecture.md`](docs/02-architecture.md) · [中文](docs
 
 | Doc | Objectif |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | Installation, proxy, gateway, capabilities, dépannage |
+| [`docs/01-install.md`](docs/01-install.md) | Installation, proxy, gateway, capabilities, dépannage |
 | [`CHANGELOG.md`](CHANGELOG.md) | Historique des releases |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | Couches publication, versionnement, boucle release |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | Architecture interne · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | Référence configuration runtime |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | Migration données 1.0 |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Guide de contribution |
-| [`SECURITY.md`](SECURITY.md) | Politique de sécurité |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | Guide de contribution |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | Politique de sécurité |
 
 ## Contribution
 
-Vérifiez dans Cursor Cloud / workspace cloud de ce dépôt avec Node.js et pnpm déclarés (Docker sandbox optionnel, non requis). Utilisez `DSH_HOME` isolé pour smoke tests DSH. Voir [`CONTRIBUTING.md`](CONTRIBUTING.md). Gardez secrets, prompts et chemins personnels hors issues, PRs, captures et logs.
+Vérifiez dans Cursor Cloud / workspace cloud de ce dépôt avec Node.js et pnpm déclarés (Docker sandbox optionnel, non requis). Utilisez `DSH_HOME` isolé pour smoke tests DSH. Voir [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md). Gardez secrets, prompts et chemins personnels hors issues, PRs, captures et logs.
 
 Si votre langue manque dans le sélecteur, ouvrez une PR avec traduction README et nous l’ajouterons.
 

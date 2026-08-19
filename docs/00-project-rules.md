@@ -3,8 +3,8 @@
 > This document is the source of truth for the public project rules of
 > `dsh-hub-oauth-gateway`. It governs repository content, public documentation,
 > versioning, release artifacts, and maintenance. Contributor workflow is in
-> [`CONTRIBUTING.md`](../CONTRIBUTING.md); security reporting is in
-> [`SECURITY.md`](../SECURITY.md).
+> [`CONTRIBUTING.md`](../.github/CONTRIBUTING.md); security reporting is in
+> [`SECURITY.md`](../.github/SECURITY.md).
 
 The guiding principle is: **develop in public without publishing private
 development data**. Public material must be useful, generic, reproducible, and
@@ -73,7 +73,7 @@ new file must be assigned to one of these layers deliberately.
 | Layer | Typical locations | Git | npm | Rule |
 | --- | --- | ---: | ---: | --- |
 | Public source and tests | `src/`, `tests/`, `build/`, `.github/` | yes | no | Reproducible and free of private data |
-| Public community docs | `README.md` + community-language READMEs, `INSTALL.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, selected numbered `docs/` | yes | selected | Generic, durable, externally readable |
+| Public community docs | Root `README.md` + community-language READMEs, `CHANGELOG.md`, `docs/01-install.md`, numbered `docs/`, and `.github/{CONTRIBUTING,CODE_OF_CONDUCT,SECURITY}.md` | yes | selected | Generic, durable, externally readable |
 | Runtime release artifact | `lib/`, `cordis.patch.yml`, `scripts/install.mjs` | yes | yes | Generated/verified and sufficient to install |
 | Local-only investigation | `docs/local/` | no | no | Private fault notes and machine-specific research |
 | Local reference material | `reference/` | no | no | Temporary third-party checkouts or personal notes |
@@ -185,13 +185,17 @@ See [`02-architecture.md`](02-architecture.md) and
   same language-switch line; a user-facing README change must update **all**
   translations (or open an explicit follow-up PR), and the switcher must never
   be broken.
-- **`INSTALL.md`** holds install/proxy/gateway/troubleshooting detail
+- **`docs/01-install.md`** holds install/proxy/gateway/troubleshooting detail
   (English-first). Keep commands and version pins identical to `README.md`.
 - Publishable docs under `docs/` use `NN-<topic>.md` numbering (for example
-  `00-project-rules`, `02-architecture`, `03-configuration`, `04-migration-v1`).
+  `00-project-rules`, `01-install`, `02-architecture`, `03-configuration`,
+  `04-migration-v1`).
   Engineering docs are English-first; `docs/02-architecture.zh-CN.md` is the
   Chinese architecture companion and must not silently diverge on commands or
   security statements.
+- Contributor / conduct / security policies live under `.github/`
+  (`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`) so the repository
+  root stays focused on README locales and package manifests.
 - **User-visible UI strings** in the plugin remain Simplified Chinese and
   English regardless of README locale coverage.
 
@@ -364,7 +368,7 @@ Before an external release, verify all of the following:
 - [ ] Install and release docs updated in the same release change set.
 
 If a secret may have been exposed, stop the release, revoke/rotate it, remove
-it from pending changes and artifacts, and follow `SECURITY.md`. Rewriting Git
+it from pending changes and artifacts, and follow `.github/SECURITY.md`. Rewriting Git
 history is not a substitute for revocation.
 
 ## 8. Maintenance and governance
@@ -374,7 +378,7 @@ history is not a substitute for revocation.
   versions deliberately rather than accidentally.
 - Prefer meaningful releases over artificial activity. Never pad a changelog,
   fabricate support, or publish empty versions merely to appear active.
-- Security fixes target the versions stated in `SECURITY.md`; support-policy
+- Security fixes target the versions stated in `.github/SECURITY.md`; support-policy
   changes must update that file before release.
 - Changes to this rules document use the normal pull-request process and must
   be mentioned under `Unreleased` when they materially change contributor or

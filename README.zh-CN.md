@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -51,6 +51,34 @@
 
 产品调研：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。架构：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
+## 产品截图
+
+在 DeepSeek Harness Web 安装本插件后截取（全新隔离 profile 下本地历史为空属正常）。
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="DSH 壳层上的悬浮用量 HUD" width="760" />
+  <br />
+  <em>悬浮 HUD —— 今日指标与多账户配额芯片</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="用量中心速览浮层" width="760" />
+  <br />
+  <em>用量速览 —— 仅本地 KPI，一键进入完整仪表盘</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="用量中心完整仪表盘" width="760" />
+  <br />
+  <em>完整仪表盘 —— 时间范围、页签、刷新与 CSV / JSON 导出</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="设置 → 用量中心" width="760" />
+  <br />
+  <em>设置 → 用量中心 —— 显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用</em>
+</p>
+
 ## 本插件解决的问题
 
 | 你搜到 / 看到的 | 实际坏在哪 | 本插件怎么处理 |
@@ -72,12 +100,13 @@ systemctl --user restart dsh-web.service
 # 或: dsh-web restart
 ```
 
-然后打开 **设置 → 用量中心**。订阅账号 / 网关 / 能力按需登录或打开开关。完整安装选项（npx 安装器、GitHub tarball、代理）见 [`INSTALL.md`](INSTALL.md)。
+然后打开 **设置 → 用量中心**。订阅账号 / 网关 / 能力按需登录或打开开关。完整安装选项（npx 安装器、GitHub tarball、代理）见 [`docs/01-install.md`](docs/01-install.md)。
 
 ## 目录
 
 - [项目更名](#项目更名)
 - [特性](#特性)
+- [产品截图](#产品截图)
 - [本插件解决的问题](#本插件解决的问题)
 - [快速开始](#快速开始)
 - [要求](#要求)
@@ -110,7 +139,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-无插件管理器时可用兼容安装器：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` 与本地开发安装见 [`INSTALL.md`](INSTALL.md)。安装后自行重启 Web（`dsh-web restart` 或 `systemctl --user restart dsh-web.service`），再刷新 `http://127.0.0.1:3080`。
+无插件管理器时可用兼容安装器：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` 与本地开发安装见 [`docs/01-install.md`](docs/01-install.md)。安装后自行重启 Web（`dsh-web restart` 或 `systemctl --user restart dsh-web.service`），再刷新 `http://127.0.0.1:3080`。
 
 ## 使用
 
@@ -134,11 +163,11 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
 
 ## 本地 API 网关
 
-默认**关闭**。启用后在独立 `node:http` 监听器（非 DSH web 端口）上提供 `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages`，复用已登录 OAuth 会话。bind 仅 YAML；非回环 bind 必须有 Bearer key。不是远程中继。细节见 [`INSTALL.md`](INSTALL.md)。
+默认**关闭**。启用后在独立 `node:http` 监听器（非 DSH web 端口）上提供 `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages`，复用已登录 OAuth 会话。bind 仅 YAML；非回环 bind 必须有 Bearer key。不是远程中继。细节见 [`docs/01-install.md`](docs/01-install.md)。
 
 ## 可选能力
 
-七项开关默认**关闭**，打开后**立即生效**：`codexSearch`、`codexImages`、`codexImageEdits`、`codexUsage`、`codexFast`、`grokImagineImage`、`grokImagineVideo`。Codex Fast / 私有端点与 Grok Imagine 在打开前保持失败关闭。见 [`INSTALL.md`](INSTALL.md) 与 [`docs/03-configuration.md`](docs/03-configuration.md)。
+七项开关默认**关闭**，打开后**立即生效**：`codexSearch`、`codexImages`、`codexImageEdits`、`codexUsage`、`codexFast`、`grokImagineImage`、`grokImagineVideo`。Codex Fast / 私有端点与 Grok Imagine 在打开前保持失败关闭。见 [`docs/01-install.md`](docs/01-install.md) 与 [`docs/03-configuration.md`](docs/03-configuration.md)。
 
 ## 运行配置
 
@@ -174,7 +203,7 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
           intervalMinutes: 30
 ```
 
-完整字段、monitor、代理与价格导入：[`docs/03-configuration.md`](docs/03-configuration.md) 与 [`INSTALL.md`](INSTALL.md)。旧根级 `config.monitors` 映射到 `config.accounts.monitors`（不要同时配置）。
+完整字段、monitor、代理与价格导入：[`docs/03-configuration.md`](docs/03-configuration.md) 与 [`docs/01-install.md`](docs/01-install.md)。旧根级 `config.monitors` 映射到 `config.accounts.monitors`（不要同时配置）。
 
 ## 凭据
 
@@ -199,7 +228,7 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 - SQLite 不含凭据、prompt、response、cwd 或供应商原始响应。
 - 统计与估算不是账单。仅监测你拥有或获授权的账户与 endpoint。
 
-威胁模型与报告：[`SECURITY.md`](SECURITY.md)。
+威胁模型与报告：[`.github/SECURITY.md`](.github/SECURITY.md)。
 
 ## 架构
 
@@ -223,18 +252,18 @@ flowchart LR
 
 | 文档 | 用途 |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | 安装、代理、网关、能力、故障排查 |
+| [`docs/01-install.md`](docs/01-install.md) | 安装、代理、网关、能力、故障排查 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 版本历史 |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | 发布分层、版本、发版循环 |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | 内部架构 · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | 运行配置参考 |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 数据迁移 |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | 贡献指南 |
-| [`SECURITY.md`](SECURITY.md) | 安全策略 |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | 贡献指南 |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | 安全策略 |
 
 ## 贡献
 
-在 Cursor Cloud / 本仓库云工作区用声明的 Node.js 与 pnpm 验证即可（Docker sandbox 可选，非强制）。DSH 冒烟使用隔离 `DSH_HOME`。见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。不要在 issue、PR、截图或日志中提交密钥、prompt 或个人路径。
+在 Cursor Cloud / 本仓库云工作区用声明的 Node.js 与 pnpm 验证即可（Docker sandbox 可选，非强制）。DSH 冒烟使用隔离 `DSH_HOME`。见 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)。不要在 issue、PR、截图或日志中提交密钥、prompt 或个人路径。
 
 若语言切换行缺少你的语言，欢迎 PR 一份 README 翻译。
 

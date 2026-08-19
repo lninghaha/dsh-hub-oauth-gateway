@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -51,6 +51,34 @@ Release history lives in [`CHANGELOG.md`](CHANGELOG.md).
 
 Product research: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Architecture: [`docs/02-architecture.md`](docs/02-architecture.md).
 
+## Screenshots
+
+Captured against DeepSeek Harness Web with this plugin installed (empty local history is normal for a fresh profile).
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="Floating usage HUD on the DSH shell" width="760" />
+  <br />
+  <em>Floating HUD — today’s metric plus multi-account quota chips</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Usage Center quick peek overlay" width="760" />
+  <br />
+  <em>Quick Peek — local-only KPIs with a one-click jump to the full dashboard</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Usage Center full dashboard" width="760" />
+  <br />
+  <em>Full dashboard — ranges, tabs, refresh, and CSV / JSON export</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="Settings → Usage Center" width="760" />
+  <br />
+  <em>Settings → Usage Center — Display / Accounts / Gateway / Capabilities / Providers / Fees</em>
+</p>
+
 ## Problems this plugin solves
 
 | You searched / saw | What was actually broken | What this plugin does |
@@ -72,12 +100,13 @@ systemctl --user restart dsh-web.service
 # or: dsh-web restart
 ```
 
-Then open **Settings → Usage Center**. For Accounts / Gateway / Capabilities, sign in or enable switches as needed. Full install options (npx installer, GitHub tarball, proxy) are in [`INSTALL.md`](INSTALL.md).
+Then open **Settings → Usage Center**. For Accounts / Gateway / Capabilities, sign in or enable switches as needed. Full install options (npx installer, GitHub tarball, proxy) are in [`docs/01-install.md`](docs/01-install.md).
 
 ## Table of contents
 
 - [Name change](#name-change)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Problems this plugin solves](#problems-this-plugin-solves)
 - [Quick start](#quick-start)
 - [Requirements](#requirements)
@@ -110,7 +139,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Compatible installer when the plugin manager is missing: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` and development path installs are documented in [`INSTALL.md`](INSTALL.md). After install, restart Web yourself (`dsh-web restart` or `systemctl --user restart dsh-web.service`), then refresh `http://127.0.0.1:3080`.
+Compatible installer when the plugin manager is missing: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` and development path installs are documented in [`docs/01-install.md`](docs/01-install.md). After install, restart Web yourself (`dsh-web restart` or `systemctl --user restart dsh-web.service`), then refresh `http://127.0.0.1:3080`.
 
 ## Usage
 
@@ -134,11 +163,11 @@ Allowlisted official CLI OAuth files are discovered read-only. Sync is an explic
 
 ## Local API gateway
 
-Default **off**. When enabled, an isolated `node:http` listener (not the DSH web port) serves `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /v1/messages` on loopback, reusing signed-in OAuth sessions. Bind stays YAML-only; non-loopback bind requires a Bearer key. This is not a remote relay. Details: [`INSTALL.md`](INSTALL.md).
+Default **off**. When enabled, an isolated `node:http` listener (not the DSH web port) serves `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /v1/messages` on loopback, reusing signed-in OAuth sessions. Bind stays YAML-only; non-loopback bind requires a Bearer key. This is not a remote relay. Details: [`docs/01-install.md`](docs/01-install.md).
 
 ## Optional capabilities
 
-Seven switches default **off** and apply **live**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoints and Grok Imagine stay fail-closed until enabled. See [`INSTALL.md`](INSTALL.md) and [`docs/03-configuration.md`](docs/03-configuration.md).
+Seven switches default **off** and apply **live**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoints and Grok Imagine stay fail-closed until enabled. See [`docs/01-install.md`](docs/01-install.md) and [`docs/03-configuration.md`](docs/03-configuration.md).
 
 ## Runtime configuration
 
@@ -174,7 +203,7 @@ Merge `config` under the existing Cordis entry — do not add a second entry:
           intervalMinutes: 30
 ```
 
-Full field reference, monitors, proxy, and pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) and [`INSTALL.md`](INSTALL.md). Legacy root `config.monitors` maps to `config.accounts.monitors` (do not set both).
+Full field reference, monitors, proxy, and pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) and [`docs/01-install.md`](docs/01-install.md). Legacy root `config.monitors` maps to `config.accounts.monitors` (do not set both).
 
 ## Credentials
 
@@ -199,7 +228,7 @@ Directory `0700`, main file `0600`, WAL. Default retention: 730 days usage facts
 - SQLite excludes credentials, prompts, responses, cwd, and raw provider payloads.
 - Analytics and estimates are not invoices. Query only accounts and endpoints you own or are authorized to use.
 
-Threat model and reporting: [`SECURITY.md`](SECURITY.md).
+Threat model and reporting: [`.github/SECURITY.md`](.github/SECURITY.md).
 
 ## Architecture
 
@@ -223,18 +252,18 @@ Details: [`docs/02-architecture.md`](docs/02-architecture.md) · [中文](docs/0
 
 | Doc | Purpose |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | Installation, proxy, gateway, capabilities, troubleshooting |
+| [`docs/01-install.md`](docs/01-install.md) | Installation, proxy, gateway, capabilities, troubleshooting |
 | [`CHANGELOG.md`](CHANGELOG.md) | Release history |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | Publication layers, versioning, release loop |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | Internal architecture · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | Runtime configuration reference |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 data migration |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution guide |
-| [`SECURITY.md`](SECURITY.md) | Security policy |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | Contribution guide |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | Security policy |
 
 ## Contributing
 
-Verify in Cursor Cloud / this repo’s cloud workspace with the declared Node.js and pnpm (Docker sandbox is optional, not required). Use an isolated `DSH_HOME` for DSH smoke tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md). Keep secrets, prompts, and personal paths out of issues, PRs, screenshots, and logs.
+Verify in Cursor Cloud / this repo’s cloud workspace with the declared Node.js and pnpm (Docker sandbox is optional, not required). Use an isolated `DSH_HOME` for DSH smoke tests. See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md). Keep secrets, prompts, and personal paths out of issues, PRs, screenshots, and logs.
 
 If your language is missing from the switcher, open a PR with a README translation and we will add it.
 

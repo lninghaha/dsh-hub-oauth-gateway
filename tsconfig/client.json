@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "./base.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -9,11 +9,11 @@
     "types": ["vitest/globals", "node", "react", "react-dom"]
   },
   "include": [
-    "src/client/**/*.ts",
-    "src/client/**/*.tsx",
-    "src/client/**/*.d.ts",
-    "src/shared/**/*.ts",
-    "tests/v1/client/**/*.ts",
-    "tests/v1/client/**/*.tsx"
+    "../src/client/**/*.ts",
+    "../src/client/**/*.tsx",
+    "../src/client/**/*.d.ts",
+    "../src/shared/**/*.ts",
+    "../tests/v1/client/**/*.ts",
+    "../tests/v1/client/**/*.tsx"
   ]
 }
