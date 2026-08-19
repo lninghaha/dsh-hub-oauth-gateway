@@ -11,10 +11,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 - Align public docs with the coding-subscription OAuth README conventions:
   English-first `README.md`, nine community-language READMEs with a shared
-  language switcher, extracted `INSTALL.md`, and numbered docs
+  language switcher, extracted `docs/01-install.md`, and numbered docs
   (`docs/02-architecture.md` + zh-CN, `docs/03-configuration.md`,
   `docs/04-migration-v1.md`). Update the publish allowlist and release inspect
   checks accordingly.
+- Reorganize the repository root: keep README locales at root; move install
+  notes to `docs/01-install.md`, contributor/security/conduct docs to
+  `.github/`, and TypeScript project configs into `tsconfig/`.
 
 ## 1.7.1
 

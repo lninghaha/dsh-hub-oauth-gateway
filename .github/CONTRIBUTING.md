@@ -6,14 +6,14 @@ welcome.
 
 Before contributing, read:
 
-- [project rules](docs/00-project-rules.md) for publication, compatibility, and
+- [project rules](../docs/00-project-rules.md) for publication, compatibility, and
   release requirements;
 - [security policy](SECURITY.md) for the supported deployment and private
   vulnerability reporting;
 - [code of conduct](CODE_OF_CONDUCT.md) for community expectations.
 
 By submitting a contribution, you agree that it may be distributed under this
-repository's [MIT License](LICENSE).
+repository's [MIT License](../LICENSE).
 
 ## Before opening an issue
 
@@ -49,7 +49,7 @@ For plugin smoke tests, use an **isolated** `DSH_HOME` (never the operator’s
 personal profile), install `@deepseek-ai/dsh`, add this package to the web
 profile via a **local path** (`dsh plugin --profile web add "$PWD"`), and start
 `dsh web` on loopback. End-user installs prefer the published npm package name;
-see [`README.md`](README.md).
+see [`README.md`](../README.md).
 
 Automated tests use mocks and sanitized fixtures. They must not read a
 personal DSH profile, local CLI login, credential store, production SQLite, or
@@ -69,10 +69,10 @@ require live provider access.
   `package-lock.json`.
 
 Architecture and configuration contracts are documented in
-[`docs/02-architecture.md`](docs/02-architecture.md) and
-[`docs/03-configuration.md`](docs/03-configuration.md). Install detail is in
-[`INSTALL.md`](INSTALL.md). Community README translations must stay in sync with
-[`README.md`](README.md) (same sections and version pins).
+[`docs/02-architecture.md`](../docs/02-architecture.md) and
+[`docs/03-configuration.md`](../docs/03-configuration.md). Install detail is in
+[`docs/01-install.md`](../docs/01-install.md). Community README translations must stay in sync with
+[`README.md`](../README.md) (same sections and version pins).
 
 ## Change workflow
 
@@ -149,7 +149,7 @@ merge. Authors should not rewrite shared history after review without warning.
 ## Releases
 
 Maintainers perform releases according to
-[`docs/00-project-rules.md`](docs/00-project-rules.md)（仓库根目录 `AGENTS.md` 为 Agent 工作区副本，不随 npm 包发布）。
+[`docs/00-project-rules.md`](../docs/00-project-rules.md)（仓库根目录 `AGENTS.md` 为 Agent 工作区副本，不随 npm 包发布）。
 
 - A release **must** publish the same SemVer to public npm; a Git tag / GitHub
   Release without npm is incomplete.
@@ -159,7 +159,7 @@ Maintainers perform releases according to
   not run `npm login` / `npm publish`, and must not paste longer publish scripts.
 - Every GitHub Release for a version **must** attach
   `dsh-hub-oauth-gateway-<version>.tgz` so users can download a ready-to-install
-  package and hand it to an Agent (see [`docs/00-project-rules.md`](docs/00-project-rules.md) §8).
+  package and hand it to an Agent (see [`docs/00-project-rules.md`](../docs/00-project-rules.md) §8).
 - Related install and release documentation must be updated in the release
   change set, not deferred after publish.
 

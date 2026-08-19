@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -72,7 +72,7 @@ systemctl --user restart dsh-web.service
 # or: dsh-web restart
 ```
 
-Luego abre **Settings → Usage Center**. Para Accounts / Gateway / Capabilities, inicia sesión o habilita switches según necesites. Opciones completas de instalación (instalador npx, tarball GitHub, proxy) en [`INSTALL.md`](INSTALL.md).
+Luego abre **Settings → Usage Center**. Para Accounts / Gateway / Capabilities, inicia sesión o habilita switches según necesites. Opciones completas de instalación (instalador npx, tarball GitHub, proxy) en [`docs/01-install.md`](docs/01-install.md).
 
 ## Índice
 
@@ -110,7 +110,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Instalador compatible cuando falta el gestor de plugins: `npx --yes dsh-hub-oauth-gateway-install`. Instalaciones GitHub `/path/to/*.tgz` y de desarrollo documentadas en [`INSTALL.md`](INSTALL.md). Tras instalar, reinicia Web tú mismo (`dsh-web restart` o `systemctl --user restart dsh-web.service`), luego actualiza `http://127.0.0.1:3080`.
+Instalador compatible cuando falta el gestor de plugins: `npx --yes dsh-hub-oauth-gateway-install`. Instalaciones GitHub `/path/to/*.tgz` y de desarrollo documentadas en [`docs/01-install.md`](docs/01-install.md). Tras instalar, reinicia Web tú mismo (`dsh-web restart` o `systemctl --user restart dsh-web.service`), luego actualiza `http://127.0.0.1:3080`.
 
 ## Uso
 
@@ -134,11 +134,11 @@ Archivos OAuth oficiales de CLI en allowlist se descubren read-only. La sync es 
 
 ## Puerta de enlace API local
 
-**Apagada** por defecto. Cuando está habilitada, un listener `node:http` aislado (no el puerto web de DSH) sirve `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` y `POST /v1/messages` en loopback, reutilizando sesiones OAuth iniciadas. bind solo vía YAML; bind no-loopback requiere Bearer key. No es relay remoto. Detalles: [`INSTALL.md`](INSTALL.md).
+**Apagada** por defecto. Cuando está habilitada, un listener `node:http` aislado (no el puerto web de DSH) sirve `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` y `POST /v1/messages` en loopback, reutilizando sesiones OAuth iniciadas. bind solo vía YAML; bind no-loopback requiere Bearer key. No es relay remoto. Detalles: [`docs/01-install.md`](docs/01-install.md).
 
 ## Capacidades opcionales
 
-Siete switches **apagados** por defecto y aplican **live**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / endpoints privados y Grok Imagine permanecen fail-closed hasta habilitarlos. Ver [`INSTALL.md`](INSTALL.md) y [`docs/03-configuration.md`](docs/03-configuration.md).
+Siete switches **apagados** por defecto y aplican **live**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / endpoints privados y Grok Imagine permanecen fail-closed hasta habilitarlos. Ver [`docs/01-install.md`](docs/01-install.md) y [`docs/03-configuration.md`](docs/03-configuration.md).
 
 ## Configuración de runtime
 
@@ -174,7 +174,7 @@ Fusiona `config` bajo la entry Cordis existente — no añadas una segunda entry
           intervalMinutes: 30
 ```
 
-Referencia completa de campos, monitors, proxy e import de pricing: [`docs/03-configuration.md`](docs/03-configuration.md) y [`INSTALL.md`](INSTALL.md). `config.monitors` legado en raíz mapea a `config.accounts.monitors` (no configures ambos).
+Referencia completa de campos, monitors, proxy e import de pricing: [`docs/03-configuration.md`](docs/03-configuration.md) y [`docs/01-install.md`](docs/01-install.md). `config.monitors` legado en raíz mapea a `config.accounts.monitors` (no configures ambos).
 
 ## Credenciales
 
@@ -199,7 +199,7 @@ Directorio `0700`, archivo principal `0600`, WAL. Retención por defecto: 730 d�
 - SQLite excluye credenciales, prompts, responses, cwd y payloads brutos de providers.
 - Analytics y estimaciones no son facturas. Consulta solo cuentas y endpoints que posees o estás autorizado a usar.
 
-Modelo de amenaza e informes: [`SECURITY.md`](SECURITY.md).
+Modelo de amenaza e informes: [`.github/SECURITY.md`](.github/SECURITY.md).
 
 ## Arquitectura
 
@@ -223,18 +223,18 @@ Detalles: [`docs/02-architecture.md`](docs/02-architecture.md) · [中文](docs/
 
 | Doc | Propósito |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | Instalación, proxy, gateway, capabilities, troubleshooting |
+| [`docs/01-install.md`](docs/01-install.md) | Instalación, proxy, gateway, capabilities, troubleshooting |
 | [`CHANGELOG.md`](CHANGELOG.md) | Historial de releases |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | Capas de publicación, versionado, bucle de release |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | Arquitectura interna · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | Referencia de configuración de runtime |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | Migración de datos 1.0 |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Guía de contribución |
-| [`SECURITY.md`](SECURITY.md) | Política de seguridad |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | Guía de contribución |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | Política de seguridad |
 
 ## Contribución
 
-Verifica en Cursor Cloud / workspace en la nube de este repositorio con Node.js y pnpm declarados (Docker sandbox es opcional, no obligatorio). Usa `DSH_HOME` aislado para smoke tests de DSH. Ver [`CONTRIBUTING.md`](CONTRIBUTING.md). Mantén secretos, prompts y rutas personales fuera de issues, PRs, capturas y logs.
+Verifica en Cursor Cloud / workspace en la nube de este repositorio con Node.js y pnpm declarados (Docker sandbox es opcional, no obligatorio). Usa `DSH_HOME` aislado para smoke tests de DSH. Ver [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md). Mantén secretos, prompts y rutas personales fuera de issues, PRs, capturas y logs.
 
 Si tu idioma falta en el selector, abre un PR con traducción del README y lo añadiremos.
 

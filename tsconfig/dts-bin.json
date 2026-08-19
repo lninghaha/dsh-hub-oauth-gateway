@@ -1,10 +1,10 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "./base.json",
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "src",
-    "outDir": ".next/lib",
+    "rootDir": "../src",
+    "outDir": "../.next/lib",
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
@@ -12,7 +12,7 @@
     "types": ["node"]
   },
   "include": [
-    "src/cli/coding-oauth.ts",
-    "src/server/coding-oauth/invariant.ts"
+    "../src/cli/coding-oauth.ts",
+    "../src/server/coding-oauth/invariant.ts"
   ]
 }

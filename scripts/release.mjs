@@ -114,15 +114,15 @@ const expectedAllowlist = [
 	"README.fr.md",
 	"README.de.md",
 	"README.ru.md",
-	"INSTALL.md",
 	"CHANGELOG.md",
-	"CONTRIBUTING.md",
-	"CODE_OF_CONDUCT.md",
-	"SECURITY.md",
 	"LICENSE",
 	"NOTICE",
 	"LICENSES/Apache-2.0.txt",
+	".github/CONTRIBUTING.md",
+	".github/CODE_OF_CONDUCT.md",
+	".github/SECURITY.md",
 	"docs/00-project-rules.md",
+	"docs/01-install.md",
 	"docs/oauth-provenance.md",
 	"docs/02-architecture.md",
 	"docs/02-architecture.zh-CN.md",
@@ -138,7 +138,7 @@ if (!Array.isArray(actualAllowlist)) fail("package.json files must be an explici
 for (const entry of actualAllowlist) {
 	if (typeof entry !== "string") fail("package.json files entries must be strings");
 	if (/[*?[\]{}]/u.test(entry)) fail(`package files entry must not use a glob: ${entry}`);
-	if (entry.startsWith("docs/") && !expectedAllowlist.includes(entry)) {
+	if ((entry.startsWith("docs/") || entry.startsWith(".github/")) && !expectedAllowlist.includes(entry)) {
 		fail(`publishable documentation must be listed explicitly: ${entry}`);
 	}
 }
@@ -165,12 +165,12 @@ for (const required of [
 	"package.json",
 	"README.md",
 	"README.zh-CN.md",
-	"INSTALL.md",
+	"docs/01-install.md",
 	"LICENSE",
 	"CHANGELOG.md",
-	"CONTRIBUTING.md",
-	"CODE_OF_CONDUCT.md",
-	"SECURITY.md",
+	".github/CONTRIBUTING.md",
+	".github/CODE_OF_CONDUCT.md",
+	".github/SECURITY.md",
 	"NOTICE",
 	"LICENSES/Apache-2.0.txt",
 	"docs/00-project-rules.md",
@@ -189,7 +189,9 @@ for (const required of [
 const forbiddenPatterns = [
 	/(?:^|\/)docs\/local(?:\/|$)/u,
 	/(?:^|\/)reference(?:\/|$)/u,
-	/(?:^|\/)(?:src|tests|build|\.github|\.next|output|coverage)(?:\/|$)/u,
+	/(?:^|\/)(?:src|tests|build|\.next|output|coverage)(?:\/|$)/u,
+	// Allow only the three publishable governance docs under .github/
+	/(?:^|\/)\.github\/(?!CONTRIBUTING\.md$|CODE_OF_CONDUCT\.md$|SECURITY\.md$).+/u,
 	/(?:^|\/)node_modules(?:\/|$)/u,
 	/(?:^|\/)(?:AGENTS\.md|package-lock\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$/u,
 	/(?:^|\/)\.env(?:\.|$)/u,

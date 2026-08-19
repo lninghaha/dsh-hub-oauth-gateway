@@ -1,6 +1,6 @@
 # Installation and usage · dsh-hub-oauth-gateway
 
-**v1.7.1**. This document expands the Quick start in [`README.md`](README.md). Prefer the published npm package for end users.
+**v1.7.1**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
 
 ```bash
 dsh plugin --profile web add dsh-hub-oauth-gateway
@@ -36,7 +36,7 @@ The installer atomically replaces `~/.dsh/profiles/node_modules/dsh-hub-oauth-ga
 
 ### GitHub Release tarball
 
-Each formal GitHub Release must attach `dsh-hub-oauth-gateway-<version>.tgz` matching the npm artifact (see [`docs/00-project-rules.md`](docs/00-project-rules.md) §8):
+Each formal GitHub Release must attach `dsh-hub-oauth-gateway-<version>.tgz` matching the npm artifact (see [`00-project-rules.md`](00-project-rules.md) §8):
 
 ```bash
 dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.7.1.tgz
@@ -104,7 +104,7 @@ Merge under the existing entry — never a second plugin row:
           intervalMinutes: 30
 ```
 
-Full schema: [`docs/03-configuration.md`](docs/03-configuration.md).
+Full schema: [`03-configuration.md`](03-configuration.md).
 
 ### Legacy `config.monitors`
 
@@ -143,7 +143,7 @@ Or use **Settings → Gateway**. Endpoints: `/healthz`, `/v1/models`, `/v1/chat/
 
 ## Optional capabilities
 
-Seven flags default off and apply live: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Numeric limits (`searchResults`, `imageCount`, `videoArtifactTtlMs`) are documented in [`docs/03-configuration.md`](docs/03-configuration.md). `codex-oauth-fast` appears only after a fresh live catalog lists a `priority`-eligible model.
+Seven flags default off and apply live: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Numeric limits (`searchResults`, `imageCount`, `videoArtifactTtlMs`) are documented in [`03-configuration.md`](03-configuration.md). `codex-oauth-fast` appears only after a fresh live catalog lists a `priority`-eligible model.
 
 ## Credentials on disk
 

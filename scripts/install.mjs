@@ -249,7 +249,7 @@ await rm(staging, { recursive: true, force: true });
 await rm(packageBackup, { recursive: true, force: true });
 await rm(patchBackup, { force: true });
 await mkdir(staging, { recursive: true });
-for (const entry of ["lib", "cordis.patch.yml", "package.json", "README.md", "LICENSE", "SECURITY.md"]) {
+for (const entry of ["lib", "cordis.patch.yml", "package.json", "README.md", "LICENSE", ".github/SECURITY.md"]) {
 	await cp(join(sourceRoot, entry), join(staging, entry), { recursive: true, force: true });
 }
 await mkdir(join(staging, "scripts"), { recursive: true });

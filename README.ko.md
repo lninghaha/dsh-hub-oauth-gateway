@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -72,7 +72,7 @@ systemctl --user restart dsh-web.service
 # or: dsh-web restart
 ```
 
-그다음 **Settings → Usage Center** 를 여세요. Accounts / Gateway / Capabilities는 필요에 따라 로그인하거나 스위치를 켜세요. 전체 설치 옵션(npx 설치기, GitHub tarball, proxy)은 [`INSTALL.md`](INSTALL.md).
+그다음 **Settings → Usage Center** 를 여세요. Accounts / Gateway / Capabilities는 필요에 따라 로그인하거나 스위치를 켜세요. 전체 설치 옵션(npx 설치기, GitHub tarball, proxy)은 [`docs/01-install.md`](docs/01-install.md).
 
 ## 목차
 
@@ -110,7 +110,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-플러그인 관리자가 없을 때 호환 설치기: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` 및 개발 경로 설치는 [`INSTALL.md`](INSTALL.md). 설치 후 Web을 직접 재시작(`dsh-web restart` 또는 `systemctl --user restart dsh-web.service`), `http://127.0.0.1:3080` 새로고침.
+플러그인 관리자가 없을 때 호환 설치기: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` 및 개발 경로 설치는 [`docs/01-install.md`](docs/01-install.md). 설치 후 Web을 직접 재시작(`dsh-web restart` 또는 `systemctl --user restart dsh-web.service`), `http://127.0.0.1:3080` 새로고침.
 
 ## 사용법
 
@@ -134,11 +134,11 @@ allowlist 내 공식 CLI OAuth 파일은 읽기 전용으로 발견. 동기화�
 
 ## 로컬 API 게이트웨이
 
-기본 **off**. 활성화 시 격리된 `node:http` 리스너(DSH web 포트 아님)가 루프백에서 `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, `POST /v1/messages` 제공, 로그인된 OAuth 세션 재사용. bind는 YAML 전용; 비루프백 bind에는 Bearer key 필요. 원격 릴레이가 아님. 자세히: [`INSTALL.md`](INSTALL.md).
+기본 **off**. 활성화 시 격리된 `node:http` 리스너(DSH web 포트 아님)가 루프백에서 `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, `POST /v1/messages` 제공, 로그인된 OAuth 세션 재사용. bind는 YAML 전용; 비루프백 bind에는 Bearer key 필요. 원격 릴레이가 아님. 자세히: [`docs/01-install.md`](docs/01-install.md).
 
 ## 선택적 기능
 
-7개 스위치 기본 **off**, **live** 적용: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoint와 Grok Imagine은 활성화 전까지 fail-closed. [`INSTALL.md`](INSTALL.md) 및 [`docs/03-configuration.md`](docs/03-configuration.md) 참조.
+7개 스위치 기본 **off**, **live** 적용: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoint와 Grok Imagine은 활성화 전까지 fail-closed. [`docs/01-install.md`](docs/01-install.md) 및 [`docs/03-configuration.md`](docs/03-configuration.md) 참조.
 
 ## 런타임 설정
 
@@ -174,7 +174,7 @@ allowlist 내 공식 CLI OAuth 파일은 읽기 전용으로 발견. 동기화�
           intervalMinutes: 30
 ```
 
-전체 필드 참조, monitors, proxy, pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) 및 [`INSTALL.md`](INSTALL.md). 레거시 root `config.monitors`는 `config.accounts.monitors`로 매핑(둘 다 설정하지 말 것).
+전체 필드 참조, monitors, proxy, pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) 및 [`docs/01-install.md`](docs/01-install.md). 레거시 root `config.monitors`는 `config.accounts.monitors`로 매핑(둘 다 설정하지 말 것).
 
 ## 凭据
 
@@ -199,7 +199,7 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 - SQLite는凭据, prompt, response, cwd, 원시 프로바이더 페이로드 제외.
 - 분석과 추정은 청구서가 아님. 소유하거나 권한 있는 계정과 endpoint만 쿼리.
 
-위협 모델 및 보고: [`SECURITY.md`](SECURITY.md).
+위협 모델 및 보고: [`.github/SECURITY.md`](.github/SECURITY.md).
 
 ## 아키텍처
 
@@ -223,18 +223,18 @@ flowchart LR
 
 | Doc | 목적 |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | 설치, proxy, gateway, capabilities, 문제 해결 |
+| [`docs/01-install.md`](docs/01-install.md) | 설치, proxy, gateway, capabilities, 문제 해결 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 릴리스 기록 |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | 공개 계층, 버전 관리, 릴리스 루프 |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | 내부 아키텍처 · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | 런타임 설정 참조 |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 데이터 마이그레이션 |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | 기여 가이드 |
-| [`SECURITY.md`](SECURITY.md) | 보안 정책 |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | 기여 가이드 |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | 보안 정책 |
 
 ## 기여
 
-Cursor Cloud / 이 저장소 클라우드 워크스페이스에서 선언된 Node.js와 pnpm으로 검증(Docker sandbox는 선택, 필수 아님). DSH 스모크 테스트에는 격리 `DSH_HOME` 사용. [`CONTRIBUTING.md`](CONTRIBUTING.md) 참조. issue, PR, 스크린샷, 로그에 비밀, prompt, 개인 경로를 넣지 마세요.
+Cursor Cloud / 이 저장소 클라우드 워크스페이스에서 선언된 Node.js와 pnpm으로 검증(Docker sandbox는 선택, 필수 아님). DSH 스모크 테스트에는 격리 `DSH_HOME` 사용. [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) 참조. issue, PR, 스크린샷, 로그에 비밀, prompt, 개인 경로를 넣지 마세요.
 
 언어 전환 줄에 내 언어가 없으면 README 번역 PR을 열어 주세요.
 

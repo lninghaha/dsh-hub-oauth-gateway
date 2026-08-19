@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lninghaha/dsh-hub-oauth-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
@@ -72,7 +72,7 @@ systemctl --user restart dsh-web.service
 # или: dsh-web restart
 ```
 
-Затем откройте **Settings → Usage Center**. Для Accounts / Gateway / Capabilities войдите или включите переключатели по необходимости. Полные варианты установки (npx installer, GitHub tarball, proxy) — в [`INSTALL.md`](INSTALL.md).
+Затем откройте **Settings → Usage Center**. Для Accounts / Gateway / Capabilities войдите или включите переключатели по необходимости. Полные варианты установки (npx installer, GitHub tarball, proxy) — в [`docs/01-install.md`](docs/01-install.md).
 
 ## Содержание
 
@@ -110,7 +110,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Совместимый установщик при отсутствии plugin manager: `npx --yes dsh-hub-oauth-gateway-install`. Установка из GitHub `/path/to/*.tgz` и development path описана в [`INSTALL.md`](INSTALL.md). После установки перезапустите Web самостоятельно (`dsh-web restart` или `systemctl --user restart dsh-web.service`), затем обновите `http://127.0.0.1:3080`.
+Совместимый установщик при отсутствии plugin manager: `npx --yes dsh-hub-oauth-gateway-install`. Установка из GitHub `/path/to/*.tgz` и development path описана в [`docs/01-install.md`](docs/01-install.md). После установки перезапустите Web самостоятельно (`dsh-web restart` или `systemctl --user restart dsh-web.service`), затем обновите `http://127.0.0.1:3080`.
 
 ## Использование
 
@@ -134,11 +134,11 @@ Allowlisted официальные CLI OAuth-файлы обнаруживают
 
 ## Локальный API-шлюз
 
-По умолчанию **выключен**. При включении изолированный `node:http` listener (не порт DSH web) обслуживает `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` и `POST /v1/messages` на loopback, переиспользуя вошедшие OAuth-сессии. Bind только через YAML; non-loopback bind требует Bearer key. Это не remote relay. Подробности: [`INSTALL.md`](INSTALL.md).
+По умолчанию **выключен**. При включении изолированный `node:http` listener (не порт DSH web) обслуживает `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` и `POST /v1/messages` на loopback, переиспользуя вошедшие OAuth-сессии. Bind только через YAML; non-loopback bind требует Bearer key. Это не remote relay. Подробности: [`docs/01-install.md`](docs/01-install.md).
 
 ## Дополнительные возможности
 
-Семь переключателей по умолчанию **выключены** и применяются **сразу**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoints и Grok Imagine остаются fail-closed до включения. См. [`INSTALL.md`](INSTALL.md) и [`docs/03-configuration.md`](docs/03-configuration.md).
+Семь переключателей по умолчанию **выключены** и применяются **сразу**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoints и Grok Imagine остаются fail-closed до включения. См. [`docs/01-install.md`](docs/01-install.md) и [`docs/03-configuration.md`](docs/03-configuration.md).
 
 ## Конфигурация во время выполнения
 
@@ -174,7 +174,7 @@ Allowlisted официальные CLI OAuth-файлы обнаруживают
           intervalMinutes: 30
 ```
 
-Полный справочник полей, monitors, proxy и импорт pricing: [`docs/03-configuration.md`](docs/03-configuration.md) и [`INSTALL.md`](INSTALL.md). Устаревший корневой `config.monitors` отображается в `config.accounts.monitors` (не задавайте оба).
+Полный справочник полей, monitors, proxy и импорт pricing: [`docs/03-configuration.md`](docs/03-configuration.md) и [`docs/01-install.md`](docs/01-install.md). Устаревший корневой `config.monitors` отображается в `config.accounts.monitors` (не задавайте оба).
 
 ## Учётные данные
 
@@ -199,7 +199,7 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 - SQLite не содержит credentials, prompts, responses, cwd и raw provider payloads.
 - Аналитика и оценки — не счета. Запрашивайте только аккаунты и endpoints, которыми вы владеете или на использование которых уполномочены.
 
-Модель угроз и отчёты: [`SECURITY.md`](SECURITY.md).
+Модель угроз и отчёты: [`.github/SECURITY.md`](.github/SECURITY.md).
 
 ## Архитектура
 
@@ -223,18 +223,18 @@ flowchart LR
 
 | Документ | Назначение |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | Установка, proxy, gateway, capabilities, troubleshooting |
+| [`docs/01-install.md`](docs/01-install.md) | Установка, proxy, gateway, capabilities, troubleshooting |
 | [`CHANGELOG.md`](CHANGELOG.md) | История релизов |
 | [`docs/00-project-rules.md`](docs/00-project-rules.md) | Слои публикации, версионирование, цикл релиза |
 | [`docs/02-architecture.md`](docs/02-architecture.md) | Внутренняя архитектура · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | Справочник конфигурации |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | Миграция данных 1.0 |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Руководство по участию |
-| [`SECURITY.md`](SECURITY.md) | Политика безопасности |
+| [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | Руководство по участию |
+| [`.github/SECURITY.md`](.github/SECURITY.md) | Политика безопасности |
 
 ## Участие в разработке
 
-Проверяйте в Cursor Cloud / cloud workspace этого репозитория с заявленными Node.js и pnpm (Docker sandbox опционален, не обязателен). Для DSH smoke tests используйте изолированный `DSH_HOME`. См. [`CONTRIBUTING.md`](CONTRIBUTING.md). Не включайте секреты, prompts и личные пути в issues, PR, скриншоты и логи.
+Проверяйте в Cursor Cloud / cloud workspace этого репозитория с заявленными Node.js и pnpm (Docker sandbox опционален, не обязателен). Для DSH smoke tests используйте изолированный `DSH_HOME`. См. [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md). Не включайте секреты, prompts и личные пути в issues, PR, скриншоты и логи.
 
 Если вашего языка нет в переключателе, откройте PR с переводом README — мы добавим его.
 

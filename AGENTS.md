@@ -77,7 +77,7 @@
 
 - 修复优先增加回归测试；安全边界变化必须包含负向/对抗测试。测试不得依赖真实 provider、真实凭据、现有个人 DSH profile 或未隔离的生产 Web。
 - 可观察行为、配置、API、安装方式、数据迁移或安全边界变化时，同步更新相关 README、公开文档与迁移说明。
-- 用户可见 UI 文案同时维护中文和英文；公开 README 以 `README.md`（English-first）为准，并同步社区语种 README / `INSTALL.md`；避免文档宣称尚未实现或无法验证的能力。
+- 用户可见 UI 文案同时维护中文和英文；公开 README 以 `README.md`（English-first）为准，并同步社区语种 README / `docs/01-install.md`；避免文档宣称尚未实现或无法验证的能力。
 - 版本遵循 SemVer：兼容修复为 patch，兼容新能力为 minor，破坏公开 export、配置、API、存储或安装契约为 major。
 - `lib/` 可复现、文档同步、云环境门禁（`check`）与 npm 打包清单审阅、以及隔离 DSH 冒烟是发布前置条件。
 
@@ -88,7 +88,7 @@
 Agent 在用户明确要求发版时的职责：
 
 1. 准备版本：`CHANGELOG` 从 Unreleased 移入目标版本、`package.json` / `lib` banner / `build/verify-release.mjs` 等版本元数据一致。
-2. **发版阶段及时更新相关文档**：安装说明（README / INSTALL / migration）、规则与贡献指南中与版本或安装契约相关的段落、用户可见中英文 UI 文案与社区语种 README；不得把文档拖到发版之后再补。
+2. **发版阶段及时更新相关文档**：安装说明（README / `docs/01-install.md` / migration）、规则与贡献指南中与版本或安装契约相关的段落、用户可见中英文 UI 文案与社区语种 README；不得把文档拖到发版之后再补。
 3. 云环境跑通 `pnpm run check` 与 `pnpm run release:inspect`（Node 须满足 `.nvmrc` / engines）；需要时做隔离 DSH 冒烟。
 4. 在获准后：提交、推送、`v<version>` annotated tag、`pnpm run release:pack`，并**由 Agent 创建**附带 `dsh-hub-oauth-gateway-<version>.tgz` 的 GitHub Release（changelog 摘要）。
 5. **向用户只给出以下三条可复制命令**（仓库根按实际路径替换；默认云工作区为 `/workspace`），不得再附带其它发布脚本：
@@ -107,7 +107,7 @@ Agent 在用户明确要求发版时的职责：
 - 普通 GET 只读取本地快照；带凭据的上游刷新保持显式 mutation 或后台调度，不因打开页面而触发。
 - 凭据只能通过集中 transport 发往通过协议、origin、DNS 与私网策略校验的目标；redirect、超时和响应大小继续受控。
 - SQLite、API、日志和导出默认不得包含凭据、prompt/response、cwd、本地 credential 路径或 provider 原始响应。
-- 发现疑似漏洞或秘密泄露时立即停止扩散，不在公开渠道粘贴细节，并按 `SECURITY.md` 处理。
+- 发现疑似漏洞或秘密泄露时立即停止扩散，不在公开渠道粘贴细节，并按 [`.github/SECURITY.md`](.github/SECURITY.md) 处理。
 
 ## 7. DSH Web 启动与重启
 
