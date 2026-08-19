@@ -67,6 +67,14 @@ function endpoint(path: string, query: ResolvedUsageQuery): string {
 	return `${path}?${queryString(query)}`;
 }
 
+function visibleRefetchInterval(ms: number, enabled: boolean): false | number | (() => number | false) {
+	if (!enabled) return false;
+	return () => {
+		if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
+		return ms;
+	};
+}
+
 export function useOverviewQuery(query: ResolvedUsageQuery, enabled = true) {
 	const url = endpoint(API_PATHS.overview, query);
 	return useQuery(
@@ -74,7 +82,7 @@ export function useOverviewQuery(query: ResolvedUsageQuery, enabled = true) {
 			queryKey: ["usage-stats", "overview", url],
 			queryFn: ({ signal }) => fetchApi(url, OverviewDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 30_000 : false,
+			refetchInterval: visibleRefetchInterval(30_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -87,7 +95,7 @@ export function useSeriesQuery(query: ResolvedUsageQuery, enabled = true) {
 			queryKey: ["usage-stats", "series", url],
 			queryFn: ({ signal }) => fetchApi(url, SeriesDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 30_000 : false,
+			refetchInterval: visibleRefetchInterval(30_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -104,7 +112,7 @@ export function useBreakdownQuery(
 			queryKey: ["usage-stats", "breakdown", url],
 			queryFn: ({ signal }) => fetchApi(url, BreakdownDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 30_000 : false,
+			refetchInterval: visibleRefetchInterval(30_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -116,7 +124,7 @@ export function useProvidersQuery(enabled = true) {
 			queryKey: ["usage-stats", "providers"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.providers, ProvidersDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 30_000 : false,
+			refetchInterval: visibleRefetchInterval(30_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -128,7 +136,7 @@ export function useAccountsQuery(enabled = true) {
 			queryKey: ["usage-stats", "accounts"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.accounts, AccountsDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 5 * 60_000 : false,
+			refetchInterval: visibleRefetchInterval(5 * 60_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -140,7 +148,7 @@ export function useAlertsQuery(enabled = true) {
 			queryKey: ["usage-stats", "alerts"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.alerts, AlertsDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 60_000 : false,
+			refetchInterval: visibleRefetchInterval(60_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -159,7 +167,7 @@ export function useActivityQuery(
 			queryKey: ["usage-stats", "activity", url],
 			queryFn: ({ signal }) => fetchApi(url, ActivityDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 60_000 : false,
+			refetchInterval: visibleRefetchInterval(60_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -171,7 +179,7 @@ export function useFeesQuery(enabled = true) {
 			queryKey: ["usage-stats", "fees"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.fees, FeesDataSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 60_000 : false,
+			refetchInterval: visibleRefetchInterval(60_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -341,7 +349,7 @@ export function useLocalAuthQuery(enabled = true) {
 			queryKey: ["usage-stats", "local-auth"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.localAuth, LocalAuthResponseSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 60_000 : false,
+			refetchInterval: visibleRefetchInterval(60_000, enabled),
 		},
 		usageQueryClient,
 	);
@@ -357,7 +365,7 @@ export function useLocalUsageQuery(enabled = true, from?: string, to?: string) {
 			queryKey: ["usage-stats", "local-usage", suffix],
 			queryFn: ({ signal }) => fetchApi(`${API_PATHS.localUsage}${suffix}`, LocalUsageResponseSchema, {}, signal),
 			enabled,
-			refetchInterval: enabled ? 60_000 : false,
+			refetchInterval: visibleRefetchInterval(60_000, enabled),
 		},
 		usageQueryClient,
 	);

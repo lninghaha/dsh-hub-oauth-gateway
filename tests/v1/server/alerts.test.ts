@@ -44,6 +44,7 @@ describe("soft usage alerts", () => {
 		);
 		expect(alerts.map(({ kind }) => kind).sort()).toEqual(["cost", "quota"]);
 		expect(alerts.every(({ createdAt }) => createdAt === 5_000)).toBe(true);
+		expect(alerts.find(({ kind }) => kind === "cost")?.title).toBe("USD");
 	});
 
 	it("can be disabled globally", () => {
