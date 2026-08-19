@@ -1,4 +1,8 @@
-# dsh-hub-oauth-gateway 1.0 architecture
+# Architecture
+
+> [**中文版**](02-architecture.zh-CN.md) · English
+
+This document describes the internal architecture of `dsh-hub-oauth-gateway`. It is the source for the technical notes in `README.md` and is intended for contributors and maintainers.
 
 ## Goals
 
@@ -165,15 +169,14 @@ Optional account, alert, series, or breakdown failures degrade their own section
 
 ## Build and release
 
-The repository `Dockerfile` is the only supported execution boundary. Its
-`dependencies` stage resolves the pinned pnpm lockfile before source is copied;
-all later stages that execute project code use `RUN --network=none`, a
-container-only `DSH_HOME`, and no host bind mount.
+Primary verification is the **Cursor Cloud / repository cloud environment**
+with the declared Node.js and pnpm toolchain (see `docs/00-project-rules.md`
+§2.3). The repository `Dockerfile` remains optional for CI or contributors who
+prefer containers; it is not a delivery gate.
 
-Inside the Docker `artifacts` / `verify` targets, `pnpm run release:build`
-performs a clean build into `.next/lib`, bundles server dependencies into a
-standalone ESM `index.js`, emits the classic client bundle, atomically replaces
-`lib/`, and verifies:
+`pnpm run release:build` performs a clean build into `.next/lib`, bundles server
+dependencies into a standalone ESM `index.js`, emits the classic client bundle,
+atomically replaces `lib/`, and verifies:
 
 - package entrypoints;
 - Cordis plugin exports;
@@ -183,9 +186,7 @@ standalone ESM `index.js`, emits the classic client bundle, atomically replaces
 - no stale v0.3 runtime files;
 - compatibility installer behavior.
 
-The `verify` target additionally hashes the committed and rebuilt `lib/` trees
-and runs release/package inspection. The `artifacts`, `package`, and `lockfile`
-targets export only deliberate output under ignored `output/`; tests never
-write into the checkout. Committed `lib/` artifacts are the Git-host
+Release inspection additionally checks the `package.json#files` allowlist and
+`npm pack --dry-run` manifest. Committed `lib/` artifacts are the Git-host
 installation contract, so the fallback installer does not need to install
 transitive runtime dependencies.

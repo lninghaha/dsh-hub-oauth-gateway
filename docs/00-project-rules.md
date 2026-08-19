@@ -73,7 +73,7 @@ new file must be assigned to one of these layers deliberately.
 | Layer | Typical locations | Git | npm | Rule |
 | --- | --- | ---: | ---: | --- |
 | Public source and tests | `src/`, `tests/`, `build/`, `.github/` | yes | no | Reproducible and free of private data |
-| Public community docs | `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, selected `docs/` | yes | selected | Generic, durable, externally readable |
+| Public community docs | `README.md` + community-language READMEs, `INSTALL.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, selected numbered `docs/` | yes | selected | Generic, durable, externally readable |
 | Runtime release artifact | `lib/`, `cordis.patch.yml`, `scripts/install.mjs` | yes | yes | Generated/verified and sufficient to install |
 | Local-only investigation | `docs/local/` | no | no | Private fault notes and machine-specific research |
 | Local reference material | `reference/` | no | no | Temporary third-party checkouts or personal notes |
@@ -171,16 +171,32 @@ reviewed breaking release changes them:
   Web automatically; cloud agents may start/restart an **isolated** smoke
   instance under a dedicated `DSH_HOME`.
 
-See [`architecture.md`](architecture.md) and
-[`configuration.md`](configuration.md) for the implementation contracts.
+See [`02-architecture.md`](02-architecture.md) and
+[`03-configuration.md`](03-configuration.md) for the implementation contracts.
 
 ## 3. Documentation and change records
 
-- `README.md` is intentionally concise and bilingual (Simplified Chinese and
-  English). User-visible UI strings must remain available in both languages.
-- Detailed public engineering documentation is English-first. A translation
-  is welcome, but it must identify its canonical source and avoid silently
-  diverging on commands or security statements.
+### 3.1 Language policy
+
+- **`README.md` is English-first** and is the canonical user-facing overview.
+  Community translations ship beside it for reach: `README.zh-CN.md` (简体中文),
+  `README.ja.md`, `README.ko.md`, `README.pt-BR.md`, `README.es.md`,
+  `README.fr.md`, `README.de.md`, and `README.ru.md`. Every README carries the
+  same language-switch line; a user-facing README change must update **all**
+  translations (or open an explicit follow-up PR), and the switcher must never
+  be broken.
+- **`INSTALL.md`** holds install/proxy/gateway/troubleshooting detail
+  (English-first). Keep commands and version pins identical to `README.md`.
+- Publishable docs under `docs/` use `NN-<topic>.md` numbering (for example
+  `00-project-rules`, `02-architecture`, `03-configuration`, `04-migration-v1`).
+  Engineering docs are English-first; `docs/02-architecture.zh-CN.md` is the
+  Chinese architecture companion and must not silently diverge on commands or
+  security statements.
+- **User-visible UI strings** in the plugin remain Simplified Chinese and
+  English regardless of README locale coverage.
+
+### 3.2 Change records
+
 - Observable behavior, configuration, API, installation, migration, or trust
   boundary changes require updates to the relevant docs in the same pull
   request.
