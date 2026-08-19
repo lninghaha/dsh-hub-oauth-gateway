@@ -7,6 +7,22 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.7.2
+
+### Changed
+
+- Usage Center UI polish: unify capsule `dus-button` controls, raise secondary
+  type to a readable floor, responsive fee editors with column headers, export
+  actions collapsed into one menu, Peek alert limiting and empty-account guide
+  copy, and split Fees / Pricing settings editors.
+- Localize alert levels and cost titles, toolbar screen-reader labels, pricing
+  aria-labels, chart empty state, and breakdown coverage tooltips.
+- Tighten dashboard query gating by active tab, pause refetch while the
+  document is hidden, resolve uPlot colors from theme tokens, and add client
+  bundle gzip size gates plus UI contract tests.
+- Refresh README product screenshots (`docs/images/usage-center-*.png`) for the
+  polished HUD / Peek / dashboard / Settings surfaces.
+
 ### Documentation
 
 - Align public docs with the coding-subscription OAuth README conventions:
