@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.7.3** · anciennement `dsh-usage-stats`
+**v1.7.4** · anciennement `dsh-usage-stats`
 
 **Centre d’usage local-first pour [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, coût estimé, soldes de compte, quotas d’abonnement, tendances, prévisions, alertes et exports — plus OAuth d’abonnements coding (Grok Build, Codex, Kimi Code, Claude Code), une passerelle API loopback optionnelle et une surveillance locale opt-in auth/usage. **Ne collez pas de tokens dans le chat.**
 

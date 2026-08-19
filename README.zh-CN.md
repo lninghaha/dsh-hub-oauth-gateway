@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.7.3** · 原名 `dsh-usage-stats`
+**v1.7.4** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
