@@ -51,6 +51,34 @@
 
 Исследование продукта: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Архитектура: [`docs/02-architecture.md`](docs/02-architecture.md).
 
+## Скриншоты
+
+Снято в DeepSeek Harness Web с установленным плагином (пустая локальная история нормальна для нового изолированного profile).
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="Плавающий HUD использования на оболочке DSH" width="760" />
+  <br />
+  <em>Плавающий HUD — метрика за сегодня и чипы квот по аккаунтам</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Quick Peek центра использования" width="760" />
+  <br />
+  <em>Quick Peek — только локальные KPI, с переходом к полной панели</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Полная панель Usage Center" width="760" />
+  <br />
+  <em>Полная панель — диапазоны, вкладки, обновление и экспорт CSV / JSON</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="Настройки → Usage Center" width="760" />
+  <br />
+  <em>Настройки → Usage Center — Отображение / Аккаунты / Шлюз / Возможности / Провайдеры / Расходы</em>
+</p>
+
 ## Какие проблемы решает плагин
 
 | Вы искали / видели | Что на самом деле было сломано | Что делает этот плагин |
@@ -78,6 +106,7 @@ systemctl --user restart dsh-web.service
 
 - [Переименование](#переименование)
 - [Возможности](#возможности)
+- [Скриншоты](#скриншоты)
 - [Какие проблемы решает плагин](#какие-проблемы-решает-плагин)
 - [Быстрый старт](#быстрый-старт)
 - [Требования](#требования)

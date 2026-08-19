@@ -51,6 +51,34 @@
 
 产品调研：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。架构：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
+## 产品截图
+
+在 DeepSeek Harness Web 安装本插件后截取（全新隔离 profile 下本地历史为空属正常）。
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="DSH 壳层上的悬浮用量 HUD" width="760" />
+  <br />
+  <em>悬浮 HUD —— 今日指标与多账户配额芯片</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="用量中心速览浮层" width="760" />
+  <br />
+  <em>用量速览 —— 仅本地 KPI，一键进入完整仪表盘</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="用量中心完整仪表盘" width="760" />
+  <br />
+  <em>完整仪表盘 —— 时间范围、页签、刷新与 CSV / JSON 导出</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="设置 → 用量中心" width="760" />
+  <br />
+  <em>设置 → 用量中心 —— 显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用</em>
+</p>
+
 ## 本插件解决的问题
 
 | 你搜到 / 看到的 | 实际坏在哪 | 本插件怎么处理 |
@@ -78,6 +106,7 @@ systemctl --user restart dsh-web.service
 
 - [项目更名](#项目更名)
 - [特性](#特性)
+- [产品截图](#产品截图)
 - [本插件解决的问题](#本插件解决的问题)
 - [快速开始](#快速开始)
 - [要求](#要求)

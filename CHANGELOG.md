@@ -18,6 +18,9 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 - Reorganize the repository root: keep README locales at root; move install
   notes to `docs/01-install.md`, contributor/security/conduct docs to
   `.github/`, and TypeScript project configs into `tsconfig/`.
+- Add product screenshots (`docs/images/usage-center-*.png`) for the floating
+  HUD, Quick Peek, full dashboard, and Settings → Usage Center, embedded in
+  all README locales.
 
 ## 1.7.1
 

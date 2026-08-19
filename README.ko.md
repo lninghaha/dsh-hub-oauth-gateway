@@ -51,6 +51,34 @@
 
 제품 조사: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). 아키텍처: [`docs/02-architecture.md`](docs/02-architecture.md).
 
+## 스크린샷
+
+DeepSeek Harness Web에 이 플러그인을 설치한 뒤 촬영했습니다(새 격리 profile에서는 로컬 기록이 비어 있어도 정상).
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="DSH 셸의 플로팅 사용량 HUD" width="760" />
+  <br />
+  <em>플로팅 HUD — 오늘 지표와 다중 계정 할당량 칩</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
+  <br />
+  <em>Quick Peek — 로컬 KPI만 표시, 원클릭으로 전체 대시보드</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Usage Center 전체 대시보드" width="760" />
+  <br />
+  <em>전체 대시보드 — 범위, 탭, 새로고침, CSV / JSON 내보내기</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="설정 → Usage Center" width="760" />
+  <br />
+  <em>설정 → Usage Center — 표시 / 계정 / 게이트웨이 / 기능 / 프로바이더 / 비용</em>
+</p>
+
 ## 이 플러그인이 해결하는 문제
 
 | 검색 / 본 것 | 실제로 깨진 것 | 이 플러그인이 하는 일 |
@@ -78,6 +106,7 @@ systemctl --user restart dsh-web.service
 
 - [이름 변경](#이름-변경)
 - [기능](#기능)
+- [스크린샷](#스크린샷)
 - [이 플러그인이 해결하는 문제](#이-플러그인이-해결하는-문제)
 - [빠른 시작](#빠른-시작)
 - [요구 사항](#요구-사항)

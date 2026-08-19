@@ -51,6 +51,34 @@
 
 製品調査：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。アーキテクチャ：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
+## スクリーンショット
+
+DeepSeek Harness Web に本プラグインを入れた状態で撮影（新規隔離 profile ではローカル履歴が空でも正常）。
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="DSH シェル上のフローティング用量 HUD" width="760" />
+  <br />
+  <em>フローティング HUD — 本日の指標と複数アカウントのクォータチップ</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
+  <br />
+  <em>Quick Peek — ローカルのみの KPI。ワンクリックでフルダッシュボードへ</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Usage Center フルダッシュボード" width="760" />
+  <br />
+  <em>フルダッシュボード — 範囲・タブ・更新・CSV / JSON エクスポート</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="設定 → Usage Center" width="760" />
+  <br />
+  <em>設定 → Usage Center — 表示 / アカウント / ゲートウェイ / 機能 / プロバイダー / 費用</em>
+</p>
+
 ## 本プラグインが解決する問題
 
 | 検索 / 目にしたもの | 実際の問題 | 本プラグインの対応 |
@@ -78,6 +106,7 @@ systemctl --user restart dsh-web.service
 
 - [名称変更](#名称変更)
 - [機能](#機能)
+- [スクリーンショット](#スクリーンショット)
 - [本プラグインが解決する問題](#本プラグインが解決する問題)
 - [クイックスタート](#クイックスタート)
 - [要件](#要件)

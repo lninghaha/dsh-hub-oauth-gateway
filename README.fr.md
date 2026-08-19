@@ -51,6 +51,34 @@ Historique des releases dans [`CHANGELOG.md`](CHANGELOG.md).
 
 Recherche produit : [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Architecture : [`docs/02-architecture.md`](docs/02-architecture.md).
 
+## Captures d’écran
+
+Prises sur DeepSeek Harness Web avec ce plugin installé (un historique local vide est normal sur un profile isolé neuf).
+
+<p align="center">
+  <img src="docs/images/usage-center-hud.png" alt="HUD flottant d’usage sur le shell DSH" width="760" />
+  <br />
+  <em>HUD flottant — métrique du jour et puces de quota multi-comptes</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-peek.png" alt="Aperçu Quick Peek du Usage Center" width="760" />
+  <br />
+  <em>Quick Peek — KPI locaux uniquement, avec accès au tableau de bord complet</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-dashboard.png" alt="Tableau de bord complet du Usage Center" width="760" />
+  <br />
+  <em>Tableau de bord complet — plages, onglets, actualisation et export CSV / JSON</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/usage-center-settings.png" alt="Réglages → Usage Center" width="760" />
+  <br />
+  <em>Réglages → Usage Center — Affichage / Comptes / Gateway / Capacités / Fournisseurs / Frais</em>
+</p>
+
 ## Problèmes résolus par ce plugin
 
 | Vous avez cherché / vu | Ce qui était réellement cassé | Ce que fait ce plugin |
@@ -78,6 +106,7 @@ Puis ouvrez **Settings → Usage Center**. Pour Accounts / Gateway / Capabilitie
 
 - [Changement de nom](#changement-de-nom)
 - [Fonctionnalités](#fonctionnalités)
+- [Captures d’écran](#captures-décran)
 - [Problèmes résolus par ce plugin](#problèmes-résolus-par-ce-plugin)
 - [Démarrage rapide](#démarrage-rapide)
 - [Prérequis](#prérequis)
