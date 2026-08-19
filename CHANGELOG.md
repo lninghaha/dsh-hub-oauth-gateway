@@ -7,6 +7,12 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Documentation
+
+- Refresh README product screenshots (`docs/images/usage-center-*.png`) for the
+  1.7.3 Usage Center surfaces (compact Peek KPIs, floating HUD, full dashboard,
+  and Settings → Usage Center).
+
 ## 1.7.3
 
 ### Added

@@ -64,7 +64,7 @@
 <p align="center">
   <img src="docs/images/usage-center-peek.png" alt="用量中心速览浮层" width="760" />
   <br />
-  <em>用量速览 —— 仅本地 KPI，一键进入完整仪表盘</em>
+  <em>用量速览 —— 紧凑 2×2 KPI，一键进入完整仪表盘</em>
 </p>
 
 <p align="center">

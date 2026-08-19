@@ -64,7 +64,7 @@ Captured against DeepSeek Harness Web with this plugin installed (empty local hi
 <p align="center">
   <img src="docs/images/usage-center-peek.png" alt="Usage Center quick peek overlay" width="760" />
   <br />
-  <em>Quick Peek — local-only KPIs with a one-click jump to the full dashboard</em>
+  <em>Quick Peek — compact 2×2 KPIs with a one-click jump to the full dashboard</em>
 </p>
 
 <p align="center">
