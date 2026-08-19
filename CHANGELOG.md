@@ -7,6 +7,25 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.7.3
+
+### Added
+
+- Peek quota strip: top three tightest quota windows with reset rings and
+  dual-track usage bars in the account grid.
+- Usage chart hover tooltip with per-series values and share percentages.
+- Activity heatmap month/weekday rulers and click-to-drill day detail.
+- Gateway tab multi-client snippets (cURL, Python, Node.js, Cursor) with copy.
+- Dashboard skeleton loading state and pricing editor preset buttons.
+- Floating HUD edge snap and idle collapse.
+
+### Changed
+
+- Peek mode uses a compact 2×2 KPI layout instead of the full account grid;
+  empty states link to Settings → Usage Center via session storage handoff.
+- Settings section listens for cross-surface tab open events from the overlay
+  and local monitor empty states.
+
 ## 1.7.2
 
 ### Changed
