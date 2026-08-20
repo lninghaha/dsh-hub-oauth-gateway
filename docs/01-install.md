@@ -1,6 +1,6 @@
 # Installation and usage · dsh-hub-oauth-gateway
 
-**v1.7.4**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
+**v1.8.0**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
 
 ```bash
 dsh plugin --profile web add dsh-hub-oauth-gateway
@@ -39,7 +39,7 @@ The installer atomically replaces `~/.dsh/profiles/node_modules/dsh-hub-oauth-ga
 Each formal GitHub Release must attach `dsh-hub-oauth-gateway-<version>.tgz` matching the npm artifact (see [`00-project-rules.md`](00-project-rules.md) §8):
 
 ```bash
-dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.7.4.tgz
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.8.0.tgz
 ```
 
 ### Development / Git

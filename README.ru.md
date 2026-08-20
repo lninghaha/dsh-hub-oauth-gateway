@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.7.4** · ранее `dsh-usage-stats`
+**v1.8.0** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -153,7 +153,7 @@ CLI: `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-bui
 
 ## Настройки
 
-**Settings → Usage Center** использует шесть верхних вкладок: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers** и **Fees**. Карточки вошедших провайдеров свёрнуты до раскрытия. API Key / Copilot device auth находится в Providers.
+**Settings → Usage Center** использует шесть верхних вкладок: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers** и **Fees**. Карточки вошедших провайдеров свёрнуты до раскрытия. Каждая карточка Providers управляет своей аутентификацией — сохранение/удаление API Key, device auth Copilot, обновление по провайдеру — а OAuth-карточки ведут прямо к входу/импорту в Accounts.
 
 ## Coding OAuth
 

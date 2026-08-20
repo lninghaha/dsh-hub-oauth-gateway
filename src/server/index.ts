@@ -9,6 +9,7 @@ import {
 import { AccountAdapterRegistry } from "./accounts/registry.js";
 import { AccountSnapshotRepository } from "./accounts/repository.js";
 import { AccountService } from "./accounts/service.js";
+import { accountIdentityKey } from "./accounts/types.js";
 import { evaluateUsageAlerts } from "./alerts/service.js";
 import { registerCredentialRoutes } from "./api/credentials.js";
 import { registerLegacyRoutes } from "./api/legacy.js";
@@ -218,12 +219,22 @@ export async function apply(
 		);
 	}
 	const providersApi = {
-		list: async () =>
-			collectProvidersData({
-				accounts: await accountService.list(),
+		list: async () => {
+			const [accounts, specs] = await Promise.all([accountService.list(), accountService.specs()]);
+			const credentialRefs = new Map<string, string>();
+			for (const spec of specs) {
+				if (spec.apiKeyRef !== undefined && spec.apiKeyRef !== "") {
+					credentialRefs.set(accountIdentityKey(spec.id, spec.profileId), spec.apiKeyRef);
+				}
+			}
+			return collectProvidersData({
+				accounts,
+				credentialRefs,
+				credentialsWritable: typeof credentials?.set === "function",
 				...(codingOAuthRuntime === undefined ? {} : { codingOAuth: codingOAuthRuntime }),
 				now,
-			}),
+			});
+		},
 	};
 
 	const queryService = new UsageQueryService(usage, pricing, userPreferences.display.baseCurrency);

@@ -580,7 +580,7 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 								filters={filters}
 								onChange={setFilters}
 								refreshing={refresh.isPending}
-								onRefresh={() => refresh.mutate("all")}
+								onRefresh={() => refresh.mutate({ scope: "all" })}
 								exportFilteredCsv={exportFilteredCsv}
 								exportDailyCsv={exportDailyCsv}
 								exportBundleJson={exportBundleJson}

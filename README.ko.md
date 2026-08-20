@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.7.4** · 이전 이름 `dsh-usage-stats`
+**v1.8.0** · 이전 이름 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web용 로컬 우선 사용량 센터.** Token, 추정 비용, 계정 잔액, 구독 할당량, 추세, 예측, 알림, 내보내기 — 코딩 구독 OAuth(Grok Build, Codex, Kimi Code, Claude Code), 선택적 루프백 API 게이트웨이, 옵트인 로컬 인증/사용량 모니터링 포함. **채팅에 token을 붙여넣지 마세요.**
 
@@ -153,7 +153,7 @@ CLI: `dsh-coding-oauth login [--pkce] | import | status | logout`(`dsh-grok-buil
 
 ## 설정
 
-**Settings → Usage Center** 는 6개 상단 탭: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers**, **Fees**. 로그인된 프로바이더 카드는 펼치기 전까지 접힘. API Key / Copilot device auth는 Providers 아래.
+**Settings → Usage Center** 는 6개 상단 탭: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers**, **Fees**. 로그인된 프로바이더 카드는 펼치기 전까지 접힘. Providers 카드에서 인증을 직접 관리 — API Key 저장/삭제, Copilot 디바이스 인증, 프로바이더별 새로고침 — OAuth 카드는 Accounts 로그인/가져오기로 바로 이동.
 
 ## Coding OAuth
 

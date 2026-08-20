@@ -1833,6 +1833,50 @@ body {
   line-height: 1.45;
 }
 
+.dus-provider-credentials {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+  background: var(--dus-bg);
+}
+
+.dus-provider-credentials-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dus-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dus-provider-credential {
+  display: grid;
+  gap: 6px;
+}
+
+.dus-provider-credential-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dus-provider-credential-head code {
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.dus-provider-credential .dus-input {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.dus-provider-device {
+  display: grid;
+  gap: 6px;
+}
+
 .dus-provider-group {
   display: grid;
   gap: 8px;

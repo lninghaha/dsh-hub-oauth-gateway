@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.7.4** · formerly `dsh-usage-stats`
+**v1.8.0** · formerly `dsh-usage-stats`
 
 **Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
@@ -153,7 +153,7 @@ CLI: `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-bui
 
 ## Settings
 
-**Settings → Usage Center** uses six top tabs: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers**, and **Fees**. Signed-in provider cards collapse until expanded. API Key / Copilot device auth lives under Providers.
+**Settings → Usage Center** uses six top tabs: **Display**, **Accounts**, **Gateway**, **Capabilities**, **Providers**, and **Fees**. Signed-in provider cards collapse until expanded. Each Providers card maintains its own auth inline — save/clear API keys, Copilot device auth, per-provider refresh — and OAuth cards link straight to Accounts sign-in / pull.
 
 ## Coding OAuth
 

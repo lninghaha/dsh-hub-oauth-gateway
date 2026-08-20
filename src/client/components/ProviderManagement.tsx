@@ -1,6 +1,21 @@
-import type { ProviderConnection, ProviderRecord, ProvidersData } from "../../shared/providers.js";
+import { useState } from "react";
+import type {
+	ProviderConnection,
+	ProviderCredentialMeta,
+	ProviderRecord,
+	ProvidersData,
+} from "../../shared/providers.js";
 import type { Translate, UsageLocaleKey } from "../locales.js";
-import { usePreferencesQuery, useProvidersQuery, useSavePreferencesMutation } from "../queries.js";
+import {
+	useDeviceCodeMutation,
+	useDevicePollMutation,
+	usePreferencesQuery,
+	useProvidersQuery,
+	useRefreshMutation,
+	useSavePreferencesMutation,
+	useSetCredentialMutation,
+	useUnsetCredentialMutation,
+} from "../queries.js";
 import { Toggle } from "./controls.js";
 
 function countClass(kind: "connected" | "needsAttention" | "unconfigured" | "unsupported"): string {
@@ -13,12 +28,16 @@ function statusClass(connection: ProviderConnection): string {
 	return "dus-credential-status is-attention";
 }
 
+function supportsOAuthFlow(provider: ProviderRecord): boolean {
+	return provider.capabilities.supportsOAuth || provider.authSource === "oauth" || provider.authSource === "local-cli";
+}
+
 function nextStepKey(provider: ProviderRecord): UsageLocaleKey {
 	if (provider.connection === "unsupported") return "providers.next.unsupported";
 	if (provider.connection === "connected") return "providers.next.connected";
-	if (provider.authSource === "oauth" || provider.authSource === "local-cli") return "providers.next.oauth";
-	if (provider.authSource === "api-key") return "providers.next.apiKey";
 	if (provider.connection === "expired" || provider.connection === "expiring") return "providers.next.refresh";
+	if (supportsOAuthFlow(provider)) return "providers.next.oauth";
+	if (provider.authSource === "api-key" || provider.credentials.length > 0) return "providers.next.apiKey";
 	return "providers.next.review";
 }
 
@@ -35,6 +54,118 @@ function groupId(provider: ProviderRecord): "needsAttention" | "connected" | "un
 	return "needsAttention";
 }
 
+/** Preference id used for dashboard visibility: account id when linked. */
+function visibilityId(provider: ProviderRecord): string {
+	return provider.accountProviderId ?? provider.id;
+}
+
+function CredentialRow({
+	meta,
+	editable,
+	t,
+}: {
+	readonly meta: ProviderCredentialMeta;
+	readonly editable: boolean;
+	readonly t: Translate;
+}) {
+	const save = useSetCredentialMutation();
+	const unset = useUnsetCredentialMutation();
+	const [value, setValue] = useState("");
+	const error = [save.error, unset.error].find((candidate): candidate is Error => candidate instanceof Error);
+	return (
+		<div className="dus-provider-credential" data-credential-ref={meta.ref}>
+			<div className="dus-provider-credential-head">
+				<code>{meta.ref}</code>
+				<span className={`dus-credential-status${meta.configured ? " is-configured" : ""}`}>
+					{meta.configured ? t("credential.configured") : t("credential.missing")}
+				</span>
+			</div>
+			{meta.source === "oauth" ? (
+				<span className="dus-row-hint">{t("providers.credentialOAuthManaged")}</span>
+			) : editable ? (
+				<div className="dus-inline-actions">
+					<input
+						className="dus-input"
+						type="password"
+						autoComplete="new-password"
+						placeholder="••••••••"
+						aria-label={`${meta.ref} · ${t("credential.value")}`}
+						value={value}
+						onChange={(event) => setValue(event.target.value)}
+					/>
+					<button
+						type="button"
+						className="dus-button is-primary is-small"
+						disabled={value.trim() === "" || save.isPending}
+						onClick={() => save.mutate({ ref: meta.ref, value: value.trim() }, { onSuccess: () => setValue("") })}
+					>
+						{t("credential.save")}
+					</button>
+					<button
+						type="button"
+						className="dus-button is-small"
+						disabled={!meta.configured || unset.isPending}
+						onClick={() => unset.mutate(meta.ref)}
+					>
+						{t("credential.remove")}
+					</button>
+				</div>
+			) : (
+				<span className="dus-row-hint">{t("providers.credentialReadOnly")}</span>
+			)}
+			{error === undefined ? null : (
+				<p className="dus-error-inline" role="alert">
+					{error.message}
+				</p>
+			)}
+		</div>
+	);
+}
+
+function DeviceAuthRow({ providerId, t }: { readonly providerId: string; readonly t: Translate }) {
+	const device = useDeviceCodeMutation();
+	const poll = useDevicePollMutation();
+	const deviceData = device.data?.ok === true ? device.data.data : null;
+	const authorized = poll.data?.ok === true && poll.data.data.pending === false;
+	const error = [device.error, poll.error].find((candidate): candidate is Error => candidate instanceof Error);
+	return (
+		<div className="dus-provider-device" data-device-provider={providerId}>
+			{authorized ? (
+				<span className="dus-save-state">{t("providers.deviceDone")}</span>
+			) : deviceData === null ? (
+				<button
+					type="button"
+					className="dus-button is-small"
+					disabled={device.isPending}
+					onClick={() => device.mutate(providerId)}
+				>
+					{t("credential.start")}
+				</button>
+			) : (
+				<div className="dus-inline-actions">
+					<span>{t("credential.code", { code: deviceData.userCode })}</span>
+					<a className="dus-button is-small" href={deviceData.verificationUri} target="_blank" rel="noreferrer">
+						{t("credential.open")}
+					</a>
+					<button
+						type="button"
+						className="dus-button is-primary is-small"
+						disabled={poll.isPending}
+						onClick={() => poll.mutate({ providerId, flowId: deviceData.flowId })}
+					>
+						{t("credential.poll")}
+					</button>
+				</div>
+			)}
+			{error === undefined ? null : (
+				<p className="dus-error-inline" role="alert">
+					{error.message}
+				</p>
+			)}
+		</div>
+	);
+}
+
 function ProviderCard({
 	provider,
 	hidden,
@@ -48,8 +179,13 @@ function ProviderCard({
 	readonly onOpenAccounts: () => void;
 	readonly t: Translate;
 }) {
+	const refresh = useRefreshMutation();
 	const next = nextStepKey(provider);
-	const showAccountsCta = provider.authSource === "oauth" || provider.authSource === "local-cli";
+	const showAccountsCta = supportsOAuthFlow(provider);
+	const canEditCredentials = provider.connection !== "unsupported";
+	const canRefresh =
+		provider.accountProviderId !== null && provider.capabilities.canRefresh && provider.connection !== "unsupported";
+	const supportsDeviceAuth = provider.accountProviderId === "copilot";
 	return (
 		<article className="dus-provider-card" data-provider-id={provider.id}>
 			<div className="dus-provider-card-head">
@@ -79,6 +215,15 @@ function ProviderCard({
 					<dd>{t(`quotaState.${provider.quotaState}` as UsageLocaleKey)}</dd>
 				</div>
 			</dl>
+			{provider.credentials.length === 0 ? null : (
+				<div className="dus-provider-credentials">
+					<span className="dus-provider-credentials-title">{t("providers.credentialsTitle")}</span>
+					{provider.credentials.map((meta) => (
+						<CredentialRow key={meta.ref} meta={meta} editable={meta.writable && canEditCredentials} t={t} />
+					))}
+				</div>
+			)}
+			{supportsDeviceAuth ? <DeviceAuthRow providerId="copilot" t={t} /> : null}
 			{provider.warnings.length === 0 ? null : (
 				<ul className="dus-provider-warnings">
 					{provider.warnings.map((warning) => (
@@ -99,6 +244,22 @@ function ProviderCard({
 				{showAccountsCta ? (
 					<button type="button" className="dus-button is-small" onClick={onOpenAccounts}>
 						{t("providers.openAccounts")}
+					</button>
+				) : null}
+				{canRefresh ? (
+					<button
+						type="button"
+						className="dus-button is-small"
+						data-provider-refresh={provider.id}
+						disabled={refresh.isPending}
+						onClick={() =>
+							refresh.mutate({
+								scope: "accounts",
+								...(provider.accountProviderId === null ? {} : { providerIds: [provider.accountProviderId] }),
+							})
+						}
+					>
+						{refresh.isPending ? t("providers.refreshing") : t("providers.refreshNow")}
 					</button>
 				) : null}
 			</div>
@@ -122,11 +283,15 @@ export function ProviderManagement({
 	const prefs = preferences.data?.ok === true ? preferences.data.data : null;
 	const hidden = new Set(prefs?.providers.hidden ?? []);
 
-	const setVisible = (providerId: string, visible: boolean): void => {
+	const setVisible = (provider: ProviderRecord, visible: boolean): void => {
 		if (prefs === null) return;
+		// Visibility preferences are keyed by the account provider id so they stay
+		// aligned with the dashboard account grid; the record id is removed too so
+		// entries written by older builds cannot keep a provider hidden.
+		const ids = new Set([visibilityId(provider), provider.id]);
 		const nextHidden = visible
-			? prefs.providers.hidden.filter((id) => id !== providerId)
-			: [...new Set([...prefs.providers.hidden, providerId])];
+			? prefs.providers.hidden.filter((id) => !ids.has(id))
+			: [...new Set([...prefs.providers.hidden, visibilityId(provider)])];
 		savePreferences.mutate({
 			...prefs,
 			providers: { ...prefs.providers, hidden: nextHidden },
@@ -179,8 +344,8 @@ export function ProviderManagement({
 											<ProviderCard
 												key={provider.id}
 												provider={provider}
-												hidden={hidden.has(provider.id)}
-												onToggleVisible={(visible) => setVisible(provider.id, visible)}
+												hidden={hidden.has(visibilityId(provider)) || hidden.has(provider.id)}
+												onToggleVisible={(visible) => setVisible(provider, visible)}
 												onOpenAccounts={onOpenAccounts}
 												t={t}
 											/>

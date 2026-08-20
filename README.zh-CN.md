@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.7.4** · 原名 `dsh-usage-stats`
+**v1.8.0** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -153,7 +153,7 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
 
 ## 设置页
 
-**设置 → 用量中心** 六个顶部标签：**显示**、**订阅账号**、**网关**、**能力**、**供应商**、**费用**。已登录供应商卡片默认折叠。API Key / Copilot 设备授权在「供应商」页。
+**设置 → 用量中心** 六个顶部标签：**显示**、**订阅账号**、**网关**、**能力**、**供应商**、**费用**。已登录供应商卡片默认折叠。「供应商」页卡片内可直接维护认证——保存/清除 API Key、Copilot 设备授权、按供应商刷新；OAuth 卡片一键跳转「订阅账号」登录/拉取。
 
 ## 编码 OAuth
 

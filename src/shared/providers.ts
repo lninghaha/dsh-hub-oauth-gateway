@@ -208,6 +208,18 @@ export const ProviderRecordSchema = z
 		tokenLifecycle: TokenLifecycleSchema,
 		modelState: ModelStateSchema,
 		quotaState: QuotaStateSchema,
+		/**
+		 * Credential references maintained for this provider. Per the security
+		 * contract, entries carry only reference names and booleans — never the
+		 * credential value or its location on disk.
+		 */
+		credentials: z.array(ProviderCredentialMetaSchema).max(8),
+		/**
+		 * Account-monitor provider id backing this record (e.g. `codex` for the
+		 * `codex-oauth` route). Used to target per-provider refreshes and to keep
+		 * dashboard visibility preferences aligned with account snapshots.
+		 */
+		accountProviderId: ProviderIdSchema.nullable(),
 		capabilities: z
 			.object({
 				canRefresh: z.boolean(),

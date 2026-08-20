@@ -233,11 +233,22 @@ export function useSavePricingMutation() {
 	);
 }
 
+export interface RefreshRequest {
+	readonly scope: "usage" | "accounts" | "all";
+	/** Optional account provider ids for a targeted accounts refresh. */
+	readonly providerIds?: readonly string[];
+}
+
 export function useRefreshMutation() {
 	return useMutation(
 		{
-			mutationFn: (scope: "usage" | "accounts" | "all") =>
-				mutateApi(API_PATHS.refresh, "POST", { scope }, RefreshResultSchema),
+			mutationFn: ({ scope, providerIds }: RefreshRequest) =>
+				mutateApi(
+					API_PATHS.refresh,
+					"POST",
+					{ scope, ...(providerIds === undefined ? {} : { providerIds }) },
+					RefreshResultSchema,
+				),
 			onSuccess: async () => {
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats"] });
 			},
@@ -280,6 +291,7 @@ export function useSetCredentialMutation() {
 			onSuccess: async (_response, variables) => {
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "credential", variables.ref] });
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "accounts"] });
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "providers"] });
 			},
 		},
 		usageQueryClient,
@@ -294,6 +306,7 @@ export function useUnsetCredentialMutation() {
 			onSuccess: async (_response, ref) => {
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "credential", ref] });
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "accounts"] });
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "providers"] });
 			},
 		},
 		usageQueryClient,

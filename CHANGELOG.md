@@ -7,6 +7,30 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.8.0
+
+### Fixed
+
+- Providers tab now reflects Subscriptions (coding OAuth) state instead of
+  drifting apart: quota accounts (`grok`, `codex`, `claude`, `kimi-coding`,
+  `antigravity`) merge into their OAuth/route cards, eliminating duplicate
+  cards that stayed on "Auth: None" after signing in or pulling CLI
+  credentials.
+- Signed-out OAuth providers keep `authSource: "oauth"` (previously `none`),
+  so the "Open Subscriptions to sign in / pull" action and the correct
+  next-step hint stay visible exactly when they are needed.
+- The dashboard-visibility toggle on provider cards now writes the linked
+  account provider id (and clears stale route ids), keeping it aligned with
+  the account grid and Peek filters.
+
+### Added
+
+- Systematic credential maintenance on each provider card: the required
+  credential reference with configured state, inline API-key save/clear,
+  GitHub Copilot device authorization, and a per-provider "Refresh now"
+  action. Provider records expose secret-free credential metadata
+  (`credentials`) and the linked `accountProviderId`.
+
 ## 1.7.4
 
 ### Documentation

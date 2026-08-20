@@ -224,6 +224,20 @@ export declare const ProviderRecordSchema: z.ZodObject<{
         "not-supported": "not-supported";
         unlinked: "unlinked";
     }>;
+    credentials: z.ZodArray<z.ZodObject<{
+        label: z.ZodString;
+        ref: z.ZodString;
+        configured: z.ZodBoolean;
+        source: z.ZodEnum<{
+            none: "none";
+            "api-key": "api-key";
+            oauth: "oauth";
+            "local-cli": "local-cli";
+            mixed: "mixed";
+        }>;
+        writable: z.ZodBoolean;
+    }, z.core.$strict>>;
+    accountProviderId: z.ZodNullable<z.ZodString>;
     capabilities: z.ZodObject<{
         canRefresh: z.ZodBoolean;
         canDisconnect: z.ZodBoolean;
@@ -305,6 +319,20 @@ export declare const ProvidersDataSchema: z.ZodObject<{
             "not-supported": "not-supported";
             unlinked: "unlinked";
         }>;
+        credentials: z.ZodArray<z.ZodObject<{
+            label: z.ZodString;
+            ref: z.ZodString;
+            configured: z.ZodBoolean;
+            source: z.ZodEnum<{
+                none: "none";
+                "api-key": "api-key";
+                oauth: "oauth";
+                "local-cli": "local-cli";
+                mixed: "mixed";
+            }>;
+            writable: z.ZodBoolean;
+        }, z.core.$strict>>;
+        accountProviderId: z.ZodNullable<z.ZodString>;
         capabilities: z.ZodObject<{
             canRefresh: z.ZodBoolean;
             canDisconnect: z.ZodBoolean;
