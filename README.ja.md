@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · 旧称 `dsh-usage-stats`
+**v1.9.1** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -101,8 +101,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. restart the resident DSH Web process (operator chooses when)
 # Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
-systemctl --user restart dsh-web.service
-# `dsh-web.service` はこのマシン固有の例です。他の環境では別のプロセスマネージャーを使います。
+# `dsh web` は公式 CLI エイリアスであり、サービス名ではありません。実際に設定したプロセスマネージャーを使ってください。
 ```
 
 次に **Settings → Usage Center** を開く。Accounts / Gateway / Capabilities は必要に応じてサインインまたはスイッチを有効化。完全なインストールオプション（npx インストーラー、GitHub tarball、プロキシ）は [`docs/01-install.md`](docs/01-install.md)。
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-プラグインマネージャーがない場合の互換インストーラー：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` と開発パスインストールは [`docs/01-install.md`](docs/01-install.md)。インストール後、既存の DSH Web プロセスを自分のサービスマネージャーで再起動（下記の `systemctl` ユニットはローカル例のみ）し、`http://127.0.0.1:3080` を更新。
+プラグインマネージャーがない場合の互換インストーラー：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` と開発パスインストールは [`docs/01-install.md`](docs/01-install.md)。インストール後、実際に設定したプロセスマネージャーで既存の DSH Web プロセスを再起動し、`http://127.0.0.1:3080` を更新してください。DSH は共通のサービス名を提供しません。
 
 ## 使い方
 

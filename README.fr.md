@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · anciennement `dsh-usage-stats`
+**v1.9.1** · anciennement `dsh-usage-stats`
 
 **Centre d’usage local-first pour [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, coût estimé, soldes de compte, quotas d’abonnement, tendances, prévisions, alertes et exports — plus OAuth d’abonnements coding (Grok Build, Codex, Kimi Code, Claude Code), une passerelle API loopback optionnelle et une surveillance locale opt-in auth/usage. **Ne collez pas de tokens dans le chat.**
 
@@ -101,8 +101,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. restart the resident DSH Web process (operator chooses when)
 # Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
-systemctl --user restart dsh-web.service
-# `dsh-web.service` est un nom local d’exemple ; d’autres déploiements peuvent utiliser un autre gestionnaire.
+# `dsh web` est l’alias CLI officiel, pas un nom de service. Utilisez le gestionnaire de processus réellement configuré.
 ```
 
 Puis ouvrez **Settings → Usage Center**. Pour Accounts / Gateway / Capabilities, connectez-vous ou activez les switches selon besoin. Options d’installation complètes (installateur npx, tarball GitHub, proxy) dans [`docs/01-install.md`](docs/01-install.md).
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Installateur compatible si le gestionnaire de plugins manque : `npx --yes dsh-hub-oauth-gateway-install`. Installations GitHub `/path/to/*.tgz` et de développement documentées dans [`docs/01-install.md`](docs/01-install.md). Après installation, redémarrez le processus DSH Web existant via votre propre gestionnaire de services (l’unité `systemctl` ci-dessous n’est qu’un exemple local), puis rafraîchissez `http://127.0.0.1:3080`.
+Installateur compatible si le gestionnaire de plugins manque : `npx --yes dsh-hub-oauth-gateway-install`. Installations GitHub `/path/to/*.tgz` et de développement documentées dans [`docs/01-install.md`](docs/01-install.md). Après installation, redémarrez le processus DSH Web existant avec le gestionnaire réellement configuré, puis rafraîchissez `http://127.0.0.1:3080` ; DSH ne publie aucun nom de service universel.
 
 ## Utilisation
 

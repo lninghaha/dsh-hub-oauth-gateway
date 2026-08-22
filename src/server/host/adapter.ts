@@ -58,46 +58,50 @@ export class DshHostAdapter {
 		return resolveCodingOAuthScope(this.#ctx);
 	}
 
-	#service<T>(name: string, direct: T | undefined): T | undefined {
+	#service<T>(name: string, direct: () => T | undefined): T | undefined {
 		try {
-			return (this.#ctx.get?.(name) as T | undefined) ?? direct;
+			const value = this.#ctx.get?.(name) as T | undefined;
+			if (value !== undefined && value !== null) return value;
+		} catch {}
+		try {
+			return direct();
 		} catch {
-			return direct;
+			return undefined;
 		}
 	}
 
 	webServer(): ExactWebServer | undefined {
-		const value = this.#service("webServer", this.#ctx.webServer);
+		const value = this.#service("webServer", () => this.#ctx.webServer);
 		return hasFunctions(value, ["register"]) ? (value as ExactWebServer) : undefined;
 	}
 
 	credentials(): WritableCredentials | undefined {
-		const value = this.#service("credentials", this.#ctx.credentials);
+		const value = this.#service("credentials", () => this.#ctx.credentials);
 		return hasFunctions(value, ["resolve"]) ? (value as WritableCredentials) : undefined;
 	}
 
 	sessions(): LiveSessionsLike | undefined {
-		const value = this.#service("sessions", this.#ctx.sessions);
+		const value = this.#service("sessions", () => this.#ctx.sessions);
 		return hasFunctions(value, ["list"]) ? (value as LiveSessionsLike) : undefined;
 	}
 
 	persistence(): SessionPersistenceLike | undefined {
-		const value = this.#service("sessionPersistence", this.#ctx.sessionPersistence);
+		const value = this.#service("sessionPersistence", () => this.#ctx.sessionPersistence);
 		return hasFunctions(value, ["list", "readFrom"]) ? (value as SessionPersistenceLike) : undefined;
 	}
 
 	settings(): SettingsLike | undefined {
-		const value = this.#service("settings", this.#ctx.settings);
+		const value = this.#service("settings", () => this.#ctx.settings);
 		return hasFunctions(value, ["get"]) ? (value as SettingsLike) : undefined;
 	}
 
 	llm(): LlmLike | undefined {
-		const value = this.#service("llm", this.#ctx.llm);
+		const value = this.#service("llm", () => this.#ctx.llm);
 		return hasFunctions(value, ["registerAdapter"]) ? (value as LlmLike) : undefined;
 	}
 
 	ownerRequestPolicy(): OwnerRequestPolicy | undefined {
-		const value = this.#service("ownerRequestPolicy", this.#ctx.ownerRequestPolicy);
+		const value = this.#service("ownerRequestPolicy", () => this.#ctx.ownerRequestPolicy);
 		return hasFunctions(value, ["authorize", "diagnostics"]) ? (value as OwnerRequestPolicy) : undefined;
 	}
 
@@ -108,13 +112,13 @@ export class DshHostAdapter {
 		} = {},
 	): DshCompatibility {
 		const raw = {
-			webServer: this.#service("webServer", this.#ctx.webServer),
-			credentials: this.#service("credentials", this.#ctx.credentials),
-			sessions: this.#service("sessions", this.#ctx.sessions),
-			sessionPersistence: this.#service("sessionPersistence", this.#ctx.sessionPersistence),
-			settings: this.#service("settings", this.#ctx.settings),
-			llm: this.#service("llm", this.#ctx.llm),
-			ownerRequestPolicy: this.#service("ownerRequestPolicy", this.#ctx.ownerRequestPolicy),
+			webServer: this.#service("webServer", () => this.#ctx.webServer),
+			credentials: this.#service("credentials", () => this.#ctx.credentials),
+			sessions: this.#service("sessions", () => this.#ctx.sessions),
+			sessionPersistence: this.#service("sessionPersistence", () => this.#ctx.sessionPersistence),
+			settings: this.#service("settings", () => this.#ctx.settings),
+			llm: this.#service("llm", () => this.#ctx.llm),
+			ownerRequestPolicy: this.#service("ownerRequestPolicy", () => this.#ctx.ownerRequestPolicy),
 		};
 		const capabilities: Record<string, HostCapability> = {
 			webServer: capability(raw.webServer, "exact-route-v1", ["register"]),

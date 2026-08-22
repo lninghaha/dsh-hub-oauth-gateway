@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · anteriormente `dsh-usage-stats`
+**v1.9.1** · anteriormente `dsh-usage-stats`
 
 **Centro de uso local-first para [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, coste estimado, saldos de cuenta, cuotas de suscripción, tendencias, previsiones, alertas y exportaciones — más OAuth de suscripciones de coding (Grok Build, Codex, Kimi Code, Claude Code), una puerta de enlace API loopback opcional y monitorización local opt-in de auth/uso. **No pegues tokens en el chat.**
 
@@ -101,8 +101,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. restart the resident DSH Web process (operator chooses when)
 # Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
-systemctl --user restart dsh-web.service
-# `dsh-web.service` es solo un nombre local de ejemplo; otras instalaciones pueden usar otro gestor.
+# `dsh web` es el alias oficial de CLI, no un nombre de servicio. Usa el gestor de procesos realmente configurado.
 ```
 
 Luego abre **Settings → Usage Center**. Para Accounts / Gateway / Capabilities, inicia sesión o habilita switches según necesites. Opciones completas de instalación (instalador npx, tarball GitHub, proxy) en [`docs/01-install.md`](docs/01-install.md).
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Instalador compatible cuando falta el gestor de plugins: `npx --yes dsh-hub-oauth-gateway-install`. Instalaciones GitHub `/path/to/*.tgz` y de desarrollo documentadas en [`docs/01-install.md`](docs/01-install.md). Tras instalar, reinicia el proceso DSH Web existente mediante tu propio gestor de servicios (la unidad `systemctl` mostrada abajo es solo un ejemplo local), luego actualiza `http://127.0.0.1:3080`.
+Instalador compatible cuando falta el gestor de plugins: `npx --yes dsh-hub-oauth-gateway-install`. Instalaciones GitHub `/path/to/*.tgz` y de desarrollo documentadas en [`docs/01-install.md`](docs/01-install.md). Tras instalar, reinicia el proceso DSH Web existente mediante el gestor de procesos realmente configurado y luego actualiza `http://127.0.0.1:3080`; DSH no publica un nombre de servicio universal.
 
 ## Uso
 

@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · ранее `dsh-usage-stats`
+**v1.9.1** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -101,8 +101,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. перезапустить резидентный процесс DSH Web (оператор выбирает момент)
 # Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
-systemctl --user restart dsh-web.service
-# `dsh-web.service` — только локальный пример; в других развертываниях может использоваться другой менеджер.
+# `dsh web` — официальный псевдоним CLI, а не имя службы. Используйте реально настроенный менеджер процессов.
 ```
 
 Затем откройте **Settings → Usage Center**. Для Accounts / Gateway / Capabilities войдите или включите переключатели по необходимости. Полные варианты установки (npx installer, GitHub tarball, proxy) — в [`docs/01-install.md`](docs/01-install.md).
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Совместимый установщик при отсутствии plugin manager: `npx --yes dsh-hub-oauth-gateway-install`. Установка из GitHub `/path/to/*.tgz` и development path описана в [`docs/01-install.md`](docs/01-install.md). После установки перезапустите существующий процесс DSH Web через собственный менеджер служб (показанный ниже `systemctl` — только локальный пример), затем обновите `http://127.0.0.1:3080`.
+Совместимый установщик при отсутствии plugin manager: `npx --yes dsh-hub-oauth-gateway-install`. Установка из GitHub `/path/to/*.tgz` и development path описана в [`docs/01-install.md`](docs/01-install.md). После установки перезапустите существующий процесс DSH Web через реально настроенный менеджер процессов, затем обновите `http://127.0.0.1:3080`; DSH не публикует универсальное имя службы.
 
 ## Использование
 

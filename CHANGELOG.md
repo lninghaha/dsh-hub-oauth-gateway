@@ -7,6 +7,12 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.9.1
+
+### Fixed
+
+- Resolve optional DSH host services lazily so Cordis contexts with strict injection guards degrade safely instead of failing the complete plugin tree during startup.
+
 ## 1.9.0
 
 ### Added

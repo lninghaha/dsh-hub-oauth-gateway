@@ -97,4 +97,36 @@ describe("DshClientAdapter", () => {
 		expect(screen.queryByRole("button", { name: en["recovery.open"] })).toBeNull();
 		dispose?.();
 	});
+
+	it("uses Cordis reflection without reading an uninjected slots property", () => {
+		let dispose: (() => void) | undefined;
+		const register = vi.fn(() => vi.fn());
+		const slots = {
+			inject: (_name: string, callback: () => (() => void) | undefined) => {
+				callback();
+				return vi.fn();
+			},
+			register,
+		};
+		const target = {
+			locale: { bind: () => (key: string) => (en as Record<string, string>)[key] ?? key },
+			effect: (callback: () => (() => void) | undefined) => {
+				dispose = callback();
+			},
+			get: (name: string) => (name === "slots" ? slots : undefined),
+			inject: vi.fn(),
+		};
+		const context = new Proxy(target, {
+			get(object, property, receiver) {
+				if (property === "slots") throw new Error('cannot get property "slots" without inject');
+				return Reflect.get(object, property, receiver);
+			},
+		}) as unknown as ClientContext;
+
+		act(() => new DshClientAdapter().install(context));
+
+		expect(register).toHaveBeenCalledTimes(4);
+		expect(target.inject).not.toHaveBeenCalled();
+		dispose?.();
+	});
 });

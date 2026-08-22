@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · formerly `dsh-usage-stats`
+**v1.9.1** · formerly `dsh-usage-stats`
 
 **Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). `1.9.1` fixes a `1.9.0` startup failure on strict Cordis injection guards; keep profile/config/credential files and restart one existing DSH Web process only after Hub `1.9.1` and Subscription `0.6.1` are both updated. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -100,9 +100,8 @@ Captured against DeepSeek Harness Web with this plugin installed (empty local hi
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. restart the resident DSH Web process (operator chooses when)
-# Local service-manager example only; `dsh web` is the official CLI alias for the web profile, not a systemd unit name.
-systemctl --user restart dsh-web.service
-# Local unit name only; other deployments may use a different process manager.
+# `dsh web` is the official CLI alias for the web profile, not a service-unit name.
+# Restart the existing process with the process manager actually configured on this machine.
 ```
 
 Then open **Settings → Usage Center**. For Accounts / Gateway / Capabilities, sign in or enable switches as needed. Full install options (npx installer, GitHub tarball, proxy) are in [`docs/01-install.md`](docs/01-install.md).
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Compatible installer when the plugin manager is missing: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` and development path installs are documented in [`docs/01-install.md`](docs/01-install.md). After install, restart the existing DSH Web process through your local process manager, then refresh `http://127.0.0.1:3080`; `dsh-web.service` is only an example local unit name.
+Compatible installer when the plugin manager is missing: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` and development path installs are documented in [`docs/01-install.md`](docs/01-install.md). After install, restart the existing DSH Web process through the process manager configured on your machine, then refresh `http://127.0.0.1:3080`; DSH does not publish a universal service-unit name.
 
 ## Usage
 

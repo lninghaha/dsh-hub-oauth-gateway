@@ -98,46 +98,56 @@ function FallbackEntry({ t }: { readonly t: Translate }) {
 	);
 }
 
-type SlotsContext = ClientContext & {
-	readonly slots: {
-		inject: (key: string, callback: () => (() => void) | undefined) => () => void;
-		register: (...args: never[]) => () => void;
-	};
-};
+type SlotsApi = ClientContext["slots"];
 
-function hasSlots(context: unknown): context is SlotsContext {
-	if (typeof context !== "object" || context === null) return false;
-	const slots = (context as { slots?: unknown }).slots;
-	return (
+function slotsOf(context: unknown): SlotsApi | undefined {
+	if (typeof context !== "object" || context === null) return undefined;
+	let slots: unknown;
+	try {
+		const get = (context as { get?: unknown }).get;
+		if (typeof get === "function") slots = get.call(context, "slots");
+	} catch {
+		// An older client may not expose the Cordis reflection helper.
+	}
+	if (slots === undefined) {
+		try {
+			slots = (context as { slots?: unknown }).slots;
+		} catch {
+			// Strict Cordis rejects optional service reads outside an inject scope.
+		}
+	}
+	if (
 		typeof slots === "object" &&
 		slots !== null &&
 		typeof (slots as { inject?: unknown }).inject === "function" &&
 		typeof (slots as { register?: unknown }).register === "function"
-	);
+	)
+		return slots as SlotsApi;
+	return undefined;
 }
 
-function registerSlots(ctx: SlotsContext): () => void {
+function registerSlots(ctx: ClientContext, slots: SlotsApi): () => void {
 	const disposers = [
-		ctx.slots.inject("sidebar.footer.action", () =>
-			ctx.slots.register(
+		slots.inject("sidebar.footer.action", () =>
+			slots.register(
 				{ name: "sidebar.footer.action", id: "usage-stats", locale: LOCALE_NAMESPACE, order: 10 },
 				SidebarAction,
 			),
 		),
-		ctx.slots.inject("shell.overlay", () =>
-			ctx.slots.register(
+		slots.inject("shell.overlay", () =>
+			slots.register(
 				{ name: "shell.overlay", id: "usage-stats-overlay", locale: LOCALE_NAMESPACE, order: 30 },
 				UsageOverlay,
 			),
 		),
-		ctx.slots.inject("shell.overlay", () =>
-			ctx.slots.register(
+		slots.inject("shell.overlay", () =>
+			slots.register(
 				{ name: "shell.overlay", id: "usage-stats-hud", locale: LOCALE_NAMESPACE, order: 25 },
 				FloatingHud,
 			),
 		),
-		ctx.slots.inject("settings.section", () =>
-			ctx.slots.register(
+		slots.inject("settings.section", () =>
+			slots.register(
 				{
 					name: "settings.section",
 					id: "usage-stats",
@@ -166,11 +176,12 @@ export class DshClientAdapter {
 		let slotsInstalled = false;
 		let stopped = false;
 		const activateSlots = (slotCtx: unknown): (() => void) | undefined => {
-			if (!hasSlots(slotCtx)) return;
+			const slots = slotsOf(slotCtx);
+			if (slots === undefined) return;
 			if (slotsInstalled) return;
 			disposeFallback();
 			disposeFallback = () => undefined;
-			disposeSlots = registerSlots(slotCtx);
+			disposeSlots = registerSlots(slotCtx as ClientContext, slots);
 			slotsInstalled = true;
 			let active = true;
 			return () => {
@@ -187,7 +198,7 @@ export class DshClientAdapter {
 			disposeSlots();
 			disposeFallback();
 		});
-		if (hasSlots(ctx)) {
+		if (slotsOf(ctx) !== undefined) {
 			activateSlots(ctx);
 			return;
 		}

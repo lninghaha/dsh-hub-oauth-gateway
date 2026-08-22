@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · 이전 이름 `dsh-usage-stats`
+**v1.9.1** · 이전 이름 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web용 로컬 우선 사용량 센터.** Token, 추정 비용, 계정 잔액, 구독 할당량, 추세, 예측, 알림, 내보내기 — 코딩 구독 OAuth(Grok Build, Codex, Kimi Code, Claude Code), 선택적 루프백 API 게이트웨이, 옵트인 로컬 인증/사용량 모니터링 포함. **채팅에 token을 붙여넣지 마세요.**
 
@@ -101,8 +101,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. restart the resident DSH Web process (operator chooses when)
 # Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
-systemctl --user restart dsh-web.service
-# `dsh-web.service`는 이 컴퓨터의 예시일 뿐이며, 다른 배포에서는 다른 프로세스 관리자를 사용할 수 있습니다.
+# `dsh web`은 공식 CLI 별칭이지 서비스 이름이 아닙니다. 실제로 구성한 프로세스 관리자를 사용하세요.
 ```
 
 그다음 **Settings → Usage Center** 를 여세요. Accounts / Gateway / Capabilities는 필요에 따라 로그인하거나 스위치를 켜세요. 전체 설치 옵션(npx 설치기, GitHub tarball, proxy)은 [`docs/01-install.md`](docs/01-install.md).
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-플러그인 관리자가 없을 때 호환 설치기: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` 및 개발 경로 설치는 [`docs/01-install.md`](docs/01-install.md). 설치 후 기존 DSH Web 프로세스를 자신의 서비스 관리자로 재시작합니다(아래 `systemctl` 유닛은 로컬 예시일 뿐입니다). `http://127.0.0.1:3080`을 새로고침하세요.
+플러그인 관리자가 없을 때 호환 설치기: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` 및 개발 경로 설치는 [`docs/01-install.md`](docs/01-install.md). 설치 후 실제로 구성한 프로세스 관리자로 기존 DSH Web 프로세스를 재시작하고 `http://127.0.0.1:3080`을 새로고침하세요. DSH는 공통 서비스 이름을 제공하지 않습니다.
 
 ## 사용법
 

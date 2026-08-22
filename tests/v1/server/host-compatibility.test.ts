@@ -68,7 +68,7 @@ describe("DSH host compatibility boundary", () => {
 				return () => routes.delete(route.path);
 			},
 		};
-		const ctx: UsageStatsHostContext = {
+		const baseContext: UsageStatsHostContext = {
 			logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 			webServer,
 			effect(setup) {
@@ -76,6 +76,20 @@ describe("DSH host compatibility boundary", () => {
 				if (typeof cleanup === "function") cleanups.push(cleanup);
 			},
 		};
+		const unInjected = new Set<PropertyKey>([
+			"credentials",
+			"sessions",
+			"sessionPersistence",
+			"settings",
+			"llm",
+			"ownerRequestPolicy",
+		]);
+		const ctx = new Proxy(baseContext, {
+			get(target, property, receiver) {
+				if (unInjected.has(property)) throw new Error(`cannot get property "${String(property)}" without inject`);
+				return Reflect.get(target, property, receiver);
+			},
+		});
 
 		await apply(ctx, configWithoutCodingOAuth, {
 			databasePath: ":memory:",

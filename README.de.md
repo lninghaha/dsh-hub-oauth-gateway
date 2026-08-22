@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · früher `dsh-usage-stats`
+**v1.9.1** · früher `dsh-usage-stats`
 
 **Local-first Usage Center für [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, geschätzte Kosten, Kontostände, Abo-Kontingente, Trends, Prognosen, Alerts und Exporte — plus Coding-Abo-OAuth (Grok Build, Codex, Kimi Code, Claude Code), optionales Loopback-API-Gateway und opt-in lokale Auth-/Usage-Überwachung. **Keine Tokens im Chat einfügen.**
 
@@ -101,8 +101,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. restart the resident DSH Web process (operator chooses when)
 # Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
-systemctl --user restart dsh-web.service
-# `dsh-web.service` ist nur ein lokaler Beispielname; andere Deployments können einen anderen Manager verwenden.
+# `dsh web` ist der offizielle CLI-Alias, kein Dienstname. Verwenden Sie den tatsächlich konfigurierten Prozessmanager.
 ```
 
 Dann **Settings → Usage Center** öffnen. Für Accounts / Gateway / Capabilities bei Bedarf anmelden oder Schalter aktivieren. Vollständige Installationsoptionen (npx-Installer, GitHub-tarball, Proxy) in [`docs/01-install.md`](docs/01-install.md).
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Kompatible Installation ohne Plugin-Manager: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` und Entwicklungspfad-Installation in [`docs/01-install.md`](docs/01-install.md). Nach der Installation den vorhandenen DSH-Web-Prozess über den eigenen Dienstemanager neu starten (die unten gezeigte `systemctl`-Unit ist nur ein lokales Beispiel), dann `http://127.0.0.1:3080` aktualisieren.
+Kompatible Installation ohne Plugin-Manager: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` und Entwicklungspfad-Installation in [`docs/01-install.md`](docs/01-install.md). Nach der Installation den vorhandenen DSH-Web-Prozess über den tatsächlich konfigurierten Prozessmanager neu starten und dann `http://127.0.0.1:3080` aktualisieren; DSH veröffentlicht keinen universellen Dienstnamen.
 
 ## Nutzung
 

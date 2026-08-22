@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.0** · 原名 `dsh-usage-stats`
+**v1.9.1** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。`1.9.1` 修复 `1.9.0` 在严格 Cordis 注入检查下的启动失败；保留 profile、配置和凭据文件，Hub `1.9.1` 与 Subscription `0.6.1` 都更新后再重启一次现有 DSH Web 进程。`dsh-coding-oauth-core@0.1.0` 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。
 
 ---
 
@@ -100,9 +100,8 @@
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
 # 2. 自行选择时机重启常驻 DSH Web 进程
-# 仅示范本机服务管理器；官方 `dsh web` 是启动 web profile 的 CLI 别名，不是 systemd 单元名。
-systemctl --user restart dsh-web.service
-# `dsh-web.service` 只是本机服务管理示例，其他部署可使用不同的进程管理器。
+# 官方 `dsh web` 是启动 web profile 的 CLI 别名，不是服务单元名。
+# 请使用这台机器实际配置的进程管理器重启现有进程。
 ```
 
 然后打开 **设置 → 用量中心**。订阅账号 / 网关 / 能力按需登录或打开开关。完整安装选项（npx 安装器、GitHub tarball、代理）见 [`docs/01-install.md`](docs/01-install.md)。
@@ -144,7 +143,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-无插件管理器时可用兼容安装器：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` 与本地开发安装见 [`docs/01-install.md`](docs/01-install.md)。安装后通过测试机自己的服务管理器重启现有 DSH Web 进程，再刷新 `http://127.0.0.1:3080`；`dsh-web.service` 只是本机示例单元名。
+无插件管理器时可用兼容安装器：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` 与本地开发安装见 [`docs/01-install.md`](docs/01-install.md)。安装后通过测试机实际配置的进程管理器重启现有 DSH Web 进程，再刷新 `http://127.0.0.1:3080`；DSH 官方不提供统一的服务单元名。
 
 ## 使用
 
