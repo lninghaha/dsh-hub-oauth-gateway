@@ -21,7 +21,32 @@ const nvmBin = join(homedir(), ".nvm", "versions", "node", `v${nvmrc}`, "bin");
 const nvmNode = join(nvmBin, "node");
 
 function run(command, args, options = {}) {
-	const result = spawnSync(command, args, {
+	let executable = command;
+	let executableArgs = args;
+	if (process.platform === "win32" && command === "pnpm") {
+		const envExec = process.env.npm_execpath;
+		const installedCli =
+			envExec !== undefined && /pnpm/i.test(envExec)
+				? envExec
+				: process.env.APPDATA === undefined
+					? undefined
+					: join(process.env.APPDATA, "npm/node_modules/pnpm/bin/pnpm.cjs");
+		if (installedCli !== undefined && existsSync(installedCli)) {
+			executable = process.execPath;
+			executableArgs = [installedCli, ...args];
+		} else {
+			executable = "pnpm.cmd";
+		}
+	} else if (process.platform === "win32" && command === "npm") {
+		const npmCli = join(dirname(process.execPath), "node_modules/npm/bin/npm-cli.js");
+		if (existsSync(npmCli)) {
+			executable = process.execPath;
+			executableArgs = [npmCli, ...args];
+		} else {
+			executable = "npm.cmd";
+		}
+	}
+	const result = spawnSync(executable, executableArgs, {
 		cwd: root,
 		env: process.env,
 		stdio: "inherit",
