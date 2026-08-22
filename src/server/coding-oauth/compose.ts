@@ -17,6 +17,7 @@ import type {} from "@deepseek-ai/dsh-host-webserver";
 import { assertUsableApiKey, type RetryPolicyConfig, RetryPolicySchema } from "@deepseek-ai/dsh-llm";
 import z from "@deepseek-ai/schemastery";
 import type { Credential, OAuthCredential } from "@earendil-works/pi-ai";
+import { DshHostAdapter } from "../host/adapter.js";
 import { createCodingOAuthAdapter } from "./adapter.js";
 import { registerCodingOAuthRoutes } from "./auth-routes.js";
 import { registerCapabilityRoutes } from "./capability-routes.js";
@@ -61,6 +62,7 @@ import {
 	CLAUDE_PI_PROVIDER,
 	CODEX_PI_PROVIDER,
 	CODING_OAUTH_ROUTES,
+	IMAGINE_MEDIA_STORE_DIRNAME,
 	KIMI_PI_PROVIDER,
 	XAI_PI_PROVIDER,
 } from "./ids.js";
@@ -74,9 +76,10 @@ import {
 import { OAUTH_PROVIDER_DEFINITIONS } from "./oauth-providers.js";
 import { OAuthProviderSession } from "./oauth-session.js";
 import type { OAuthSourceCredential } from "./oauth-sources.js";
-import { ensureCodingOAuthProxy } from "./proxy.js";
+import { acquireCodingOAuthProxy } from "./proxy.js";
 import { GrokBuildSession } from "./session.js";
 import { GrokBuildCredentialStore, type OAuthCredentialFileStore } from "./store.js";
+import { createOwnerRequestPolicy, type OwnerRequestPolicyConfig } from "./web-origin.js";
 
 export { createCodingOAuthAdapter, createGrokBuildAdapter, preferredGrokBuildModel } from "./adapter.js";
 export type { AliasLlmRoutePolicy } from "./alias-adapter.js";
@@ -220,7 +223,7 @@ function fixedCredentialRef(value: string): CredentialRef {
 }
 
 /** Owner-private artifact directory below the resolved DSH home. */
-export const IMAGINE_MEDIA_STORE_DIRNAME = ".dsh-coding-subscription-oauth-media";
+export { IMAGINE_MEDIA_STORE_DIRNAME } from "./ids.js";
 
 /** Plugin configuration; every field is optional. */
 export interface Config {
@@ -240,6 +243,8 @@ export interface Config {
 	capabilities?: CapabilitySettingsPatch;
 	/** Opt-in isolated local OpenAI-compatible gateway. Default off. */
 	gateway?: Partial<GatewayConfig>;
+	/** Owner-only Settings access over loopback, SSH forwarding, or a trusted HTTPS proxy. */
+	ownerRequest?: OwnerRequestPolicyConfig;
 }
 
 export const Config: z<Config> = z.object({
@@ -248,6 +253,15 @@ export const Config: z<Config> = z.object({
 	retryPolicy: RetryPolicySchema,
 	capabilities: CapabilitySettingsSchema,
 	gateway: GatewayConfigSchema,
+	ownerRequest: z.object({
+		loopbackAccessMode: z.union([z.const("loopback"), z.const("ssh-tunnel")]),
+		trustedProxy: z.object({
+			peers: z.array(z.string()),
+			origins: z.array(z.string()),
+			ownerProof: z.string(),
+			csrfToken: z.string(),
+		}),
+	}),
 });
 
 const CODEX_TOOL_NAMES = new Set<string>([CODEX_IMAGE_GENERATE_TOOL, CODEX_IMAGE_EDIT_TOOL]);
@@ -346,6 +360,8 @@ function unavailableImagineClient(): {
 }
 
 export interface CodingOAuthRuntime {
+	/** Settles only after the required web route surface is actually mounted. */
+	readonly ready: Promise<void>;
 	readonly grok: GrokBuildSession;
 	readonly subscriptions: readonly OAuthProviderSession[];
 	readCodexUsage(options?: { force?: boolean; signal?: AbortSignal }): Promise<unknown>;
@@ -359,8 +375,14 @@ export interface CodingOAuthRuntime {
  * @param ctx - plugin context carrying the LLM registry plus optional web server.
  */
 export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRuntime {
-	ensureCodingOAuthProxy(config.proxy, config.proxyKimi === undefined ? {} : { proxyKimi: config.proxyKimi });
+	const proxyLease = acquireCodingOAuthProxy(
+		config.proxy,
+		config.proxyKimi === undefined ? {} : { proxyKimi: config.proxyKimi },
+	);
+	ctx.effect(() => () => proxyLease.release(), "dsh-coding-oauth: scoped proxy policy");
 	const logger = ctx.logger(CODING_OAUTH_PLUGIN_NAME);
+	const ownerRequestPolicy = createOwnerRequestPolicy(config.ownerRequest);
+	const dshHost = new DshHostAdapter(ctx as never);
 	const baseCapabilities = resolveCapabilitySettings(config.capabilities);
 	const runtime = new CapabilityRuntimeState(baseCapabilities, () => {
 		logger.warn("an optional capability listener failed");
@@ -414,27 +436,35 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 	const usage = createCodexUsageReader({ auth: codexAuth });
 	const codexModels = createCodexModelCapabilities({ auth: codexAuth });
 	const resolveCodexImageRoute: ResolveCodexImageRoute = (exec) =>
-		resolveCodexImageRouteFromLlm(exec, (provider, model, signal) => ctx.llm.resolveModelInfo(provider, model, signal));
+		resolveCodexImageRouteFromLlm(exec, async (provider, model, signal) => {
+			const resolveModelInfo = dshHost.llm()?.resolveModelInfo;
+			if (resolveModelInfo === undefined) throw new Error("DSH LLM model metadata is unavailable");
+			return (await resolveModelInfo(provider, model, signal)) as { inputModalities?: readonly string[] };
+		});
 	invalidateOptionalAuthState = () => {
 		usage.clear();
 		codexModels.clear();
 		runtime.refresh();
 	};
-	const adapterRegistration = ctx.llm.registerAdapter(
-		[...CODING_OAUTH_ROUTES],
-		createCodingOAuthAdapter(grok, subscriptions, () => ctx.get("attachments"), config.retryPolicy, {
-			codexFast: {
-				isEligible: (modelId) => runtime.current().codexFast && codexModels.isPriorityEligible(modelId),
-			},
-		}),
-	);
-	ctx.effect(
-		() =>
-			bindCodexFastRoute(runtime, codexModels, adapterRegistration, {
-				onError: () => logger.warn("Codex Fast eligibility refresh failed closed"),
+	ctx.inject(["llm"], (llmCtx) => {
+		const llm = new DshHostAdapter(llmCtx as never).llm();
+		if (llm === undefined) throw new Error("DSH LLM adapter registry is incompatible");
+		const adapterRegistration = llm.registerAdapter(
+			[...CODING_OAUTH_ROUTES],
+			createCodingOAuthAdapter(grok, subscriptions, () => llmCtx.get("attachments"), config.retryPolicy, {
+				codexFast: {
+					isEligible: (modelId) => runtime.current().codexFast && codexModels.isPriorityEligible(modelId),
+				},
 			}),
-		"dsh-coding-subscription-oauth: Codex Fast route",
-	);
+		);
+		llmCtx.effect(
+			() =>
+				bindCodexFastRoute(runtime, codexModels, adapterRegistration, {
+					onError: () => logger.warn("Codex Fast eligibility refresh failed closed"),
+				}),
+			"dsh-coding-subscription-oauth: Codex Fast route",
+		);
+	});
 
 	void Promise.allSettled([grok.loadCachedCatalog(), ...subscriptions.map((session) => session.loadCachedModels())])
 		.then(async (results) => {
@@ -486,6 +516,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 				controller,
 				usage: () => usage.read(),
 				credentialInfo: () => describeImagineCredential(webCtx.get("credentials") as CredentialProvider | undefined),
+				ownerRequestPolicy,
 			});
 		});
 	});
@@ -505,22 +536,46 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 				logger.warn("local API gateway is enabled; exposing a subscription as a local API can violate provider ToS");
 			}
 		});
-		return () => {
-			void gateway.stop();
-		};
+		return () => gateway.stop();
 	}, "dsh-coding-subscription-oauth: local API gateway");
 
-	ctx.inject(["webServer"], (webCtx) => {
-		registerGatewayRoutes(webCtx, gateway);
-		registerCodingOAuthRoutes(webCtx, grok, subscriptions);
+	let webRoutesMounted = false;
+	const webRoutesFiber = ctx.inject(["webServer"], (webCtx) => {
+		registerGatewayRoutes(webCtx, gateway, ownerRequestPolicy);
+		registerCodingOAuthRoutes(webCtx, grok, subscriptions, ownerRequestPolicy, {
+			uiOwner: "hub",
+			compatibility: (accessMode) => {
+				const host = dshHost.compatibility({ uiOwner: "hub", accessMode });
+				const policyDiagnostics = ownerRequestPolicy.diagnostics();
+				return {
+					...host,
+					status: policyDiagnostics.some((diagnostic) => diagnostic.level === "error") ? "incompatible" : host.status,
+					diagnostics: [...host.diagnostics, ...policyDiagnostics.map((diagnostic) => diagnostic.id)],
+				};
+			},
+		});
 		registerOAuthImportRoutes(webCtx, oauthImportDestinations(grok, subscriptions), {
+			ownerRequestPolicy,
 			onImported: (event) => {
 				if (event.kind === "codex") invalidateOptionalAuthState();
 				notifyCatalogChange();
 				emitCredentialChange();
 			},
 		});
+		webRoutesMounted = true;
+		webCtx.effect(
+			() => () => {
+				webRoutesMounted = false;
+			},
+			"dsh-coding-oauth: required web route readiness",
+		);
 	});
+	const ready = (async (): Promise<void> => {
+		await webRoutesFiber.await();
+		if (!webRoutesMounted) {
+			throw new Error("required DSH webServer routes did not activate");
+		}
+	})();
 
 	const search = createCodexSearchProvider({
 		auth: codexAuth,
@@ -533,7 +588,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		webCtx.effect(() => bindCapabilitySearch(runtime, web, search), "dsh-coding-subscription-oauth: Codex search");
 	});
 
-	ctx.inject(["tools", "attachments"], async (toolCtx) => {
+	ctx.inject(["llm", "tools", "attachments"], async (toolCtx) => {
 		const tools = toolCtx.get("tools") as CapabilityToolRegistry;
 		const attachments = toolCtx.get("attachments") as AttachmentStore;
 		const definitions = (
@@ -561,6 +616,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		const routeRegistry = registerImagineRoutes(toolCtx, {
 			attachments,
 			media: { readForDownload: (artifactId, authz) => media.openDownload(artifactId, authz) },
+			ownerRequestPolicy,
 		});
 		const imagine = createGrokImagineClient({
 			resolveApiKey: (operation) => resolveImagineApiKey(credentials, operation),
@@ -626,6 +682,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 	});
 
 	return {
+		ready,
 		grok,
 		subscriptions,
 		readCodexUsage: (options) => usage.read(options),

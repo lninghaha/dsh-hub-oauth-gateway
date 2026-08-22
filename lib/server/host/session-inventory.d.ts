@@ -22,8 +22,8 @@ export interface SessionPersistenceLike {
     }>;
 }
 export interface DshSessionInventoryOptions {
-    readonly sessions: LiveSessionsLike | undefined;
-    readonly persistence: SessionPersistenceLike | undefined;
+    readonly sessions: LiveSessionsLike | undefined | (() => LiveSessionsLike | undefined);
+    readonly persistence: SessionPersistenceLike | undefined | (() => SessionPersistenceLike | undefined);
     onWarning?(message: string | null): void;
 }
 export declare class DshSessionInventory implements SessionInventory {

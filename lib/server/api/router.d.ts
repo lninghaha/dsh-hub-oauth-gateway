@@ -1,7 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { type UsageAlert } from "../../shared/contracts.js";
+import type { DshCompatibility } from "../../shared/compatibility.js";
+import { type UsageAlert, type UsageFreshnessState } from "../../shared/contracts.js";
 import type { AccountSnapshot } from "../../shared/domain.js";
 import type { ProvidersData } from "../../shared/providers.js";
+import type { OwnerAccessMode, OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
 import type { FeesRepository } from "../fees/repository.js";
 import type { LocalAuthSnapshot } from "../local-monitor/auth-status.js";
 import type { LocalUsageAggregateRow } from "../local-monitor/repository.js";
@@ -29,6 +31,7 @@ export interface UsageProjectionApiService {
 export interface ApiFreshness {
     usageUpdatedAt: number | null;
     accountsUpdatedAt: number | null;
+    usageState: UsageFreshnessState;
     partial: boolean;
     warnings: readonly string[];
 }
@@ -69,7 +72,9 @@ export interface UsageStatsApiDependencies {
     } | undefined;
     readonly localAuth?: LocalAuthApiService | undefined;
     readonly localUsage?: LocalUsageApiService | undefined;
+    readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
     freshness(): ApiFreshness;
+    compatibility?(accessMode: OwnerAccessMode): DshCompatibility;
     now?(): number;
 }
 export declare function registerV1Routes(webServer: ExactWebServer, dependencies: UsageStatsApiDependencies): readonly (() => void)[];

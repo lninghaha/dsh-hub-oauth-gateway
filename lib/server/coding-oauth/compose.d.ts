@@ -16,6 +16,7 @@ import { type CapabilitySettingsPatch } from "./capability-settings.js";
 import { type GatewayConfig } from "./gateway-config.js";
 import { OAuthProviderSession } from "./oauth-session.js";
 import { GrokBuildSession } from "./session.js";
+import { type OwnerRequestPolicyConfig } from "./web-origin.js";
 export { createCodingOAuthAdapter, createGrokBuildAdapter, preferredGrokBuildModel } from "./adapter.js";
 export type { AliasLlmRoutePolicy } from "./alias-adapter.js";
 export { AliasLlmAdapter } from "./alias-adapter.js";
@@ -46,7 +47,7 @@ export declare const CODING_OAUTH_PLUGIN_NAME = "llm-grok-build-oauth";
 /** Separate API-key credential used only by official xAI Imagine REST calls. */
 export declare const XAI_API_KEY_CREDENTIAL = "XAI_API_KEY";
 /** Owner-private artifact directory below the resolved DSH home. */
-export declare const IMAGINE_MEDIA_STORE_DIRNAME = ".dsh-coding-subscription-oauth-media";
+export { IMAGINE_MEDIA_STORE_DIRNAME } from "./ids.js";
 /** Plugin configuration; every field is optional. */
 export interface Config {
     /** HTTP(S) proxy URL for the audited coding-subscription host allowlist. */
@@ -65,9 +66,13 @@ export interface Config {
     capabilities?: CapabilitySettingsPatch;
     /** Opt-in isolated local OpenAI-compatible gateway. Default off. */
     gateway?: Partial<GatewayConfig>;
+    /** Owner-only Settings access over loopback, SSH forwarding, or a trusted HTTPS proxy. */
+    ownerRequest?: OwnerRequestPolicyConfig;
 }
 export declare const Config: z<Config>;
 export interface CodingOAuthRuntime {
+    /** Settles only after the required web route surface is actually mounted. */
+    readonly ready: Promise<void>;
     readonly grok: GrokBuildSession;
     readonly subscriptions: readonly OAuthProviderSession[];
     readCodexUsage(options?: {

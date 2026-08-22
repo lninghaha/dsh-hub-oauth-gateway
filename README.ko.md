@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.8.0** · 이전 이름 `dsh-usage-stats`
+**v1.9.0** · 이전 이름 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web용 로컬 우선 사용량 센터.** Token, 추정 비용, 계정 잔액, 구독 할당량, 추세, 예측, 알림, 내보내기 — 코딩 구독 OAuth(Grok Build, Codex, Kimi Code, Claude Code), 선택적 루프백 API 게이트웨이, 옵트인 로컬 인증/사용량 모니터링 포함. **채팅에 token을 붙여넣지 마세요.**
 
@@ -14,6 +14,10 @@
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
 </div>
+
+---
+
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -56,25 +60,25 @@
 DeepSeek Harness Web에 이 플러그인을 설치한 뒤 촬영했습니다(새 격리 profile에서는 로컬 기록이 비어 있어도 정상).
 
 <p align="center">
-  <img src="docs/images/usage-center-hud.png" alt="DSH 셸의 플로팅 사용량 HUD" width="760" />
+  <img src="docs/images/en/usage-center-hud.png" alt="DSH 셸의 플로팅 사용량 HUD" width="760" />
   <br />
   <em>플로팅 HUD — 오늘 지표와 다중 계정 할당량 칩</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
+  <img src="docs/images/en/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
   <br />
   <em>Quick Peek — 로컬 KPI만 표시, 원클릭으로 전체 대시보드</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-dashboard.png" alt="Usage Center 전체 대시보드" width="760" />
+  <img src="docs/images/en/usage-center-dashboard.png" alt="Usage Center 전체 대시보드" width="760" />
   <br />
   <em>전체 대시보드 — 범위, 탭, 새로고침, CSV / JSON 내보내기</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-settings.png" alt="설정 → Usage Center" width="760" />
+  <img src="docs/images/en/usage-center-settings.png" alt="설정 → Usage Center" width="760" />
   <br />
   <em>설정 → Usage Center — 표시 / 계정 / 게이트웨이 / 기능 / 프로바이더 / 비용</em>
 </p>
@@ -95,9 +99,10 @@ DeepSeek Harness Web에 이 플러그인을 설치한 뒤 촬영했습니다(새
 # 1. install the current npm release into the web profile
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
-# 2. restart the resident dsh web service (operator chooses when)
+# 2. restart the resident DSH Web process (operator chooses when)
+# Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
 systemctl --user restart dsh-web.service
-# or: dsh-web restart
+# `dsh-web.service`는 이 컴퓨터의 예시일 뿐이며, 다른 배포에서는 다른 프로세스 관리자를 사용할 수 있습니다.
 ```
 
 그다음 **Settings → Usage Center** 를 여세요. Accounts / Gateway / Capabilities는 필요에 따라 로그인하거나 스위치를 켜세요. 전체 설치 옵션(npx 설치기, GitHub tarball, proxy)은 [`docs/01-install.md`](docs/01-install.md).
@@ -139,7 +144,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-플러그인 관리자가 없을 때 호환 설치기: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` 및 개발 경로 설치는 [`docs/01-install.md`](docs/01-install.md). 설치 후 Web을 직접 재시작(`dsh-web restart` 또는 `systemctl --user restart dsh-web.service`), `http://127.0.0.1:3080` 새로고침.
+플러그인 관리자가 없을 때 호환 설치기: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` 및 개발 경로 설치는 [`docs/01-install.md`](docs/01-install.md). 설치 후 기존 DSH Web 프로세스를 자신의 서비스 관리자로 재시작합니다(아래 `systemctl` 유닛은 로컬 예시일 뿐입니다). `http://127.0.0.1:3080`을 새로고침하세요.
 
 ## 사용법
 

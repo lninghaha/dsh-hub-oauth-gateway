@@ -1,4 +1,5 @@
 import type { AccountService } from "../accounts/service.js";
+import type { OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageRepository } from "../usage/repository.js";
 import type { ExactWebServer, UsageProjectionApiService, UsageStatsLogger } from "./router.js";
@@ -16,6 +17,7 @@ export interface LegacyApiDependencies {
     readonly usage: UsageRepository;
     readonly accounts: AccountService;
     readonly preferences: PreferencesRepository;
+    readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
     now?(): number;
 }
 export declare function registerLegacyRoutes(webServer: ExactWebServer, dependencies: LegacyApiDependencies): readonly (() => void)[];

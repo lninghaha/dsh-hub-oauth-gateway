@@ -3,12 +3,14 @@ import type { AccountSnapshot, UsageBuckets } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
 import type { UserPreferences } from "../../shared/preferences.js";
 import type { AccountService } from "../accounts/service.js";
+import type { OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageFact } from "../usage/projector.js";
 import type { UsageRepository } from "../usage/repository.js";
 import { bucketKey } from "../usage/time.js";
+import { authorizeHubApiRequest } from "./owner-request.js";
 import type { ExactWebServer, UsageProjectionApiService, UsageStatsLogger } from "./router.js";
-import { isLoopbackRequest, passesBrowserContextGuard, passesCsrfGuard, readJsonBody, writeJson } from "./security.js";
+import { readJsonBody, writeJson } from "./security.js";
 
 export const LEGACY_PATHS = Object.freeze({
 	usage: "/api/usage-stats/usage",
@@ -136,17 +138,16 @@ function legacyPreferences(value: UserPreferences) {
 	};
 }
 
-function guard(request: IncomingMessage, response: ServerResponse, mutation = false): boolean {
-	if (!isLoopbackRequest(request)) {
-		writeJson(response, 403, { ok: false, error: "forbidden" });
-		return false;
-	}
-	if (!passesBrowserContextGuard(request)) {
-		writeJson(response, 403, { ok: false, error: "cross-site-rejected" });
-		return false;
-	}
-	if (mutation && !passesCsrfGuard(request)) {
-		writeJson(response, 403, { ok: false, error: "csrf-rejected" });
+function guard(request: IncomingMessage, response: ServerResponse, policy?: OwnerRequestPolicy): boolean {
+	const decision = authorizeHubApiRequest(request, policy);
+	if (!decision.authorized) {
+		const error =
+			decision.reason === "csrf"
+				? "csrf-rejected"
+				: decision.reason === "origin" || decision.reason === "fetch-metadata"
+					? "cross-site-rejected"
+					: "forbidden";
+		writeJson(response, 403, { ok: false, error });
 		return false;
 	}
 	return true;
@@ -170,6 +171,7 @@ export interface LegacyApiDependencies {
 	readonly usage: UsageRepository;
 	readonly accounts: AccountService;
 	readonly preferences: PreferencesRepository;
+	readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
 	now?(): number;
 }
 
@@ -185,9 +187,8 @@ export function registerLegacyRoutes(
 		request: IncomingMessage,
 		response: ServerResponse,
 		operation: () => Promise<void> | void,
-		mutation = false,
 	): Promise<void> | void => {
-		if (!guard(request, response, mutation)) return;
+		if (!guard(request, response, dependencies.ownerRequestPolicy)) return;
 		try {
 			return Promise.resolve(operation()).catch(() => {
 				dependencies.logger.warn("usage-stats: legacy request failed (details redacted)");
@@ -294,41 +295,36 @@ export function registerLegacyRoutes(
 			}),
 		),
 		register(LEGACY_PATHS.preferences, (request, response) =>
-			safe(
-				request,
-				response,
-				async () => {
-					if (request.method === "GET") {
-						writeJson(response, 200, { ok: true, prefs: legacyPreferences(dependencies.preferences.load("UTC")) });
-						return;
-					}
-					if (request.method !== "PUT") {
-						writeJson(response, 405, { ok: false, error: "method-not-allowed" });
-						return;
-					}
-					const body = await readJsonBody(request, response);
-					if (body === undefined) return;
-					const raw = (body as { prefs?: Record<string, unknown> })?.prefs ?? {};
-					const current = dependencies.preferences.load("UTC");
-					const next: UserPreferences = {
-						...current,
-						display: {
-							...current.display,
-							density: raw.density === "compact" ? "compact" : "comfortable",
-							defaultRange: raw.historyMode === "daily" ? "7d" : "30d",
-						},
-						providers: {
-							...current.providers,
-							hidden: Array.isArray(raw.hiddenProviders)
-								? raw.hiddenProviders.filter((value): value is string => typeof value === "string")
-								: [],
-						},
-					};
-					dependencies.preferences.save(next);
-					writeJson(response, 200, { ok: true, prefs: legacyPreferences(next) });
-				},
-				request.method === "PUT",
-			),
+			safe(request, response, async () => {
+				if (request.method === "GET") {
+					writeJson(response, 200, { ok: true, prefs: legacyPreferences(dependencies.preferences.load("UTC")) });
+					return;
+				}
+				if (request.method !== "PUT") {
+					writeJson(response, 405, { ok: false, error: "method-not-allowed" });
+					return;
+				}
+				const body = await readJsonBody(request, response);
+				if (body === undefined) return;
+				const raw = (body as { prefs?: Record<string, unknown> })?.prefs ?? {};
+				const current = dependencies.preferences.load("UTC");
+				const next: UserPreferences = {
+					...current,
+					display: {
+						...current.display,
+						density: raw.density === "compact" ? "compact" : "comfortable",
+						defaultRange: raw.historyMode === "daily" ? "7d" : "30d",
+					},
+					providers: {
+						...current.providers,
+						hidden: Array.isArray(raw.hiddenProviders)
+							? raw.hiddenProviders.filter((value): value is string => typeof value === "string")
+							: [],
+					},
+				};
+				dependencies.preferences.save(next);
+				writeJson(response, 200, { ok: true, prefs: legacyPreferences(next) });
+			}),
 		),
 	];
 }

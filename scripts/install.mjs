@@ -134,7 +134,12 @@ async function validatePackageRoot(root) {
 		);
 	}
 	const client = await readOptional(join(root, "lib", "client.js"));
-	if (client === null || (client.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length !== 1) {
+	const clientRegistrations =
+		client === null
+			? 0
+			: (client.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length +
+				(client.match(/loader\.load\(/g) ?? []).length;
+	if (client === null || clientRegistrations !== 1) {
 		throw new Error(`client bundle validation failed in ${root}`);
 	}
 	const serverPath = join(root, "lib", "index.js");

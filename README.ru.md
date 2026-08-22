@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.8.0** · ранее `dsh-usage-stats`
+**v1.9.0** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -14,6 +14,10 @@
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
 </div>
+
+---
+
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -56,25 +60,25 @@
 Снято в DeepSeek Harness Web с установленным плагином (пустая локальная история нормальна для нового изолированного profile).
 
 <p align="center">
-  <img src="docs/images/usage-center-hud.png" alt="Плавающий HUD использования на оболочке DSH" width="760" />
+  <img src="docs/images/en/usage-center-hud.png" alt="Плавающий HUD использования на оболочке DSH" width="760" />
   <br />
   <em>Плавающий HUD — метрика за сегодня и чипы квот по аккаунтам</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-peek.png" alt="Quick Peek центра использования" width="760" />
+  <img src="docs/images/en/usage-center-peek.png" alt="Quick Peek центра использования" width="760" />
   <br />
   <em>Quick Peek — только локальные KPI, с переходом к полной панели</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-dashboard.png" alt="Полная панель Usage Center" width="760" />
+  <img src="docs/images/en/usage-center-dashboard.png" alt="Полная панель Usage Center" width="760" />
   <br />
   <em>Полная панель — диапазоны, вкладки, обновление и экспорт CSV / JSON</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-settings.png" alt="Настройки → Usage Center" width="760" />
+  <img src="docs/images/en/usage-center-settings.png" alt="Настройки → Usage Center" width="760" />
   <br />
   <em>Настройки → Usage Center — Отображение / Аккаунты / Шлюз / Возможности / Провайдеры / Расходы</em>
 </p>
@@ -95,9 +99,10 @@
 # 1. установить текущий npm-релиз в web profile
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
-# 2. перезапустить резидентный сервис dsh web (оператор выбирает момент)
+# 2. перезапустить резидентный процесс DSH Web (оператор выбирает момент)
+# Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
 systemctl --user restart dsh-web.service
-# или: dsh-web restart
+# `dsh-web.service` — только локальный пример; в других развертываниях может использоваться другой менеджер.
 ```
 
 Затем откройте **Settings → Usage Center**. Для Accounts / Gateway / Capabilities войдите или включите переключатели по необходимости. Полные варианты установки (npx installer, GitHub tarball, proxy) — в [`docs/01-install.md`](docs/01-install.md).
@@ -139,7 +144,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Совместимый установщик при отсутствии plugin manager: `npx --yes dsh-hub-oauth-gateway-install`. Установка из GitHub `/path/to/*.tgz` и development path описана в [`docs/01-install.md`](docs/01-install.md). После установки перезапустите Web самостоятельно (`dsh-web restart` или `systemctl --user restart dsh-web.service`), затем обновите `http://127.0.0.1:3080`.
+Совместимый установщик при отсутствии plugin manager: `npx --yes dsh-hub-oauth-gateway-install`. Установка из GitHub `/path/to/*.tgz` и development path описана в [`docs/01-install.md`](docs/01-install.md). После установки перезапустите существующий процесс DSH Web через собственный менеджер служб (показанный ниже `systemctl` — только локальный пример), затем обновите `http://127.0.0.1:3080`.
 
 ## Использование
 

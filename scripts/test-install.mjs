@@ -151,7 +151,10 @@ try {
 	assert.equal(plugin.name, "usage-stats");
 	assert.equal(typeof plugin.apply, "function");
 	const client = await readFile(join(target, "lib", "client.js"), "utf8");
-	assert.equal((client.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length, 1);
+	assert.equal(
+		(client.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length + (client.match(/loader\.load\(/g) ?? []).length,
+		1,
+	);
 
 	const webManifest = join(home, "profiles", "web", "package.json");
 	await writeFile(webManifest, "{not-json", "utf8");

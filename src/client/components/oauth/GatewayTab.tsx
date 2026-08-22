@@ -1,10 +1,4 @@
-/**
- * Gateway tab: controls the opt-in loopback OpenAI/Anthropic-compatible API
- * gateway backed by the signed-in OAuth sessions. The bind address stays a
- * YAML-only setting; this panel manages enabled state, port, and the Bearer
- * key lifecycle (reveal / rotate with confirmation).
- */
-
+/** Controls the opt-in loopback OpenAI/Anthropic-compatible OAuth gateway. */
 import { useState } from "react";
 import {
 	useGatewayPatchMutation,
@@ -17,64 +11,74 @@ import { SettingsRow, Toggle } from "../controls.js";
 
 const RANDOM_PORT_MIN = 18_100;
 const RANDOM_PORT_MAX = 18_999;
+type SnippetId = "curl" | "python" | "node" | "cursor";
 
 function randomPort(): number {
 	return RANDOM_PORT_MIN + Math.floor(Math.random() * (RANDOM_PORT_MAX - RANDOM_PORT_MIN + 1));
 }
 
-function CopyButton({ value, t }: { readonly value: string; readonly t: Translate }) {
+function CopyButton({
+	value,
+	disabled,
+	t,
+}: {
+	readonly value: string;
+	readonly disabled?: boolean;
+	readonly t: Translate;
+}) {
 	const [copied, setCopied] = useState(false);
+	const [error, setError] = useState(false);
+	const copy = async (): Promise<void> => {
+		try {
+			const writeText = navigator.clipboard?.writeText;
+			if (typeof writeText !== "function") throw new Error("clipboard API is unavailable");
+			await writeText.call(navigator.clipboard, value);
+			setCopied(true);
+			setError(false);
+			setTimeout(() => setCopied(false), 1_600);
+		} catch {
+			setError(true);
+		}
+	};
 	return (
-		<button
-			type="button"
-			className="dus-button is-small"
-			onClick={() => {
-				void navigator.clipboard?.writeText(value).then(() => {
-					setCopied(true);
-					setTimeout(() => setCopied(false), 1_600);
-				});
-			}}
-		>
-			{copied ? t("gateway.copied") : t("gateway.copy")}
-		</button>
+		<span className="dus-copy-action">
+			<button type="button" className="dus-button is-small" disabled={disabled} onClick={() => void copy()}>
+				{copied ? t("gateway.copied") : t("gateway.copy")}
+			</button>
+			{error ? (
+				<span className="dus-error-inline" role="alert">
+					{t("gateway.copyFailed")}
+				</span>
+			) : null}
+		</span>
 	);
 }
 
-type SnippetId = "curl" | "python" | "node" | "cursor";
-
-function buildSnippets(bind: string, port: number, apiKey: string): Record<SnippetId, string> {
+function buildSnippets(bind: string, port: number, model: string, apiKey: string): Record<SnippetId, string> {
 	const openaiBase = `http://${bind}:${port}/v1`;
 	const anthropicBase = `http://${bind}:${port}`;
-	const key = apiKey || "YOUR_GATEWAY_KEY";
 	return {
-		curl: `curl ${openaiBase}/chat/completions \\
-  -H "Authorization: Bearer ${key}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}'`,
+		curl: `curl ${openaiBase}/chat/completions \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"Hello"}]}'`,
 		python: `from openai import OpenAI
 
-client = OpenAI(base_url="${openaiBase}", api_key="${key}")
+client = OpenAI(base_url="${openaiBase}", api_key="${apiKey}")
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="${model}",
     messages=[{"role": "user", "content": "Hello"}],
 )
 print(response.choices[0].message.content)`,
 		node: `import OpenAI from "openai";
 
-const client = new OpenAI({
-  baseURL: "${openaiBase}",
-  apiKey: "${key}",
-});
+const client = new OpenAI({ baseURL: "${openaiBase}", apiKey: "${apiKey}" });
 const response = await client.chat.completions.create({
-  model: "gpt-4o",
-  messages: [{ role: "user", content: "Hello" }],
+  model: "${model}", messages: [{ role: "user", content: "Hello" }],
 });
 console.log(response.choices[0]?.message?.content);`,
 		cursor: `{
   "openai.api.baseUrl": "${openaiBase}",
-  "openai.api.key": "${key}",
+  "openai.api.key": "${apiKey}",
   "anthropic.api.baseUrl": "${anthropicBase}",
-  "anthropic.api.key": "${key}"
+  "anthropic.api.key": "${apiKey}"
 }`,
 	};
 }
@@ -82,22 +86,33 @@ console.log(response.choices[0]?.message?.content);`,
 function GatewaySnippets({
 	bind,
 	port,
+	model,
+	keyAvailable,
 	apiKey,
 	t,
 }: {
 	readonly bind: string;
 	readonly port: number;
+	readonly model: string | null;
+	readonly keyAvailable: boolean;
 	readonly apiKey: string;
 	readonly t: Translate;
 }) {
 	const [active, setActive] = useState<SnippetId>("curl");
-	const snippets = buildSnippets(bind, port, apiKey);
+	const ready = model !== null && apiKey !== "";
+	const snippets = model === null ? null : buildSnippets(bind, port, model, apiKey);
 	const tabs: readonly { id: SnippetId; label: string }[] = [
 		{ id: "curl", label: "cURL" },
 		{ id: "python", label: "Python" },
 		{ id: "node", label: "Node.js" },
 		{ id: "cursor", label: t("gateway.snippet.cursor") },
 	];
+	const message =
+		model === null
+			? t("gateway.snippetsModelMissing")
+			: keyAvailable
+				? t("gateway.snippetsKeyHidden")
+				: t("gateway.snippetsKeyMissing");
 	return (
 		<section className="dus-gateway-snippets">
 			<h3 className="dus-settings-subtitle">{t("gateway.snippetsTitle")}</h3>
@@ -115,11 +130,38 @@ function GatewaySnippets({
 				))}
 			</nav>
 			<div className="dus-snippet-panel">
-				<pre>{snippets[active]}</pre>
-				<CopyButton value={snippets[active]} t={t} />
+				{ready && snippets !== null ? (
+					<>
+						<pre>{snippets[active]}</pre>
+						<CopyButton value={snippets[active]} t={t} />
+					</>
+				) : (
+					<p className="dus-row-hint" role="status">
+						{message}
+					</p>
+				)}
 			</div>
 		</section>
 	);
+}
+
+function Retry({
+	error,
+	onRetry,
+	t,
+}: {
+	readonly error: unknown;
+	readonly onRetry: () => void;
+	readonly t: Translate;
+}) {
+	return error instanceof Error ? (
+		<p className="dus-error-inline" role="alert">
+			{error.message}
+			<button type="button" className="dus-button is-small" onClick={onRetry}>
+				{t("action.retry")}
+			</button>
+		</p>
+	) : null;
 }
 
 export function GatewayTab({ t }: { readonly t: Translate }) {
@@ -129,13 +171,19 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 	const rotate = useGatewayRotateMutation();
 	const [portDraft, setPortDraft] = useState<string | null>(null);
 	const [confirmRotate, setConfirmRotate] = useState(false);
+	const [lastPatch, setLastPatch] = useState<{ enabled?: boolean; port?: number } | null>(null);
 	const data = status.data ?? null;
 	const portValue = portDraft ?? (data === null ? "" : String(data.port));
 	const portNumber = Number(portValue);
 	const portValid = Number.isInteger(portNumber) && portNumber >= 1024 && portNumber <= 65_535;
-	const operationError = [patch.error, reveal.error, rotate.error].find(
-		(value): value is Error => value instanceof Error,
-	);
+	const runPatch = (next: { enabled?: boolean; port?: number }): void => {
+		setLastPatch(next);
+		patch.mutate(next, {
+			onSuccess: () => {
+				if (next.port !== undefined) setPortDraft(null);
+			},
+		});
+	};
 	const revealedKey =
 		reveal.data === undefined && rotate.data === undefined ? "" : ((rotate.data ?? reveal.data)?.apiKey ?? "");
 	return (
@@ -144,11 +192,14 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 			{status.error instanceof Error ? (
 				<p className="dus-error-inline" role="alert">
 					{status.error.message}
+					<button type="button" className="dus-button is-small" onClick={() => void status.refetch()}>
+						{t("action.retry")}
+					</button>
 				</p>
 			) : null}
-			{data === null ? (
+			{data === null && status.isPending ? (
 				<div className="dus-chart-empty">{t("dashboard.loading")}</div>
-			) : (
+			) : data !== null ? (
 				<>
 					<p className="dus-gateway-warning" role="note">
 						{data.warning}
@@ -161,9 +212,16 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 								label={t("gateway.enabled")}
 								checked={data.enabled}
 								disabled={patch.isPending}
-								onChange={(enabled) => patch.mutate({ enabled })}
+								onChange={(enabled) => runPatch({ enabled })}
 							/>
 						}
+					/>
+					<Retry
+						error={patch.error}
+						onRetry={() => {
+							if (lastPatch !== null) runPatch(lastPatch);
+						}}
+						t={t}
 					/>
 					<SettingsRow title={t("gateway.bind")} hint={t("gateway.bindHint")} control={<code>{data.bind}</code>} />
 					<div className="dus-row">
@@ -190,7 +248,7 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 								type="button"
 								className="dus-button is-primary"
 								disabled={patch.isPending || !portValid || portNumber === data.port}
-								onClick={() => patch.mutate({ port: portNumber }, { onSuccess: () => setPortDraft(null) })}
+								onClick={() => runPatch({ port: portNumber })}
 							>
 								{t("gateway.portApply")}
 							</button>
@@ -218,15 +276,16 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 						<div className="dus-row-text">
 							<div className="dus-row-title">{t("gateway.apiKey")}</div>
 							<div className="dus-row-hint">
-								{reveal.data === undefined && rotate.data === undefined
-									? data.keyHint === ""
-										? t("gateway.keyAbsent")
-										: data.keyHint
-									: (rotate.data ?? reveal.data)?.apiKey}
+								{revealedKey === "" ? (data.keyAvailable ? data.keyHint : t("gateway.keyAbsent")) : revealedKey}
 							</div>
 						</div>
 						<div className="dus-inline-actions">
-							<button type="button" className="dus-button" disabled={reveal.isPending} onClick={() => reveal.mutate()}>
+							<button
+								type="button"
+								className="dus-button"
+								disabled={reveal.isPending || !data.keyAvailable}
+								onClick={() => reveal.mutate()}
+							>
 								{t("gateway.reveal")}
 							</button>
 							{confirmRotate ? (
@@ -250,14 +309,18 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 							)}
 						</div>
 					</div>
-					{operationError === undefined ? null : (
-						<p className="dus-error-inline" role="alert">
-							{operationError.message}
-						</p>
-					)}
-					<GatewaySnippets bind={data.bind} port={data.port} apiKey={revealedKey} t={t} />
+					<Retry error={reveal.error} onRetry={() => reveal.mutate()} t={t} />
+					<Retry error={rotate.error} onRetry={() => rotate.mutate()} t={t} />
+					<GatewaySnippets
+						bind={data.bind}
+						port={data.port}
+						model={data.model}
+						keyAvailable={data.keyAvailable}
+						apiKey={revealedKey}
+						t={t}
+					/>
 				</>
-			)}
+			) : null}
 		</div>
 	);
 }

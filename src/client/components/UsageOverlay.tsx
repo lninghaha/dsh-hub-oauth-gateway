@@ -410,6 +410,12 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 	}, [hiddenProviders, preferences.providers.aliases, rawBreakdownData]);
 	const activityData = activity.data?.ok === true ? activity.data.data : null;
 	const error = errorMessage(t, overview.error);
+	const refreshError = errorMessage(t, refresh.error);
+	const overviewMeta = overview.data?.ok === true ? overview.data.meta : null;
+	const usageUpdatedAt = overviewMeta?.usageUpdatedAt ?? overviewMeta?.sourceUpdatedAt ?? null;
+	const noData = overviewData !== null && overviewMeta?.usageState === "not-collected";
+	const retainedError = error ?? refreshError;
+	const stale = overviewMeta?.usageState === "stale" || retainedError !== null;
 	const selectedProvider = filters.providerIds[0] ?? null;
 	const setProvider = (providerId: string): void => {
 		const next = selectedProvider === providerId ? null : providerId;
@@ -548,9 +554,11 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						<div>
 							<h2 className="dus-dashboard-title">{ui.surface === "peek" ? t("peek.title") : t("dashboard.title")}</h2>
 							<p className="dus-dashboard-subtitle">{t("dashboard.subtitle")}</p>
-							{overview.data?.ok === true ? (
-								<span className="dus-freshness">
-									{t("dashboard.updated", { time: formatRelativeTime(overview.data.meta.sourceUpdatedAt) })}
+							{usageUpdatedAt !== null ? (
+								<span className={`dus-freshness${stale ? " is-stale" : ""}`}>
+									{stale
+										? t("dashboard.stale", { time: formatRelativeTime(usageUpdatedAt) })
+										: t("dashboard.updated", { time: formatRelativeTime(usageUpdatedAt) })}
 								</span>
 							) : null}
 						</div>
@@ -604,42 +612,77 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 						</div>
 					) : null}
 					<main className="dus-dashboard-body">
-						{error !== null ? (
-							<div className="dus-error">{t("dashboard.error", { message: error })}</div>
-						) : overview.isPending ? (
+						{overviewData === null && error !== null ? (
+							<div className="dus-error dus-retry-state" role="alert">
+								<span>{t("dashboard.error", { message: error })}</span>
+								<button type="button" className="dus-button is-small" onClick={() => void overview.refetch()}>
+									{t("action.retry")}
+								</button>
+							</div>
+						) : overviewData === null && overview.isPending ? (
 							<DashboardSkeleton peek={ui.surface === "peek"} />
 						) : overviewData === null ? (
 							<div className="dus-empty">{t("dashboard.empty")}</div>
-						) : ui.surface === "peek" ? (
-							<div className="dus-peek-content">
-								<OverviewCards data={overviewData} t={t} />
-								<AlertList alerts={alertData} title={t("metric.alerts")} t={t} limit={2} />
-								<PeekQuotaSummary accounts={accountData} t={t} />
-								{accountData.length === 0 ? (
-									<div className="dus-empty dus-empty-small dus-empty-guide">
-										<p>{t("accounts.emptyGuide")}</p>
-										<button type="button" className="dus-button is-primary is-small" onClick={openAccountsSettings}>
-											{t("accounts.configure")}
-										</button>
-									</div>
-								) : null}
+						) : noData ? (
+							<div className="dus-empty dus-empty-guide">
+								<p>{t("dashboard.noData")}</p>
+								<button type="button" className="dus-button is-primary is-small" onClick={openAccountsSettings}>
+									{t("accounts.configure")}
+								</button>
 							</div>
 						) : (
 							<>
-								{selectedProvider === null ? null : (
-									<div className="dus-filter-chip">
+								{stale ? (
+									<div className="dus-stale-banner" role={retainedError === null ? "status" : "alert"}>
 										<span>
-											{accountData.find(({ providerId }) => providerId === selectedProvider)?.displayName ??
-												selectedProvider}
+											{retainedError === null
+												? t("dashboard.staleData")
+												: t("dashboard.retainedAfterError", { message: retainedError })}
 										</span>
-										<button type="button" onClick={() => setProvider(selectedProvider)}>
-											{t("toolbar.clearFilter")} ×
+										<button
+											type="button"
+											className="dus-button is-small"
+											onClick={() => {
+												if (error !== null) void overview.refetch();
+												else refresh.mutate({ scope: "all" });
+											}}
+										>
+											{t("action.retry")}
 										</button>
 									</div>
+								) : null}
+								{ui.surface === "peek" ? (
+									<div className="dus-peek-content">
+										<OverviewCards data={overviewData} t={t} />
+										<AlertList alerts={alertData} title={t("metric.alerts")} t={t} limit={2} />
+										<PeekQuotaSummary accounts={accountData} t={t} />
+										{accountData.length === 0 ? (
+											<div className="dus-empty dus-empty-small dus-empty-guide">
+												<p>{t("accounts.emptyGuide")}</p>
+												<button type="button" className="dus-button is-primary is-small" onClick={openAccountsSettings}>
+													{t("accounts.configure")}
+												</button>
+											</div>
+										) : null}
+									</div>
+								) : (
+									<>
+										{selectedProvider === null ? null : (
+											<div className="dus-filter-chip">
+												<span>
+													{accountData.find(({ providerId }) => providerId === selectedProvider)?.displayName ??
+														selectedProvider}
+												</span>
+												<button type="button" onClick={() => setProvider(selectedProvider)}>
+													{t("toolbar.clearFilter")} ×
+												</button>
+											</div>
+										)}
+										<div className="dus-module-stack" data-active-tab={resolvedDashboardTab ?? ""}>
+											{activeTabModules.map((moduleId) => renderModule(moduleId))}
+										</div>
+									</>
 								)}
-								<div className="dus-module-stack" data-active-tab={resolvedDashboardTab ?? ""}>
-									{activeTabModules.map((moduleId) => renderModule(moduleId))}
-								</div>
 							</>
 						)}
 					</main>

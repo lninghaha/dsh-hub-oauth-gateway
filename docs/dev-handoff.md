@@ -86,6 +86,7 @@ Branch naming: `cursor/wave2-account-coverage-1be7` (or later Wave 3 on a separa
 - **Operator personal machine**: after install / code change, the operator restarts DSH Web themselves unless they explicitly ask the agent to do so:
 
 ```bash
+# `dsh-web` is a local wrapper example; use the process manager that owns DSH Web on the target machine.
 dsh-web restart
 ```
 
@@ -102,9 +103,9 @@ Until restart, a personal running instance still uses old code.
 
 ## 中文摘要
 
-- 本分支为 **Wave 1 / `1.2.0`**：热力图+streak、模块编排、费用账本+回本、导出 layout。  
-- **不含**新 adapter、自适应刷新、自动写盘。  
-- 调研建议书已对齐进树；OAuth 车次与用量 Wave **分 PR**。  
-- 验证以云环境 `pnpm` 门禁 + 隔离 `DSH_HOME` 安装 DSH 冒烟为主；Docker 可选。  
-- 本机个人实例合并安装后由用户自行 `dsh-web restart`（除非明确要求代为重启）。  
+- 本分支为 **Wave 1 / `1.2.0`**：热力图+streak、模块编排、费用账本+回本、导出 layout。
+- **不含**新 adapter、自适应刷新、自动写盘。
+- 调研建议书已对齐进树；OAuth 车次与用量 Wave **分 PR**。
+- 验证以云环境 `pnpm` 门禁 + 隔离 `DSH_HOME` 安装 DSH 冒烟为主；Docker 可选。
+- 本机个人实例合并安装后由用户通过自己的进程管理器重启 DSH Web；`dsh-web restart` 只是本机包装示例（除非明确要求代为重启）。
 - 下一刀：Wave 2 账户覆盖（lastGood → Volcengine → Z.ai Team → 多 profile）。

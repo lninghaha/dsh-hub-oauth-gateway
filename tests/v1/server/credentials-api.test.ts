@@ -3,6 +3,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import { registerCredentialRoutes } from "../../../src/server/api/credentials.js";
 import type { ExactWebServer } from "../../../src/server/api/router.js";
+import {
+	createOwnerRequestPolicy,
+	OWNER_CSRF_HEADER,
+	OWNER_PROOF_HEADER,
+} from "../../../src/server/coding-oauth/web-origin.js";
 import { API_PATHS } from "../../../src/shared/contracts.js";
 
 class TestResponse {
@@ -19,7 +24,12 @@ class TestResponse {
 	}
 }
 
-function request(method: string, url: string, body?: unknown) {
+function request(
+	method: string,
+	url: string,
+	body?: unknown,
+	options: { headers?: Record<string, string>; remoteAddress?: string } = {},
+) {
 	const emitter = new EventEmitter() as EventEmitter & {
 		method: string;
 		url: string;
@@ -33,8 +43,9 @@ function request(method: string, url: string, body?: unknown) {
 		host: "localhost:3080",
 		"x-dsh-hub-oauth-gateway": "1",
 		...(method === "GET" ? {} : { "content-type": "application/json" }),
+		...options.headers,
 	};
-	emitter.socket = { remoteAddress: "127.0.0.1" };
+	emitter.socket = { remoteAddress: options.remoteAddress ?? "127.0.0.1" };
 	emitter.destroy = vi.fn();
 	return {
 		request: emitter as unknown as IncomingMessage,
@@ -46,6 +57,94 @@ function request(method: string, url: string, body?: unknown) {
 }
 
 describe("credential API", () => {
+	it("requires trusted peer, exact HTTPS origin, owner proof, Fetch Metadata, and CSRF for remote writes", async () => {
+		const routes = new Map<string, (request: IncomingMessage, response: ServerResponse) => void | Promise<void>>();
+		const secrets = new Map<string, string>();
+		const ownerRequestPolicy = createOwnerRequestPolicy({
+			trustedProxy: {
+				peers: ["10.0.0.8"],
+				origins: ["https://dsh.example.test"],
+				ownerProof: "owner-proof-secret",
+				csrfToken: "csrf-proof-secret",
+			},
+		});
+		registerCredentialRoutes(
+			{
+				register(route) {
+					routes.set(route.path, route.handler);
+					return () => routes.delete(route.path);
+				},
+			},
+			{
+				logger: { warn: vi.fn() },
+				accounts: { refresh: vi.fn(async () => []), credentialRefs: async () => new Set(["TEST_TOKEN"]) },
+				credentials: {
+					resolve: async (ref) => (secrets.has(ref) ? { value: secrets.get(ref) ?? "" } : undefined),
+					set: async (ref, value) => void secrets.set(ref, value),
+					unset: async (ref) => void secrets.delete(ref),
+					describe: async (ref) => ({ configured: secrets.has(ref), writable: true }),
+				},
+				ownerRequestPolicy,
+			},
+		);
+		const trustedHeaders = {
+			host: "dsh.example.test",
+			origin: "https://dsh.example.test",
+			"sec-fetch-site": "same-origin",
+			[OWNER_PROOF_HEADER]: "owner-proof-secret",
+			[OWNER_CSRF_HEADER]: "csrf-proof-secret",
+		};
+		const invoke = async (
+			method: string,
+			body: unknown,
+			headers: Record<string, string>,
+			remoteAddress = "10.0.0.8",
+		) => {
+			const url = method === "DELETE" ? `${API_PATHS.credentials}?ref=TEST_TOKEN` : API_PATHS.credentials;
+			const call = request(method, url, body, { headers, remoteAddress });
+			const response = new TestResponse();
+			const pending = routes.get(API_PATHS.credentials)?.(call.request, response as unknown as ServerResponse);
+			call.emit();
+			await pending;
+			return response;
+		};
+
+		expect((await invoke("PUT", { ref: "TEST_TOKEN", value: "first" }, trustedHeaders)).status).toBe(200);
+		expect((await invoke("PUT", { ref: "TEST_TOKEN", value: "second" }, trustedHeaders)).status).toBe(200);
+		expect(secrets.get("TEST_TOKEN")).toBe("second");
+
+		const missingProof: Record<string, string> = { ...trustedHeaders };
+		delete missingProof[OWNER_PROOF_HEADER];
+		expect((await invoke("PUT", { ref: "TEST_TOKEN", value: "blocked" }, missingProof)).status).toBe(403);
+		const missingCsrf: Record<string, string> = { ...trustedHeaders };
+		delete missingCsrf[OWNER_CSRF_HEADER];
+		expect((await invoke("PUT", { ref: "TEST_TOKEN", value: "blocked" }, missingCsrf)).status).toBe(403);
+		expect(
+			(
+				await invoke(
+					"PUT",
+					{ ref: "TEST_TOKEN", value: "blocked" },
+					{ ...trustedHeaders, "sec-fetch-site": "cross-site" },
+				)
+			).status,
+		).toBe(403);
+		expect(
+			(
+				await invoke(
+					"PUT",
+					{ ref: "TEST_TOKEN", value: "blocked" },
+					{ ...trustedHeaders, "x-forwarded-for": "10.0.0.8" },
+					"192.0.2.24",
+				)
+			).status,
+		).toBe(403);
+		expect(secrets.get("TEST_TOKEN")).toBe("second");
+
+		const deleted = await invoke("DELETE", undefined, trustedHeaders);
+		expect(deleted.status).toBe(200);
+		expect(secrets.has("TEST_TOKEN")).toBe(false);
+	});
+
 	it("stores and describes refs without returning secret values", async () => {
 		const routes = new Map<string, (request: IncomingMessage, response: ServerResponse) => void | Promise<void>>();
 		const secrets = new Map<string, string>();

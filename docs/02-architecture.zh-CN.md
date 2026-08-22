@@ -126,7 +126,7 @@ Provider 描述符来自 DSH 设置与兼容性目录。`resolveAccountSpecs()` 
 
 读端点仅查询本地 SQLite/账户快照。`/refresh` 是唯一的一般刷新 mutation。兼容端点从同一 v1 仓库渲染 v0.3 形态，GET 同样不会触发刷新。
 
-浏览器从不直接读取 SQLite、凭据或 provider 端点。它在当前 DSH Web origin 下调用 API，插件服务端返回本地投影。后端仍要求 loopback socket peer 与 loopback Host；当完整 DSH Web 通过受信任的本地 HTTPS 反向代理发布时，规范的 `X-Forwarded-Host`/`X-Forwarded-Proto` 标识面向浏览器的 origin，而不改变该后端边界。
+浏览器从不直接读取 SQLite、凭据或 provider 端点。它在当前 DSH Web origin 下调用 API，插件服务端返回本地投影。直接访问仍仅限回环。通过受信任的 HTTPS 反向代理访问时，`X-Forwarded-*` 不参与授权：实际 peer 必须列入 `codingOAuth.ownerRequest.trustedProxy.peers`，请求还必须具备精确 HTTPS `Origin` 与匹配的公网 `Host`、owner proof 以及同源 Fetch Metadata；变更请求还需独立的 CSRF proof。代理策略配置不完整时 fail closed，反代转发到 DSH 时必须保留公网 `Host`。
 
 日历范围与 bucket 使用配置的 IANA 时区，包括 DST 转换。Forecast 使用有界线性外推，并作为独立 series 返回。
 
@@ -135,6 +135,8 @@ Provider 描述符来自 DSH 设置与兼容性目录。`resolveAccountSpecs()` 
 ## 编程订阅 OAuth 子系统
 
 `src/server/coding-oauth/` 树集成 `dsh-coding-subscription-oauth` 包（保留 Apache-2.0 署名；见 `docs/oauth-provenance.md`）。它通过 `ctx.llm.registerAdapter` 注册 LLM 路由 `grok-build`、`codex-oauth`、`kimi-code-oauth` 与 `claude-code-oauth`，使已登录的订阅账户在 DSH 模型选择器中显示为 `(OAuth)`。Grok Build 使用 first-party PKCE 加 device-code 登录 `auth.x.ai`，并从 `cli-chat-proxy.grok.com` 流式传输；Codex/Kimi/Claude 复用 pi-ai provider-native OAuth 与 refresh 协议。凭据存放在 `${DSH_HOME}` 下仅所有者可读的 `0600` 文件中，任何 HTTP 状态、日志或 UI 表面均不返回凭据。
+
+Hub 与独立包都精确依赖 `dsh-coding-oauth-core@0.1.0`。核心统一拥有 root-scoped owner 选举、引用计数代理策略、原子注册、provider/route/credential 标识、能力设置命名空间、Gateway 状态文件名，以及全部新旧管理路径。Hub 优先成为 owner；Hub 卸载后独立包自动接管。相同状态契约也通过 browser-safe 入口供客户端使用，避免客户端路径与服务端静默漂移。
 
 设置 UI（Settings → Usage Center → 订阅账号/网关/能力 tabs）与插件自有的同源路由 `/plugins/dsh-grok-build/*` 通信：`oauth/status|login|code|cancel|logout|models` 用于登录状态机，`oauth/sources(+preview|commit|cancel)` 用于两阶段 allowlisted CLI 凭据拉取，`gateway(+reveal|rotate)` 用于 opt-in loopback API gateway（在独立的 `node:http` listener 上提供 `/v1/chat/completions`、`/v1/responses`、`/v1/messages`，默认关闭），`capabilities` 用于七个默认关闭的可选 capability 开关及基于 revision 的 compare-and-swap 写入。这些路由均要求受信任的 loopback 同源请求；变更类请求还要求 JSON body。
 

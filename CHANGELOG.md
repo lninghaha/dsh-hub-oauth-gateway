@@ -7,6 +7,21 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.9.0
+
+### Added
+
+- Add exact DSH BOM/client platform gates, host/client compatibility adapters, owner-request diagnostics, and shared `dsh-coding-oauth-core` runtime ownership for safe Hub/Subscription co-installation.
+
+### Changed
+
+- Add first-use guidance, stale-data semantics, pricing replacement previews/undo, resilient fee drafts, narrow-screen tabs, and accessible operation-local feedback.
+- Keep OAuth/Web ownership active without optional LLM services, while waiting for required Web routes to mount before the Hub is elected active.
+
+### Fixed
+
+- Prevent stale pricing/fee save responses from marking newer drafts as saved, reset repeated OAuth Pull commits, and report the authorization-derived access mode in compatibility diagnostics.
+
 ## 1.8.0
 
 ### Fixed

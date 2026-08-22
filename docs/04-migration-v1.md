@@ -31,16 +31,17 @@ For unreleased or Git-tracked installs, use `github:lninghaha/dsh-hub-oauth-gate
 
 The fallback installer stages a complete package, keeps package and Cordis-patch backups through final verification, and rolls both back if package install, patch update, or verification fails. Removed 0.3 runtime files cannot linger after a successful install. An unreadable `profiles/web/package.json` fails closed instead of installing beside an unknown plugin-manager state.
 
-After installation, the running Web process still has the old module in memory. The user must restart it manually at a suitable time:
+After installation, the running DSH Web process still has the old module in memory. The user must restart it manually at a suitable time. `dsh web` is the official CLI alias for the `web` profile; the commands below are only examples for a local service wrapper:
 
 ```bash
+# Example local wrapper command (not an official DSH service name)
 dsh-web restart
 ```
 
 or:
 
 ```bash
-systemctl --user restart dsh-web.service
+systemctl --user restart dsh-web.service  # example local unit only
 ```
 
 ## Storage migration order

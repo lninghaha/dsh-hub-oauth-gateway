@@ -1,6 +1,6 @@
 # Installation and usage · dsh-hub-oauth-gateway
 
-**v1.8.0**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
+**v1.9.0**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
 
 ```bash
 dsh plugin --profile web add dsh-hub-oauth-gateway
@@ -39,7 +39,7 @@ The installer atomically replaces `~/.dsh/profiles/node_modules/dsh-hub-oauth-ga
 Each formal GitHub Release must attach `dsh-hub-oauth-gateway-<version>.tgz` matching the npm artifact (see [`00-project-rules.md`](00-project-rules.md) §8):
 
 ```bash
-dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.8.0.tgz
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.9.0.tgz
 ```
 
 ### Development / Git
@@ -52,14 +52,23 @@ dsh plugin --profile web add github:lninghaha/dsh-hub-oauth-gateway
 dsh plugin --profile web add "$PWD"
 ```
 
-## Restart Web
+## Upgrade notes
 
-Installers and plugin tooling **do not** restart the operator’s personal DSH Web. Choose a quiet moment:
+- This release is verified against the exact DSH BOM `@deepseek-ai/dsh 0.1.0-rc.6`; do not replace it with `*` or an unverified broad range.
+- When upgrading the combined installation, make sure `dsh-coding-oauth-core@0.1.0` is available from the npm registry first. Core is a shared npm dependency, not a separate DSH plugin, so operators do **not** run `dsh plugin add` for it.
+- Install Hub `1.9.0` and Subscription `0.6.0` into the same **web profile**, then restart the existing DSH Web process once. Hub owns the full UI; Subscription becomes the compact status entry. Updating either package alone remains supported.
+- The Cordis id `usage-stats`, the `usage-stats-v1.sqlite` history, OAuth credential files, and Gateway configuration are preserved. Do not remove the old storage or credentials as part of an upgrade. The old `dsh-usage-stats` entry must be removed only when replacing it with this package, never in addition to it.
+- For rollback, restore the previous plugin tarball/version and restart once; keep the profile and data files. Check the Settings compatibility diagnostic before changing configuration.
+- DSH Web remains loopback-only. Remote Settings requires an SSH tunnel or a trusted HTTPS reverse proxy with the owner proof and CSRF proof described below; an upgrade is not permission to bind DSH or the Gateway to `0.0.0.0`.
+
+## Restart the DSH Web process
+
+Installers and plugin tooling **do not** restart the operator’s personal DSH Web process. The official `dsh web` command is a CLI alias for the `web` profile; `dsh-web.service` below is only an example systemd unit created by one local deployment. Choose a quiet moment and use the process manager that actually owns the test machine’s process:
 
 ```bash
-dsh-web restart
-# equivalent:
+# Example only when this test machine created a unit with this local name:
 systemctl --user restart dsh-web.service
+# Otherwise use the process manager that owns the existing DSH Web process.
 ```
 
 Then refresh `http://127.0.0.1:3080`.
@@ -193,7 +202,7 @@ Never point smoke tests at a personal production profile or real credentials.
 | Symptom | What to try |
 |---|---|
 | Still searching / installed `dsh-usage-stats` | Remove the old entry; install `dsh-hub-oauth-gateway` from npm |
-| Plugin missing after install | Restart `dsh-web` / `dsh-web.service`, then hard-refresh `http://127.0.0.1:3080` |
+| Plugin missing after install | Restart the existing DSH Web process through the local process manager, then hard-refresh `http://127.0.0.1:3080` |
 | Compatible installer refuses | Prefer `dsh plugin …`; installer blocks when bundles already register the plugin or the patch cannot be parsed safely |
 | Codex / Claude localhost callback unreachable | Use device code, or paste the full redirect URL into Settings |
 | Kimi 401/403 or wrong auth header | Re-login; keep `kimi-code-oauth` (not moonshot.cn API-key OAuth) |

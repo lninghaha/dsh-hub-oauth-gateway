@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.8.0** · früher `dsh-usage-stats`
+**v1.9.0** · früher `dsh-usage-stats`
 
 **Local-first Usage Center für [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, geschätzte Kosten, Kontostände, Abo-Kontingente, Trends, Prognosen, Alerts und Exporte — plus Coding-Abo-OAuth (Grok Build, Codex, Kimi Code, Claude Code), optionales Loopback-API-Gateway und opt-in lokale Auth-/Usage-Überwachung. **Keine Tokens im Chat einfügen.**
 
@@ -14,6 +14,10 @@
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
 </div>
+
+---
+
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -56,25 +60,25 @@ Produktrecherche: [`docs/research/usage-analytics-landscape.md`](docs/research/u
 Aufgenommen in DeepSeek Harness Web mit installiertem Plugin (leere lokale Historie ist bei einem frischen isolierten Profile normal).
 
 <p align="center">
-  <img src="docs/images/usage-center-hud.png" alt="Schwebendes Nutzungs-HUD auf der DSH-Shell" width="760" />
+  <img src="docs/images/en/usage-center-hud.png" alt="Schwebendes Nutzungs-HUD auf der DSH-Shell" width="760" />
   <br />
   <em>Schwebendes HUD — heutige Metrik und Multi-Account-Quota-Chips</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-peek.png" alt="Usage-Center Quick Peek" width="760" />
+  <img src="docs/images/en/usage-center-peek.png" alt="Usage-Center Quick Peek" width="760" />
   <br />
   <em>Quick Peek — nur lokale KPIs, mit Sprung zum vollständigen Dashboard</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-dashboard.png" alt="Vollständiges Usage-Center-Dashboard" width="760" />
+  <img src="docs/images/en/usage-center-dashboard.png" alt="Vollständiges Usage-Center-Dashboard" width="760" />
   <br />
   <em>Vollständiges Dashboard — Bereiche, Tabs, Aktualisieren und CSV-/JSON-Export</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-settings.png" alt="Einstellungen → Usage Center" width="760" />
+  <img src="docs/images/en/usage-center-settings.png" alt="Einstellungen → Usage Center" width="760" />
   <br />
   <em>Einstellungen → Usage Center — Anzeige / Konten / Gateway / Capabilities / Anbieter / Gebühren</em>
 </p>
@@ -95,9 +99,10 @@ Aufgenommen in DeepSeek Harness Web mit installiertem Plugin (leere lokale Histo
 # 1. install the current npm release into the web profile
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
-# 2. restart the resident dsh web service (operator chooses when)
+# 2. restart the resident DSH Web process (operator chooses when)
+# Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
 systemctl --user restart dsh-web.service
-# or: dsh-web restart
+# `dsh-web.service` ist nur ein lokaler Beispielname; andere Deployments können einen anderen Manager verwenden.
 ```
 
 Dann **Settings → Usage Center** öffnen. Für Accounts / Gateway / Capabilities bei Bedarf anmelden oder Schalter aktivieren. Vollständige Installationsoptionen (npx-Installer, GitHub-tarball, Proxy) in [`docs/01-install.md`](docs/01-install.md).
@@ -139,7 +144,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-Kompatible Installation ohne Plugin-Manager: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` und Entwicklungspfad-Installation in [`docs/01-install.md`](docs/01-install.md). Nach Installation Web selbst neu starten (`dsh-web restart` oder `systemctl --user restart dsh-web.service`), dann `http://127.0.0.1:3080` aktualisieren.
+Kompatible Installation ohne Plugin-Manager: `npx --yes dsh-hub-oauth-gateway-install`. GitHub `/path/to/*.tgz` und Entwicklungspfad-Installation in [`docs/01-install.md`](docs/01-install.md). Nach der Installation den vorhandenen DSH-Web-Prozess über den eigenen Dienstemanager neu starten (die unten gezeigte `systemctl`-Unit ist nur ein lokales Beispiel), dann `http://127.0.0.1:3080` aktualisieren.
 
 ## Nutzung
 

@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web, with coding-subscription OAuth sign-in (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring",
-  "version": "1.8.0",
+	"version": "1.9.0",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -64,7 +64,8 @@
     "docs/research/usage-analytics-landscape.md",
     "docs/research/token-monitor.md",
     "docs/research/token-monitor-supplement-proposal.md",
-    "docs/research/ccswitch-provider-usage.md"
+    "docs/research/ccswitch-provider-usage.md",
+    "compatibility/dsh-bom.json"
   ],
   "type": "module",
   "main": "lib/index.js",
@@ -83,6 +84,39 @@
     "./package.json": "./package.json"
   },
   "dsh": {
+    "compatibility": {
+      "coreAbi": "dsh-coding-oauth-core/v1",
+      "verifiedBom": "./compatibility/dsh-bom.json",
+      "verified": {
+        "id": "dsh-0.1.0-rc.6",
+        "dshVersion": "0.1.0-rc.6",
+        "packages": {
+          "@deepseek-ai/cordis": "4.0.1",
+          "@deepseek-ai/dsh-atomic-write": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-attachment": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-locale": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-runtime": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-ui-layout": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-ui-primitives": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-ui-settings": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-ui-sidebar": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-ui-slots": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-client-web": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-credentials": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-home-paths": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-host-webserver": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-invariants": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-llm-pi-ai": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-session": "0.1.0-rc.6",
+          "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
+          "@deepseek-ai/schemastery": "3.18.1",
+          "@earendil-works/pi-ai": "0.84.2",
+          "react": "18.3.1",
+          "react-dom": "18.3.1"
+        }
+      }
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
@@ -101,11 +135,12 @@
   },
   "scripts": {
     "assert:node": "node scripts/assert-node.mjs",
+    "check:dsh-bom": "node scripts/check-dsh-bom.mjs",
     "clean:next": "node build/clean-next.mjs",
     "typecheck:next": "tsc -b tsconfig/host.json tsconfig/client.json",
     "build:server:next": "tsc -p tsconfig/build.json && tsc -p tsconfig/dts-bin.json && node build/build-server.mjs",
     "build:client:next": "node build/build-client.mjs",
-    "build:next": "pnpm run assert:node && pnpm run clean:next && pnpm run typecheck:next && pnpm run build:server:next && pnpm run build:client:next",
+    "build:next": "pnpm run assert:node && pnpm run check:dsh-bom && pnpm run clean:next && pnpm run typecheck:next && pnpm run build:server:next && pnpm run build:client:next",
     "build": "pnpm run release:build",
     "test:next": "vitest run",
     "test:next:watch": "vitest",
@@ -155,42 +190,37 @@
     "jsdom": "^30.0.1",
     "lightningcss": "^1.33.0",
     "msw": "^2.15.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "typescript": "^6.0.3",
     "uplot": "^1.6.32",
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "dsh-coding-oauth-core": "0.1.0",
     "undici": "^7.16.0",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1-rc.1",
+    "@deepseek-ai/cordis": "4.0.1",
     "@deepseek-ai/dsh-atomic-write": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-attachment": "*",
-    "@deepseek-ai/dsh-credentials": "*",
+    "@deepseek-ai/dsh-attachment": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-credentials": "0.1.0-rc.6",
     "@deepseek-ai/dsh-home-paths": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-host-webserver": "*",
-    "@deepseek-ai/dsh-invariants": "*",
+    "@deepseek-ai/dsh-host-webserver": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-invariants": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm-pi-ai": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-session": ">=0.1.0-rc.6 <0.2.0",
-    "@deepseek-ai/dsh-tools": "*",
+    "@deepseek-ai/dsh-session": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
     "@deepseek-ai/schemastery": "3.18.1",
     "@earendil-works/pi-ai": "0.84.2"
   },
   "peerDependenciesMeta": {
-    "@deepseek-ai/cordis": {
-      "optional": true
-    },
     "@deepseek-ai/dsh-attachment": {
       "optional": true
     },
     "@deepseek-ai/dsh-credentials": {
-      "optional": true
-    },
-    "@deepseek-ai/dsh-host-webserver": {
       "optional": true
     },
     "@deepseek-ai/dsh-invariants": {

@@ -26,10 +26,10 @@ export declare const CODING_OAUTH_PATHS: Readonly<{
     imagineCredential: "/plugins/dsh-grok-build/imagine/credential-status";
 }>;
 export declare const CodingOAuthProviderSlugSchema: z.ZodEnum<{
+    grok: "grok";
+    codex: "codex";
     kimi: "kimi";
     claude: "claude";
-    codex: "codex";
-    grok: "grok";
 }>;
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
 export declare const GrokBuildLoginMethodSchema: z.ZodEnum<{
@@ -80,9 +80,9 @@ export declare const GrokBuildWebAuthStatusSchema: z.ZodDiscriminatedUnion<[z.Zo
 export type GrokBuildWebAuthStatus = z.infer<typeof GrokBuildWebAuthStatusSchema>;
 export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObject<{
     provider: z.ZodEnum<{
+        codex: "codex";
         kimi: "kimi";
         claude: "claude";
-        codex: "codex";
     }>;
     route: z.ZodString;
     displayName: z.ZodString;
@@ -116,6 +116,45 @@ export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObj
 }, z.core.$strip>], "status">>;
 export type SubscriptionWebAuthStatus = z.infer<typeof SubscriptionWebAuthStatusSchema>;
 export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
+    accessMode: z.ZodEnum<{
+        loopback: "loopback";
+        "ssh-tunnel": "ssh-tunnel";
+        "trusted-https-proxy": "trusted-https-proxy";
+        denied: "denied";
+    }>;
+    compatibility: z.ZodObject<{
+        coreAbi: z.ZodLiteral<"dsh-coding-oauth-core/v1">;
+        dshVersion: z.ZodNullable<z.ZodString>;
+        status: z.ZodEnum<{
+            incompatible: "incompatible";
+            healthy: "healthy";
+            degraded: "degraded";
+        }>;
+        uiOwner: z.ZodNullable<z.ZodEnum<{
+            hub: "hub";
+            standalone: "standalone";
+        }>>;
+        accessMode: z.ZodEnum<{
+            loopback: "loopback";
+            "ssh-tunnel": "ssh-tunnel";
+            "trusted-https-proxy": "trusted-https-proxy";
+            denied: "denied";
+        }>;
+        capabilities: z.ZodRecord<z.ZodString, z.ZodObject<{
+            state: z.ZodEnum<{
+                available: "available";
+                missing: "missing";
+                incompatible: "incompatible";
+            }>;
+            contract: z.ZodOptional<z.ZodString>;
+            reason: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>;
+        diagnostics: z.ZodArray<z.ZodString>;
+    }, z.core.$strict>;
+    uiOwner: z.ZodEnum<{
+        hub: "hub";
+        standalone: "standalone";
+    }>;
     providers: z.ZodObject<{
         grok: z.ZodDiscriminatedUnion<[z.ZodObject<{
             status: z.ZodLiteral<"signed-out">;
@@ -148,9 +187,9 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">;
         codex: z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
+                codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
-                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -184,9 +223,9 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">>;
         kimi: z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
+                codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
-                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -220,9 +259,9 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">>;
         claude: z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
+                codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
-                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -269,52 +308,52 @@ export declare const LoginChallengeSchema: z.ZodObject<{
 }, z.core.$strip>;
 export type LoginChallenge = z.infer<typeof LoginChallengeSchema>;
 export declare const OAuthSourceKindSchema: z.ZodEnum<{
+    grok: "grok";
+    codex: "codex";
     kimi: "kimi";
     claude: "claude";
-    codex: "codex";
-    grok: "grok";
 }>;
 export type OAuthSourceKind = CodingOAuthProviderSlug;
 export declare const OAuthSourceUnavailableReasonSchema: z.ZodEnum<{
-    too_large: "too_large";
     missing: "missing";
-    unsafe: "unsafe";
     invalid: "invalid";
+    too_large: "too_large";
+    unsafe: "unsafe";
 }>;
 export declare const OAuthSourceDiscoverySchema: z.ZodObject<{
     kind: z.ZodEnum<{
+        grok: "grok";
+        codex: "codex";
         kimi: "kimi";
         claude: "claude";
-        codex: "codex";
-        grok: "grok";
     }>;
     displayPath: z.ZodString;
     available: z.ZodBoolean;
     expiresAt: z.ZodOptional<z.ZodNumber>;
     reason: z.ZodOptional<z.ZodEnum<{
-        too_large: "too_large";
         missing: "missing";
-        unsafe: "unsafe";
         invalid: "invalid";
+        too_large: "too_large";
+        unsafe: "unsafe";
     }>>;
 }, z.core.$strip>;
 export type OAuthSourceDiscovery = z.infer<typeof OAuthSourceDiscoverySchema>;
 export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
     sources: z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
+            grok: "grok";
+            codex: "codex";
             kimi: "kimi";
             claude: "claude";
-            codex: "codex";
-            grok: "grok";
         }>;
         displayPath: z.ZodString;
         available: z.ZodBoolean;
         expiresAt: z.ZodOptional<z.ZodNumber>;
         reason: z.ZodOptional<z.ZodEnum<{
-            too_large: "too_large";
             missing: "missing";
-            unsafe: "unsafe";
             invalid: "invalid";
+            too_large: "too_large";
+            unsafe: "unsafe";
         }>>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
@@ -332,10 +371,10 @@ export type OAuthImportConflict = z.infer<typeof OAuthImportConflictSchema>;
 export declare const OAuthImportPreviewSchema: z.ZodObject<{
     previewId: z.ZodString;
     kind: z.ZodEnum<{
+        grok: "grok";
+        codex: "codex";
         kimi: "kimi";
         claude: "claude";
-        codex: "codex";
-        grok: "grok";
     }>;
     displayPath: z.ZodString;
     expiresAt: z.ZodNumber;
@@ -379,6 +418,10 @@ export declare const GatewayPublicStatusSchema: z.ZodObject<{
     running: z.ZodBoolean;
     bind: z.ZodString;
     port: z.ZodNumber;
+    model: z.ZodNullable<z.ZodString>;
+    models: z.ZodArray<z.ZodString>;
+    keyAvailable: z.ZodBoolean;
+    keyConfigured: z.ZodBoolean;
     keyHint: z.ZodString;
     warning: z.ZodString;
 }, z.core.$strip>;

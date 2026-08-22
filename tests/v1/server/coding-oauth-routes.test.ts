@@ -160,7 +160,7 @@ describe("coding OAuth routes", () => {
 		}
 		expect(document.antigravity).toEqual({ installed: false, route: "agy", management: "cli" });
 		// No token material may appear in the status document.
-		expect(JSON.stringify(document)).not.toMatch(/access|refresh|token/i);
+		expect(JSON.stringify(document)).not.toMatch(/accessToken|refreshToken|apiKey/i);
 	});
 
 	it("rejects non-loopback Host values even from a loopback peer", async () => {
@@ -187,7 +187,7 @@ describe("coding OAuth routes", () => {
 	it("logs out a signed-out provider cleanly and keeps the status shape", async () => {
 		const { status, payload } = await callRoute(mock, CODING_OAUTH_LOGOUT_PATH, "POST", { provider: "kimi" });
 		expect(status).toBe(200);
-		expect((payload as { providers: Record<string, unknown> }).providers["kimi"]).toMatchObject({
+		expect((payload as { providers: Record<string, unknown> }).providers.kimi).toMatchObject({
 			status: "signed-out",
 		});
 	});

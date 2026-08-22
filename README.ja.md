@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.8.0** · 旧称 `dsh-usage-stats`
+**v1.9.0** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -14,6 +14,10 @@
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
 </div>
+
+---
+
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -56,25 +60,25 @@
 DeepSeek Harness Web に本プラグインを入れた状態で撮影（新規隔離 profile ではローカル履歴が空でも正常）。
 
 <p align="center">
-  <img src="docs/images/usage-center-hud.png" alt="DSH シェル上のフローティング用量 HUD" width="760" />
+  <img src="docs/images/en/usage-center-hud.png" alt="DSH シェル上のフローティング用量 HUD" width="760" />
   <br />
   <em>フローティング HUD — 本日の指標と複数アカウントのクォータチップ</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
+  <img src="docs/images/en/usage-center-peek.png" alt="Usage Center Quick Peek" width="760" />
   <br />
   <em>Quick Peek — ローカルのみの KPI。ワンクリックでフルダッシュボードへ</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-dashboard.png" alt="Usage Center フルダッシュボード" width="760" />
+  <img src="docs/images/en/usage-center-dashboard.png" alt="Usage Center フルダッシュボード" width="760" />
   <br />
   <em>フルダッシュボード — 範囲・タブ・更新・CSV / JSON エクスポート</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-settings.png" alt="設定 → Usage Center" width="760" />
+  <img src="docs/images/en/usage-center-settings.png" alt="設定 → Usage Center" width="760" />
   <br />
   <em>設定 → Usage Center — 表示 / アカウント / ゲートウェイ / 機能 / プロバイダー / 費用</em>
 </p>
@@ -95,9 +99,10 @@ DeepSeek Harness Web に本プラグインを入れた状態で撮影（新規�
 # 1. install the current npm release into the web profile
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
-# 2. restart the resident dsh web service (operator chooses when)
+# 2. restart the resident DSH Web process (operator chooses when)
+# Local service-manager example only; `dsh web` is the official CLI alias for the web profile.
 systemctl --user restart dsh-web.service
-# or: dsh-web restart
+# `dsh-web.service` はこのマシン固有の例です。他の環境では別のプロセスマネージャーを使います。
 ```
 
 次に **Settings → Usage Center** を開く。Accounts / Gateway / Capabilities は必要に応じてサインインまたはスイッチを有効化。完全なインストールオプション（npx インストーラー、GitHub tarball、プロキシ）は [`docs/01-install.md`](docs/01-install.md)。
@@ -139,7 +144,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-プラグインマネージャーがない場合の互換インストーラー：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` と開発パスインストールは [`docs/01-install.md`](docs/01-install.md)。インストール後、Web を自分で再起動（`dsh-web restart` または `systemctl --user restart dsh-web.service`）、`http://127.0.0.1:3080` を更新。
+プラグインマネージャーがない場合の互換インストーラー：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` と開発パスインストールは [`docs/01-install.md`](docs/01-install.md)。インストール後、既存の DSH Web プロセスを自分のサービスマネージャーで再起動（下記の `systemctl` ユニットはローカル例のみ）し、`http://127.0.0.1:3080` を更新。
 
 ## 使い方
 

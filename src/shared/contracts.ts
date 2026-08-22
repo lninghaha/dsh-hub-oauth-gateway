@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DshCompatibilitySchema } from "./compatibility.js";
 import {
 	AccountSnapshotSchema,
 	PriceRuleSchema,
@@ -29,10 +30,13 @@ export const API_PATHS = Object.freeze({
 	oauthDevicePoll: `${API_BASE}/oauth/device/poll`,
 	export: `${API_BASE}/export`,
 	health: `${API_BASE}/health`,
+	compatibility: `${API_BASE}/compatibility`,
 	localAuth: `${API_BASE}/local/auth`,
 	localUsage: `${API_BASE}/local/usage`,
 	localUsageScan: `${API_BASE}/local/usage/scan`,
 });
+
+export { DshCompatibilitySchema };
 
 export const ExportLayoutSchema = z.enum(["filtered", "daily", "bundle"]);
 export type ExportLayout = z.infer<typeof ExportLayoutSchema>;
@@ -40,11 +44,17 @@ export type ExportLayout = z.infer<typeof ExportLayoutSchema>;
 export type { AccountFeeRecord, FeesData } from "./fees.js";
 export { FeesDataSchema };
 
+export const UsageFreshnessStateSchema = z.enum(["not-collected", "fresh", "stale"]);
+export type UsageFreshnessState = z.infer<typeof UsageFreshnessStateSchema>;
+
 export const ApiMetaSchema = z
 	.object({
 		schemaVersion: z.literal(1),
 		generatedAt: z.number().int().nonnegative(),
 		sourceUpdatedAt: z.number().int().nonnegative().nullable(),
+		usageUpdatedAt: z.number().int().nonnegative().nullable(),
+		accountsUpdatedAt: z.number().int().nonnegative().nullable(),
+		usageState: UsageFreshnessStateSchema,
 		partial: z.boolean(),
 		stale: z.boolean(),
 		warnings: z.array(z.string()),

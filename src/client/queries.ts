@@ -6,6 +6,7 @@ import {
 	AlertsDataSchema,
 	API_PATHS,
 	BreakdownDataSchema,
+	DshCompatibilitySchema,
 	type ExportLayout,
 	FeesDataSchema,
 	OverviewDataSchema,
@@ -203,6 +204,18 @@ export function usePreferencesQuery(enabled = true) {
 			queryKey: ["usage-stats", "settings"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.settings, UserPreferencesSchema, {}, signal),
 			enabled,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useCompatibilityQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "compatibility"],
+			queryFn: ({ signal }) => fetchApi(API_PATHS.compatibility, DshCompatibilitySchema, {}, signal),
+			enabled,
+			refetchOnWindowFocus: true,
 		},
 		usageQueryClient,
 	);

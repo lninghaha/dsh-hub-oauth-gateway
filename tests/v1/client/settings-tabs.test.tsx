@@ -29,6 +29,23 @@ vi.mock("../../../src/client/queries.js", async () => {
 			isPending: false,
 			isSuccess: false,
 		}),
+		useCompatibilityQuery: () => ({
+			data: {
+				ok: true as const,
+				data: {
+					coreAbi: "dsh-coding-oauth-core/v1" as const,
+					dshVersion: "0.1.0",
+					status: "healthy" as const,
+					uiOwner: "hub" as const,
+					accessMode: "loopback" as const,
+					capabilities: {},
+					diagnostics: [],
+				},
+			},
+			isPending: false,
+			error: null,
+			refetch: vi.fn(),
+		}),
 		useFeesQuery: () => ({
 			data: { ok: true as const, data: { fees: [] } },
 			isPending: false,
@@ -50,13 +67,22 @@ vi.mock("../../../src/client/queries.js", async () => {
 		useDeviceCodeMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined }),
 		useDevicePollMutation: () => ({ mutate: vi.fn(), isPending: false }),
 		usePricingQuery: () => ({
-			data: { ok: true as const, data: { rules: [] } },
+			data: { ok: true as const, data: { rules: [], catalogUpdatedAt: null } },
 			isPending: false,
 			error: null,
 		}),
 		useSavePricingMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false }),
 	};
 });
+
+vi.mock("../../../src/client/coding-oauth-api.js", () => ({
+	useCodingOAuthStatusQuery: () => ({ data: { providers: {} }, isPending: false, error: null }),
+	useGatewayStatusQuery: () => ({
+		data: { enabled: false, keyAvailable: false },
+		isPending: false,
+		error: null,
+	}),
+}));
 
 vi.mock("../../../src/client/components/ProviderManagement.js", () => ({
 	ProviderManagement: () => <div data-testid="provider-management">providers-panel</div>,
@@ -81,6 +107,7 @@ describe("settings section tabs", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		sessionStorage.clear();
 	});
 
 	it("defaults to the display panel and unmounts it when switching away", () => {
@@ -100,5 +127,14 @@ describe("settings section tabs", () => {
 		expect(screen.getByText(en["settings.entryMode"])).toBeTruthy();
 		expect(screen.getByRole("button", { name: en["settings.openPeek"] })).toBeTruthy();
 		expect(screen.getByRole("button", { name: en["settings.preview"] })).toBeTruthy();
+		expect(screen.getByText(en["compatibility.title"])).toBeTruthy();
+	});
+
+	it("lets users finish the optional Gateway onboarding step without enabling it", () => {
+		renderSettings();
+		expect(screen.getByText("0 of 3 complete")).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: en["onboarding.gateway.skip"] }));
+		expect(screen.getByText("1 of 3 complete")).toBeTruthy();
+		expect(localStorage.getItem("dsh.usage-stats.onboarding.gateway-not-needed")).toBe("1");
 	});
 });

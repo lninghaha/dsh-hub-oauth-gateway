@@ -1,0 +1,1 @@
+{"version":3,"file":"owner-request.d.ts","sourceRoot":"","sources":["../../../../src/server/api/owner-request.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,eAAe,EAAE,MAAM,WAAW,CAAC;AACjD,OAAO,KAAK,EAAE,oBAAoB,EAAE,MAAM,uBAAuB,CAAC;AAClE,OAAO,EAAiC,KAAK,kBAAkB,EAAE,MAAM,+BAA+B,CAAC;AAGvG;;;;GAIG;AACH,wBAAgB,sBAAsB,CACrC,OAAO,EAAE,eAAe,EACxB,MAAM,GAAE,kBAAkD,GACxD,oBAAoB,CAatB"}

@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.8.0** · 原名 `dsh-usage-stats`
+**v1.9.0** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -14,6 +14,10 @@
 *[English](README.md) · [中文版](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)*
 
 </div>
+
+---
+
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -56,25 +60,25 @@
 在 DeepSeek Harness Web 安装本插件后截取（全新隔离 profile 下本地历史为空属正常）。
 
 <p align="center">
-  <img src="docs/images/usage-center-hud.png" alt="DSH 壳层上的悬浮用量 HUD" width="760" />
+  <img src="docs/images/zh-CN/usage-center-hud.png" alt="DSH 壳层上的悬浮用量 HUD" width="760" />
   <br />
   <em>悬浮 HUD —— 今日指标与多账户配额芯片</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-peek.png" alt="用量中心速览浮层" width="760" />
+  <img src="docs/images/zh-CN/usage-center-peek.png" alt="用量中心速览浮层" width="760" />
   <br />
   <em>用量速览 —— 紧凑 2×2 KPI，一键进入完整仪表盘</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-dashboard.png" alt="用量中心完整仪表盘" width="760" />
+  <img src="docs/images/zh-CN/usage-center-dashboard.png" alt="用量中心完整仪表盘" width="760" />
   <br />
   <em>完整仪表盘 —— 时间范围、页签、刷新与 CSV / JSON 导出</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/usage-center-settings.png" alt="设置 → 用量中心" width="760" />
+  <img src="docs/images/zh-CN/usage-center-settings.png" alt="设置 → 用量中心" width="760" />
   <br />
   <em>设置 → 用量中心 —— 显示 / 订阅账号 / 网关 / 能力 / 供应商 / 费用</em>
 </p>
@@ -95,9 +99,10 @@
 # 1. 安装当前 npm 发布版到 web profile
 dsh plugin --profile web add dsh-hub-oauth-gateway
 
-# 2. 自行选择时机重启常驻 dsh web
+# 2. 自行选择时机重启常驻 DSH Web 进程
+# 仅示范本机服务管理器；官方 `dsh web` 是启动 web profile 的 CLI 别名，不是 systemd 单元名。
 systemctl --user restart dsh-web.service
-# 或: dsh-web restart
+# `dsh-web.service` 只是本机服务管理示例，其他部署可使用不同的进程管理器。
 ```
 
 然后打开 **设置 → 用量中心**。订阅账号 / 网关 / 能力按需登录或打开开关。完整安装选项（npx 安装器、GitHub tarball、代理）见 [`docs/01-install.md`](docs/01-install.md)。
@@ -139,7 +144,7 @@ dsh plugin --profile web update dsh-hub-oauth-gateway
 dsh plugin --profile web remove dsh-hub-oauth-gateway
 ```
 
-无插件管理器时可用兼容安装器：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` 与本地开发安装见 [`docs/01-install.md`](docs/01-install.md)。安装后自行重启 Web（`dsh-web restart` 或 `systemctl --user restart dsh-web.service`），再刷新 `http://127.0.0.1:3080`。
+无插件管理器时可用兼容安装器：`npx --yes dsh-hub-oauth-gateway-install`。GitHub `/path/to/*.tgz` 与本地开发安装见 [`docs/01-install.md`](docs/01-install.md)。安装后通过测试机自己的服务管理器重启现有 DSH Web 进程，再刷新 `http://127.0.0.1:3080`；`dsh-web.service` 只是本机示例单元名。
 
 ## 使用
 
@@ -222,7 +227,7 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 
 ## 隐私与安全
 
-- 回环 peer + 回环 Host；写请求须为 JSON；反向代理需同源 / forwarded-host 规则（`x-dsh-hub-oauth-gateway: 1`）。
+- 默认要求回环 peer + 回环 Host。受信任 HTTPS 反向代理必须满足完整 owner policy：trusted peer、精确 HTTPS Origin 与匹配的公网 Host、owner proof、同源 Fetch Metadata，变更请求还需 CSRF；仅转发 forwarded headers 不会授予访问权，策略不完整时 fail closed。
 - 普通 GET 只读本地；带凭据刷新为显式 POST 或调度。
 - monitor 默认 HTTPS、禁止 URL 内嵌凭据、手动 redirect、限制大小、连接前 DNS pinning。
 - SQLite 不含凭据、prompt、response、cwd 或供应商原始响应。

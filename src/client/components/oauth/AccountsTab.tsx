@@ -282,19 +282,20 @@ function CliPullRow({ source, t }: { readonly source: OAuthSourceDiscovery; read
 	const reset = (): void => {
 		setConfirmOverwrite(false);
 		if (current !== null) cancel.mutate(current.previewId);
+		commit.reset();
 		preview.reset();
+	};
+	const startPreview = (): void => {
+		setConfirmOverwrite(false);
+		commit.reset();
+		preview.mutate(source.kind);
 	};
 	return (
 		<div className="dus-oauth-source" data-oauth-source={source.kind}>
 			<div className="dus-oauth-source-head">
 				<code>{source.displayPath}</code>
 				{source.available ? (
-					<button
-						type="button"
-						className="dus-button"
-						disabled={preview.isPending}
-						onClick={() => preview.mutate(source.kind)}
-					>
+					<button type="button" className="dus-button" disabled={preview.isPending} onClick={startPreview}>
 						{t("oauth.importPull")}
 					</button>
 				) : (

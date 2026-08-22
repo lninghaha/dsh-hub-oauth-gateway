@@ -42,22 +42,6 @@ body {
   border: 0 !important;
 }
 
-/*
- * When our sidebar entry is present, stack host footer actions vertically so
- * peer plugins share the rail instead of crushing each other in a row.
- * Host class: dsh-client-ui-sidebar `.hHd-Xa_footerActions`.
- */
-.hHd-Xa_footerActions:has(.dus-sidebar-button) {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-}
-
-.hHd-Xa_footerActions:has(.dus-sidebar-button) > * {
-  width: 100%;
-  min-width: 0;
-}
-
 .dus-sidebar-button {
   position: relative;
   display: inline-flex;
@@ -275,13 +259,13 @@ body {
 .dus-modal.is-dashboard {
   width: min(1360px, calc(100vw - 28px));
   height: auto;
-  max-height: min(860px, calc(100vh - 28px));
+  max-height: min(860px, calc(100dvh - 28px));
 }
 
 .dus-modal.is-peek {
   width: min(650px, calc(100vw - 28px));
   height: auto;
-  max-height: min(560px, calc(100vh - 28px));
+  max-height: min(560px, calc(100dvh - 28px));
 }
 
 .dus-dashboard {
@@ -354,6 +338,11 @@ body {
   font-weight: 600;
 }
 
+:where(.dus-dashboard, .dus-settings) :focus-visible {
+  outline: 2px solid var(--dus-accent);
+  outline-offset: 2px;
+}
+
 .dus-dashboard-header {
   display: flex;
   align-items: flex-start;
@@ -388,6 +377,29 @@ body {
   margin-top: 7px;
   color: var(--dus-faint);
   font-size: 11px;
+}
+
+.dus-freshness.is-stale {
+  color: var(--dus-warning);
+}
+
+.dus-stale-banner,
+.dus-retry-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--dus-warning) 45%, var(--dus-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dus-warning) 10%, var(--dus-card));
+  color: var(--dus-fg);
+  font-size: 12px;
+}
+
+.dus-retry-state {
+  place-items: initial;
+  min-height: 0;
 }
 
 .dus-header-actions,
@@ -1557,6 +1569,164 @@ body {
   font-size: 10px;
 }
 
+.dus-field-error {
+  color: var(--dus-danger);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.dus-error-inline .dus-button {
+  margin-left: 6px;
+}
+
+.dus-copy-action {
+  display: inline-grid;
+  gap: 4px;
+}
+
+.dus-recovery-root {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+}
+
+.dus-recovery-entry {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.dus-recovery-dialog {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  padding: clamp(12px, 3vw, 32px);
+  color: var(--dus-fg);
+  background: color-mix(in srgb, var(--dus-bg) 94%, #000 6%);
+}
+
+.dus-recovery-dialog p {
+  margin: 0;
+  color: var(--dus-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dus-recovery-shell {
+  width: min(1080px, 100%);
+  min-height: calc(100dvh - clamp(24px, 6vw, 64px));
+  margin: 0 auto;
+  padding: clamp(14px, 2vw, 24px);
+  border: 1px solid var(--dus-border-strong);
+  border-radius: 16px;
+  background: var(--dus-card);
+  box-shadow: 0 20px 64px color-mix(in srgb, #000 32%, transparent);
+}
+
+.dus-onboarding {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--dus-accent) 45%, var(--dus-border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--dus-accent-soft) 58%, var(--dus-card));
+}
+
+.dus-onboarding-heading,
+.dus-onboarding-steps li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dus-onboarding-heading h3,
+.dus-onboarding-heading p,
+.dus-onboarding-steps p {
+  margin: 0;
+}
+
+.dus-onboarding-heading > span {
+  flex: 0 0 auto;
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-onboarding-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dus-onboarding-steps li {
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--dus-border);
+  border-radius: 10px;
+  background: var(--dus-card);
+}
+
+.dus-onboarding-steps li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dus-onboarding-steps li.is-complete {
+  opacity: 0.76;
+}
+
+.dus-onboarding-state {
+  color: var(--dus-accent);
+  font-weight: 700;
+}
+
+.dus-onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dus-compatibility-panel {
+  margin-bottom: 12px;
+}
+
+.dus-compatibility-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.dus-compatibility-meta div,
+.dus-compatibility-list li {
+  display: grid;
+  gap: 3px;
+}
+
+.dus-compatibility-meta dt {
+  color: var(--dus-muted);
+  font-size: 11px;
+}
+
+.dus-compatibility-meta dd {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.dus-compatibility-list {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--dus-muted);
+  font-size: 12px;
+}
+
 .dus-settings-subtitle {
   font-size: 13px;
   color: var(--dus-fg);
@@ -1910,7 +2080,24 @@ body {
   .dus-modal.is-peek {
     width: calc(100vw - 12px);
     height: auto;
-    max-height: calc(100vh - 12px);
+    max-height: calc(100dvh - 12px);
+  }
+
+  .dus-tabs,
+  .dus-settings-tabs,
+  .dus-snippet-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .dus-tabs .dus-tab,
+  .dus-settings-tabs .dus-tab,
+  .dus-snippet-tabs .dus-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    white-space: nowrap;
   }
 
   .dus-tabs {
@@ -1971,6 +2158,25 @@ body {
 
   .dus-settings-heading {
     display: grid;
+  }
+
+  .dus-onboarding-heading {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .dus-onboarding-steps li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .dus-onboarding-heading > span {
+    grid-column: 1;
+  }
+
+  .dus-onboarding-steps .dus-button {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .dus-row {
@@ -2270,6 +2476,19 @@ body {
 .dus-pricing-presets {
   display: grid;
   gap: 8px;
+}
+
+.dus-replacement-preview {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--dus-border-strong);
+  border-radius: 10px;
+  background: var(--dus-control);
+}
+
+.dus-replacement-preview p {
+  margin: 0;
 }
 
 .dus-hud.is-collapsed {

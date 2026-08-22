@@ -94,6 +94,21 @@ const CodingOAuthGatewaySchema = z
 	})
 	.strict();
 
+const OwnerRequestPolicySchema = z
+	.object({
+		loopbackAccessMode: z.enum(["loopback", "ssh-tunnel"]).optional(),
+		trustedProxy: z
+			.object({
+				peers: z.array(z.string()),
+				origins: z.array(z.string()),
+				ownerProof: z.string(),
+				csrfToken: z.string(),
+			})
+			.strict()
+			.optional(),
+	})
+	.strict();
+
 const CodingOAuthConfigSchema = z
 	.object({
 		enabled: z.boolean().default(DEFAULT_CODING_OAUTH.enabled),
@@ -102,6 +117,7 @@ const CodingOAuthConfigSchema = z
 		retryPolicy: z.record(z.string(), z.unknown()).optional(),
 		capabilities: CodingOAuthCapabilityPatchSchema.optional(),
 		gateway: CodingOAuthGatewaySchema.optional(),
+		ownerRequest: OwnerRequestPolicySchema.optional(),
 	})
 	.strict();
 

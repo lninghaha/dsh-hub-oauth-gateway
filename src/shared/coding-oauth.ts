@@ -6,27 +6,46 @@
  * and by contract tests.
  */
 
+import {
+	CAPABILITY_SETTINGS_PATH,
+	CODEX_USAGE_PATH,
+	CODING_OAUTH_LOGIN_CANCEL_PATH,
+	CODING_OAUTH_LOGIN_CODE_PATH,
+	CODING_OAUTH_LOGIN_PATH,
+	CODING_OAUTH_LOGOUT_PATH,
+	CODING_OAUTH_MODELS_PATH,
+	CODING_OAUTH_STATUS_PATH,
+	GATEWAY_REVEAL_PATH,
+	GATEWAY_ROTATE_PATH,
+	GATEWAY_SETTINGS_PATH,
+	IMAGINE_CREDENTIAL_STATUS_PATH,
+	OAUTH_IMPORT_CANCEL_PATH,
+	OAUTH_IMPORT_COMMIT_PATH,
+	OAUTH_IMPORT_PREVIEW_PATH,
+	OAUTH_IMPORT_SOURCES_PATH,
+} from "dsh-coding-oauth-core/contracts";
 import { z } from "zod";
+import { DshCompatibilitySchema } from "./compatibility.js";
 
 export const CODING_OAUTH_API_BASE = "/plugins/dsh-grok-build";
 
 export const CODING_OAUTH_PATHS = Object.freeze({
-	status: `${CODING_OAUTH_API_BASE}/oauth/status`,
-	login: `${CODING_OAUTH_API_BASE}/oauth/login`,
-	code: `${CODING_OAUTH_API_BASE}/oauth/code`,
-	cancel: `${CODING_OAUTH_API_BASE}/oauth/cancel`,
-	logout: `${CODING_OAUTH_API_BASE}/oauth/logout`,
-	models: `${CODING_OAUTH_API_BASE}/oauth/models`,
-	sources: `${CODING_OAUTH_API_BASE}/oauth/sources`,
-	sourcePreview: `${CODING_OAUTH_API_BASE}/oauth/sources/preview`,
-	sourceCommit: `${CODING_OAUTH_API_BASE}/oauth/sources/commit`,
-	sourceCancel: `${CODING_OAUTH_API_BASE}/oauth/sources/cancel`,
-	gateway: `${CODING_OAUTH_API_BASE}/gateway`,
-	gatewayReveal: `${CODING_OAUTH_API_BASE}/gateway/reveal`,
-	gatewayRotate: `${CODING_OAUTH_API_BASE}/gateway/rotate`,
-	capabilities: `${CODING_OAUTH_API_BASE}/capabilities`,
-	codexUsage: `${CODING_OAUTH_API_BASE}/codex/usage`,
-	imagineCredential: `${CODING_OAUTH_API_BASE}/imagine/credential-status`,
+	status: CODING_OAUTH_STATUS_PATH,
+	login: CODING_OAUTH_LOGIN_PATH,
+	code: CODING_OAUTH_LOGIN_CODE_PATH,
+	cancel: CODING_OAUTH_LOGIN_CANCEL_PATH,
+	logout: CODING_OAUTH_LOGOUT_PATH,
+	models: CODING_OAUTH_MODELS_PATH,
+	sources: OAUTH_IMPORT_SOURCES_PATH,
+	sourcePreview: OAUTH_IMPORT_PREVIEW_PATH,
+	sourceCommit: OAUTH_IMPORT_COMMIT_PATH,
+	sourceCancel: OAUTH_IMPORT_CANCEL_PATH,
+	gateway: GATEWAY_SETTINGS_PATH,
+	gatewayReveal: GATEWAY_REVEAL_PATH,
+	gatewayRotate: GATEWAY_ROTATE_PATH,
+	capabilities: CAPABILITY_SETTINGS_PATH,
+	codexUsage: CODEX_USAGE_PATH,
+	imagineCredential: IMAGINE_CREDENTIAL_STATUS_PATH,
 });
 
 export const CodingOAuthProviderSlugSchema = z.enum(["grok", "codex", "kimi", "claude"]);
@@ -91,6 +110,9 @@ export const SubscriptionWebAuthStatusSchema = z.intersection(
 export type SubscriptionWebAuthStatus = z.infer<typeof SubscriptionWebAuthStatusSchema>;
 
 export const CodingOAuthWebStatusSchema = z.object({
+	accessMode: z.enum(["loopback", "ssh-tunnel", "trusted-https-proxy", "denied"]),
+	compatibility: DshCompatibilitySchema,
+	uiOwner: z.enum(["hub", "standalone"]),
 	providers: z.object({
 		grok: GrokBuildWebAuthStatusSchema,
 		codex: SubscriptionWebAuthStatusSchema,
@@ -170,6 +192,10 @@ export const GatewayPublicStatusSchema = z.object({
 	running: z.boolean(),
 	bind: z.string(),
 	port: z.number(),
+	model: z.string().nullable(),
+	models: z.array(z.string()),
+	keyAvailable: z.boolean(),
+	keyConfigured: z.boolean(),
 	keyHint: z.string(),
 	warning: z.string(),
 });

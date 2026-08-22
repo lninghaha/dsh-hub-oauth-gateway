@@ -7,8 +7,10 @@ import { API_PATHS } from "../../shared/contracts.js";
 import { deviceFlowCredentialRef, pollTokenOnce, requestDeviceCode } from "../accounts/adapters/oauth-device.js";
 import type { AccountService } from "../accounts/service.js";
 import type { AccountDeps, CredentialResolver } from "../accounts/types.js";
+import type { OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
+import { authorizeHubApiRequest } from "./owner-request.js";
 import type { ExactWebServer, UsageStatsLogger } from "./router.js";
-import { isLoopbackRequest, passesBrowserContextGuard, passesCsrfGuard, readJsonBody, writeJson } from "./security.js";
+import { readJsonBody, writeJson } from "./security.js";
 
 export const LEGACY_CREDENTIAL_PATH = "/api/usage-stats/credential";
 export const LEGACY_CREDENTIAL_IMPORT_PATH = "/api/usage-stats/credential/import";
@@ -89,17 +91,16 @@ function validRef(value: unknown): value is string {
 	return typeof value === "string" && CREDENTIAL_REF.test(value);
 }
 
-function guard(request: IncomingMessage, response: ServerResponse, mutation: boolean): boolean {
-	if (!isLoopbackRequest(request)) {
-		writeJson(response, 403, { ok: false, error: "forbidden" });
-		return false;
-	}
-	if (!passesBrowserContextGuard(request)) {
-		writeJson(response, 403, { ok: false, error: "cross-site-rejected" });
-		return false;
-	}
-	if (mutation && !passesCsrfGuard(request)) {
-		writeJson(response, 403, { ok: false, error: "csrf-rejected" });
+function guard(request: IncomingMessage, response: ServerResponse, policy?: OwnerRequestPolicy): boolean {
+	const decision = authorizeHubApiRequest(request, policy);
+	if (!decision.authorized) {
+		const error =
+			decision.reason === "csrf"
+				? "csrf-rejected"
+				: decision.reason === "origin" || decision.reason === "fetch-metadata"
+					? "cross-site-rejected"
+					: "forbidden";
+		writeJson(response, 403, { ok: false, error });
 		return false;
 	}
 	return true;
@@ -129,6 +130,9 @@ function v1<T>(data: T) {
 			schemaVersion: 1 as const,
 			generatedAt: now,
 			sourceUpdatedAt: now,
+			usageUpdatedAt: null,
+			accountsUpdatedAt: null,
+			usageState: "not-collected" as const,
 			partial: false,
 			stale: false,
 			warnings: [] as string[],
@@ -155,9 +159,10 @@ interface DeviceFlowState {
 
 export interface CredentialApiDependencies {
 	readonly logger: UsageStatsLogger;
-	readonly credentials: WritableCredentials | undefined;
+	readonly credentials: WritableCredentials | undefined | (() => WritableCredentials | undefined);
 	readonly accounts: Pick<AccountService, "credentialRefs" | "refresh">;
 	readonly accountDeps?: AccountDeps;
+	readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
 }
 
 export function registerCredentialRoutes(
@@ -169,10 +174,13 @@ export function registerCredentialRoutes(
 		handler: (request: IncomingMessage, response: ServerResponse) => Promise<void> | void,
 	): (() => void) => webServer.register({ kind: "exact", path, handler });
 	const deviceFlows = new Map<string, DeviceFlowState>();
+	const credentials = (): WritableCredentials | undefined =>
+		typeof dependencies.credentials === "function" ? dependencies.credentials() : dependencies.credentials;
 	const allowedRef = async (ref: string): Promise<boolean> => (await dependencies.accounts.credentialRefs()).has(ref);
 	const describe = async (ref: string): Promise<ReturnType<typeof description>> => {
-		if (dependencies.credentials?.describe === undefined) throw new Error("credentials-unavailable");
-		return description(ref, await dependencies.credentials.describe(ref));
+		const provider = credentials();
+		if (provider?.describe === undefined) throw new Error("credentials-unavailable");
+		return description(ref, await provider.describe(ref));
 	};
 	const refresh = async (): Promise<void> => {
 		try {
@@ -186,8 +194,7 @@ export function registerCredentialRoutes(
 		response: ServerResponse,
 		legacy: boolean,
 	): Promise<void> => {
-		const mutation = request.method !== "GET";
-		if (!guard(request, response, mutation)) return;
+		if (!guard(request, response, dependencies.ownerRequestPolicy)) return;
 		try {
 			if (request.method === "GET") {
 				const ref = new URL(request.url ?? "/", "http://localhost").searchParams.get("ref");
@@ -213,8 +220,9 @@ export function registerCredentialRoutes(
 					writeJson(response, 403, { ok: false, error: "credential-ref-not-allowed" });
 					return;
 				}
-				if (dependencies.credentials?.unset === undefined) throw new Error("credentials-unavailable");
-				await dependencies.credentials.unset(ref);
+				const provider = credentials();
+				if (provider?.unset === undefined) throw new Error("credentials-unavailable");
+				await provider.unset(ref);
 				await refresh();
 				const data = { ref, configured: false };
 				writeJson(response, 200, legacy ? { ok: true, ...data } : v1(data));
@@ -238,8 +246,9 @@ export function registerCredentialRoutes(
 				writeJson(response, 400, { ok: false, error: "invalid-value" });
 				return;
 			}
-			if (dependencies.credentials?.set === undefined) throw new Error("credentials-unavailable");
-			await dependencies.credentials.set(body.ref, body.value);
+			const provider = credentials();
+			if (provider?.set === undefined) throw new Error("credentials-unavailable");
+			await provider.set(body.ref, body.value);
 			await refresh();
 			const data = await describe(body.ref);
 			writeJson(response, 200, legacy ? { ok: true, ...data } : v1(data));
@@ -253,7 +262,7 @@ export function registerCredentialRoutes(
 		}
 	};
 	const handleImport = async (request: IncomingMessage, response: ServerResponse, legacy: boolean): Promise<void> => {
-		if (!guard(request, response, true)) return;
+		if (!guard(request, response, dependencies.ownerRequestPolicy)) return;
 		if (request.method !== "POST") {
 			writeJson(response, 405, { ok: false, error: "method-not-allowed" });
 			return;
@@ -265,7 +274,8 @@ export function registerCredentialRoutes(
 			writeJson(response, 400, { ok: false, error: "unknown-provider" });
 			return;
 		}
-		if (dependencies.credentials?.set === undefined) {
+		const provider = credentials();
+		if (provider?.set === undefined) {
 			writeJson(response, 503, { ok: false, error: "credentials-unavailable" });
 			return;
 		}
@@ -284,7 +294,7 @@ export function registerCredentialRoutes(
 				writeJson(response, 413, { ok: false, error: "credential-too-large" });
 				return;
 			}
-			await dependencies.credentials.set(spec.ref, value);
+			await provider.set(spec.ref, value);
 			await refresh();
 			const data = legacy ? { ref: spec.ref, importedFrom: body.providerId } : { ref: spec.ref };
 			writeJson(response, 200, legacy ? { ok: true, ...data } : v1(data));
@@ -298,7 +308,7 @@ export function registerCredentialRoutes(
 		}
 	};
 	const handleDevice = async (request: IncomingMessage, response: ServerResponse, poll: boolean): Promise<void> => {
-		if (!guard(request, response, true)) return;
+		if (!guard(request, response, dependencies.ownerRequestPolicy)) return;
 		if (request.method !== "POST") {
 			writeJson(response, 405, { ok: false, error: "method-not-allowed" });
 			return;
@@ -372,9 +382,10 @@ export function registerCredentialRoutes(
 				return;
 			}
 			const ref = deviceFlowCredentialRef(body.providerId);
-			if (ref === null || dependencies.credentials?.set === undefined) throw new Error("credentials-unavailable");
+			const provider = credentials();
+			if (ref === null || provider?.set === undefined) throw new Error("credentials-unavailable");
 			if (Buffer.byteLength(token, "utf8") > MAX_CREDENTIAL_BYTES) throw new Error("credential-too-large");
-			await dependencies.credentials.set(ref, token);
+			await provider.set(ref, token);
 			deviceFlows.delete(body.flowId);
 			await refresh();
 			writeJson(response, 200, v1({ pending: false, ref }));

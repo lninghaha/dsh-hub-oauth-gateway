@@ -33,24 +33,29 @@ function nonEmpty(value: string | undefined): string | undefined {
 	return trimmed.length === 0 ? undefined : trimmed;
 }
 
-/** Build a token source from the live coding-oauth runtime. */
-export function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthTokenSource {
-	const codex = runtime.subscriptions.find((session) => session.definition.nativeProviderId === CODEX_PI_PROVIDER);
-	const claude = runtime.subscriptions.find((session) => session.definition.nativeProviderId === CLAUDE_PI_PROVIDER);
-	const kimi = runtime.subscriptions.find((session) => session.definition.nativeProviderId === KIMI_PI_PROVIDER);
+/** Build a token source from the current coding-oauth owner runtime. */
+export function oauthTokenSourceFromRuntime(
+	runtime: CodingOAuthRuntime | undefined | (() => CodingOAuthRuntime | undefined),
+): OAuthTokenSource {
+	const current = typeof runtime === "function" ? runtime : () => runtime;
+	const subscription = (providerId: string) =>
+		current()?.subscriptions.find((session) => session.definition.nativeProviderId === providerId);
 	return {
 		async resolveGrokAccessToken() {
 			try {
-				const auth = await runtime.grok.models.getAuth(XAI_PI_PROVIDER);
+				const active = current();
+				if (active === undefined) return undefined;
+				const auth = await active.grok.models.getAuth(XAI_PI_PROVIDER);
 				const fromModels = nonEmpty(auth?.auth.apiKey);
 				if (fromModels !== undefined) return fromModels;
-				const credential = await runtime.grok.store.read(XAI_PI_PROVIDER);
+				const credential = await active.grok.store.read(XAI_PI_PROVIDER);
 				return credential?.type === "oauth" ? nonEmpty(credential.access) : undefined;
 			} catch {
 				return undefined;
 			}
 		},
 		async resolveCodexAccessToken() {
+			const codex = subscription(CODEX_PI_PROVIDER);
 			if (codex === undefined) return undefined;
 			try {
 				return nonEmpty(await codex.resolveAccessToken());
@@ -59,6 +64,7 @@ export function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthT
 			}
 		},
 		async resolveClaudeAccessToken() {
+			const claude = subscription(CLAUDE_PI_PROVIDER);
 			if (claude === undefined) return undefined;
 			try {
 				return nonEmpty(await claude.resolveAccessToken());
@@ -67,6 +73,7 @@ export function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthT
 			}
 		},
 		async resolveKimiAccessToken() {
+			const kimi = subscription(KIMI_PI_PROVIDER);
 			if (kimi === undefined) return undefined;
 			try {
 				return nonEmpty(await kimi.resolveAccessToken());
@@ -82,15 +89,16 @@ export function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthT
  * coding-oauth sessions. Explicit Harness / env values always win.
  */
 export function createOAuthQuotaCredentialBridge(
-	base: CredentialResolver | undefined,
+	base: CredentialResolver | undefined | (() => CredentialResolver | undefined),
 	tokens: OAuthTokenSource,
 ): CredentialResolver {
-	const set = base?.set?.bind(base);
+	const current = typeof base === "function" ? base : () => base;
 	return {
 		async resolve(ref: string) {
-			if (base !== undefined) {
+			const resolver = current();
+			if (resolver !== undefined) {
 				try {
-					const hit = await base.resolve(ref);
+					const hit = await resolver.resolve(ref);
 					const value = nonEmpty(hit?.value);
 					if (value !== undefined) return { value };
 				} catch {
@@ -104,10 +112,10 @@ export function createOAuthQuotaCredentialBridge(
 			else if (ref === KIMI_API_KEY_REF) fromSession = await tokens.resolveKimiAccessToken();
 			return fromSession === undefined ? undefined : { value: fromSession };
 		},
-		...(set === undefined
-			? {}
-			: {
-					set: (ref: string, value: string) => set(ref, value),
-				}),
+		async set(ref: string, value: string) {
+			const resolver = current();
+			if (resolver?.set === undefined) throw new Error("credentials-unavailable");
+			await resolver.set(ref, value);
+		},
 	};
 }

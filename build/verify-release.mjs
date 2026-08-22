@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const root = resolve(".");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
-assert.equal(manifest.version, "1.8.0");
+assert.equal(manifest.version, "1.9.0");
 assert.notEqual(manifest.private, true, "release package must not be private");
 
 for (const path of [
@@ -22,6 +22,7 @@ for (const path of [
 	"NOTICE",
 	"LICENSES/Apache-2.0.txt",
 	"docs/oauth-provenance.md",
+	"compatibility/dsh-bom.json",
 ]) {
 	await access(resolve(root, path));
 }
@@ -33,6 +34,10 @@ assert.equal(manifest.exports?.["./client"], "./lib/client.js");
 assert.equal(manifest.license, "MIT AND Apache-2.0");
 assert.equal(manifest.bin?.["dsh-coding-oauth"], "lib/bin.js");
 assert.equal(manifest.bin?.["dsh-grok-build"], "lib/bin.js");
+const verifiedBom = JSON.parse(await readFile(resolve(root, "compatibility/dsh-bom.json"), "utf8"));
+assert.equal(manifest.dsh?.compatibility?.verifiedBom, "./compatibility/dsh-bom.json");
+assert.equal(manifest.dsh?.compatibility?.coreAbi, verifiedBom.coreAbi);
+assert.deepEqual(manifest.dsh?.compatibility?.verified, verifiedBom.verified);
 assert.equal(
 	manifest.exports?.["./invariant"]?.import ?? manifest.exports?.["./invariant"]?.default,
 	"./lib/invariant.js",
@@ -56,8 +61,12 @@ assert.equal(typeof plugin.apply, "function");
 assert.equal(plugin.Config?.["~standard"]?.version, 1);
 
 const clientSource = await readFile(resolve(root, "lib/client.js"), "utf8");
-assert.match(clientSource.slice(0, 500), /window\.__ModuleLoader__\.load/);
-assert.equal((clientSource.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length, 1);
+assert.match(clientSource.slice(0, 500), /(?:window\.__ModuleLoader__\.load|globalThis\.window\?\.__ModuleLoader__)/);
+assert.equal(
+	(clientSource.match(/window\.__ModuleLoader__\.load\(/g) ?? []).length +
+		(clientSource.match(/loader\.load\(/g) ?? []).length,
+	1,
+);
 assert.match(clientSource, /["']dsh-hub-oauth-gateway["']/);
 
 console.log(`verified ${manifest.name}@${manifest.version} release artifacts`);

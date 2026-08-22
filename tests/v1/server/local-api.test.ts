@@ -87,7 +87,13 @@ describe("local monitor API", () => {
 			accounts: { list: vi.fn(async () => []), get: vi.fn(async () => null), refresh: vi.fn(async () => []) },
 			...(localAuth === undefined ? {} : { localAuth }),
 			...(localUsage === undefined ? {} : { localUsage }),
-			freshness: () => ({ usageUpdatedAt: now, accountsUpdatedAt: null, partial: false, warnings: [] }),
+			freshness: () => ({
+				usageUpdatedAt: now,
+				accountsUpdatedAt: null,
+				usageState: "fresh",
+				partial: false,
+				warnings: [],
+			}),
 			now: () => now,
 		};
 		registerV1Routes(webServer, dependencies);

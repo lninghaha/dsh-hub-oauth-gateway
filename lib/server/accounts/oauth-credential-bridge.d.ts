@@ -21,11 +21,11 @@ export interface OAuthTokenSource {
     resolveClaudeAccessToken(): Promise<string | undefined>;
     resolveKimiAccessToken(): Promise<string | undefined>;
 }
-/** Build a token source from the live coding-oauth runtime. */
-export declare function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime): OAuthTokenSource;
+/** Build a token source from the current coding-oauth owner runtime. */
+export declare function oauthTokenSourceFromRuntime(runtime: CodingOAuthRuntime | undefined | (() => CodingOAuthRuntime | undefined)): OAuthTokenSource;
 /**
  * Wrap a Harness credential resolver so empty OAuth quota refs fall back to
  * coding-oauth sessions. Explicit Harness / env values always win.
  */
-export declare function createOAuthQuotaCredentialBridge(base: CredentialResolver | undefined, tokens: OAuthTokenSource): CredentialResolver;
+export declare function createOAuthQuotaCredentialBridge(base: CredentialResolver | undefined | (() => CredentialResolver | undefined), tokens: OAuthTokenSource): CredentialResolver;
 //# sourceMappingURL=oauth-credential-bridge.d.ts.map

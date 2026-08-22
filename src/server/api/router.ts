@@ -1,14 +1,17 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ZodError, z } from "zod";
+import type { DshCompatibility } from "../../shared/compatibility.js";
 import {
 	type AccountsData,
 	API_PATHS,
 	type ApiFailure,
 	type ApiMeta,
 	type ApiSuccess,
+	DshCompatibilitySchema,
 	ExportLayoutSchema,
 	type PricingData,
 	type UsageAlert,
+	type UsageFreshnessState,
 } from "../../shared/contracts.js";
 import type { AccountSnapshot, PriceRule, UsageQuery } from "../../shared/domain.js";
 import {
@@ -22,19 +25,15 @@ import {
 import { FeesDataSchema } from "../../shared/fees.js";
 import { UserPreferencesSchema } from "../../shared/preferences.js";
 import type { ProvidersData } from "../../shared/providers.js";
+import type { OwnerAccessMode, OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
 import type { FeesRepository } from "../fees/repository.js";
 import type { LocalAuthSnapshot } from "../local-monitor/auth-status.js";
 import type { LocalUsageAggregateRow } from "../local-monitor/repository.js";
 import type { PricingRepository } from "../pricing/repository.js";
 import type { PreferencesRepository } from "../settings/repository.js";
 import type { UsageQueryService } from "../usage/query.js";
-import {
-	browserContextGuardDecision,
-	isLoopbackRequest,
-	passesCsrfGuard,
-	readJsonBody,
-	writeJson,
-} from "./security.js";
+import { authorizeHubApiRequest } from "./owner-request.js";
+import { readJsonBody, writeJson } from "./security.js";
 
 export interface UsageStatsLogger {
 	warn(message: string): void;
@@ -61,6 +60,7 @@ export interface UsageProjectionApiService {
 export interface ApiFreshness {
 	usageUpdatedAt: number | null;
 	accountsUpdatedAt: number | null;
+	usageState: UsageFreshnessState;
 	partial: boolean;
 	warnings: readonly string[];
 }
@@ -88,7 +88,9 @@ export interface UsageStatsApiDependencies {
 	readonly alerts?: { list(): Promise<readonly UsageAlert[]> } | undefined;
 	readonly localAuth?: LocalAuthApiService | undefined;
 	readonly localUsage?: LocalUsageApiService | undefined;
+	readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
 	freshness(): ApiFreshness;
+	compatibility?(accessMode: OwnerAccessMode): DshCompatibility;
 	now?(): number;
 }
 
@@ -112,8 +114,11 @@ function meta(dependencies: UsageStatsApiDependencies): ApiMeta {
 		schemaVersion: 1,
 		generatedAt: dependencies.now?.() ?? Date.now(),
 		sourceUpdatedAt: Math.max(current.usageUpdatedAt ?? 0, current.accountsUpdatedAt ?? 0) || null,
+		usageUpdatedAt: current.usageUpdatedAt,
+		accountsUpdatedAt: current.accountsUpdatedAt,
+		usageState: current.usageState,
 		partial: current.partial,
-		stale: current.warnings.some((warning) => warning.includes("stale")),
+		stale: current.usageState === "stale",
 		warnings: [...current.warnings],
 	};
 }
@@ -194,45 +199,56 @@ function writeCsv(response: ServerResponse, filename: string, rows: readonly (re
 	response.end(`\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\r\n")}\r\n`);
 }
 
-const reportedBrowserGuardReasons = new Set<string>();
+const reportedOwnerGuardReasons = new Set<string>();
 
 function guard(
 	request: IncomingMessage,
 	response: ServerResponse,
 	dependencies: UsageStatsApiDependencies,
 	allowedMethods: readonly string[],
-): boolean {
-	if (!isLoopbackRequest(request)) {
-		writeJson(response, 403, failure(dependencies, "forbidden", "usage statistics are available only on loopback"));
-		return false;
-	}
-	const browserContext = browserContextGuardDecision(request);
-	if (!browserContext.accepted) {
-		if (browserContext.reason !== null && !reportedBrowserGuardReasons.has(browserContext.reason)) {
-			reportedBrowserGuardReasons.add(browserContext.reason);
+): OwnerAccessMode | null {
+	const ownerDecision = authorizeHubApiRequest(request, dependencies.ownerRequestPolicy);
+	if (!ownerDecision.authorized) {
+		if (ownerDecision.reason !== undefined && !reportedOwnerGuardReasons.has(ownerDecision.reason)) {
+			reportedOwnerGuardReasons.add(ownerDecision.reason);
 			dependencies.logger.warn(
-				`usage-stats: browser-context guard rejected request (${browserContext.reason}; details redacted)`,
+				`usage-stats: owner-request guard rejected request (${ownerDecision.reason}; details redacted)`,
 			);
 		}
+		const csrf = ownerDecision.reason === "csrf";
+		const browserContext = ownerDecision.reason === "origin" || ownerDecision.reason === "fetch-metadata";
 		writeJson(
 			response,
 			403,
-			failure(dependencies, "cross-site-rejected", "request failed the local browser-context guard", {
-				reason: browserContext.reason,
+			failure(
+				dependencies,
+				csrf ? "csrf-rejected" : browserContext ? "cross-site-rejected" : "forbidden",
+				csrf
+					? "request failed the mutation guard"
+					: browserContext
+						? "request failed the browser-context guard"
+						: "request is not authorized for the owner API",
+				{ reason: ownerDecision.reason },
+			),
+		);
+		return null;
+	}
+	if (ownerDecision.accessMode === undefined) {
+		writeJson(
+			response,
+			403,
+			failure(dependencies, "forbidden", "request is not authorized for the owner API", {
+				reason: "owner-policy",
 			}),
 		);
-		return false;
+		return null;
 	}
 	if (!allowedMethods.includes(request.method ?? "")) {
 		response.setHeader("allow", allowedMethods.join(", "));
 		writeJson(response, 405, failure(dependencies, "method-not-allowed", "request method is not supported"));
-		return false;
+		return null;
 	}
-	if (request.method !== "GET" && !passesCsrfGuard(request)) {
-		writeJson(response, 403, failure(dependencies, "csrf-rejected", "request failed the local mutation guard"));
-		return false;
-	}
-	return true;
+	return ownerDecision.accessMode;
 }
 
 async function handle(
@@ -240,11 +256,12 @@ async function handle(
 	response: ServerResponse,
 	dependencies: UsageStatsApiDependencies,
 	allowedMethods: readonly string[],
-	operation: (url: URL) => Promise<void> | void,
+	operation: (url: URL, accessMode: OwnerAccessMode) => Promise<void> | void,
 ): Promise<void> {
-	if (!guard(request, response, dependencies, allowedMethods)) return;
+	const accessMode = guard(request, response, dependencies, allowedMethods);
+	if (accessMode === null) return;
 	try {
-		await operation(new URL(request.url ?? "/", "http://localhost"));
+		await operation(new URL(request.url ?? "/", "http://localhost"), accessMode);
 	} catch (error) {
 		if (error instanceof ZodError || error instanceof RangeError) {
 			writeJson(response, 400, failure(dependencies, "invalid-request", "request parameters are invalid"));
@@ -262,13 +279,20 @@ export function registerV1Routes(
 	const register = (
 		path: string,
 		methods: readonly string[],
-		operation: (request: IncomingMessage, response: ServerResponse, url: URL) => Promise<void> | void,
+		operation: (
+			request: IncomingMessage,
+			response: ServerResponse,
+			url: URL,
+			accessMode: OwnerAccessMode,
+		) => Promise<void> | void,
 	): (() => void) =>
 		webServer.register({
 			kind: "exact",
 			path,
 			handler: (request, response) =>
-				handle(request, response, dependencies, methods, (url) => operation(request, response, url)),
+				handle(request, response, dependencies, methods, (url, accessMode) =>
+					operation(request, response, url, accessMode),
+				),
 		});
 
 	return [
@@ -501,6 +525,18 @@ export function registerV1Routes(
 		}),
 		register(API_PATHS.health, ["GET"], (_request, response) => {
 			writeJson(response, 200, success(dependencies, { status: "ok", ...dependencies.freshness() }));
+		}),
+		register(API_PATHS.compatibility, ["GET"], (_request, response, _url, accessMode) => {
+			const snapshot = dependencies.compatibility?.(accessMode);
+			if (snapshot === undefined) {
+				writeJson(
+					response,
+					503,
+					failure(dependencies, "compatibility-unavailable", "compatibility diagnostics are unavailable"),
+				);
+				return;
+			}
+			writeJson(response, 200, success(dependencies, DshCompatibilitySchema.parse(snapshot)));
 		}),
 		register(API_PATHS.localAuth, ["GET"], async (_request, response) => {
 			if (dependencies.localAuth === undefined) {

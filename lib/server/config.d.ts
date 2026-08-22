@@ -49,6 +49,18 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             apiKey: z.ZodOptional<z.ZodString>;
             rateLimit: z.ZodDefault<z.ZodNumber>;
         }, z.core.$strict>>;
+        ownerRequest: z.ZodOptional<z.ZodObject<{
+            loopbackAccessMode: z.ZodOptional<z.ZodEnum<{
+                loopback: "loopback";
+                "ssh-tunnel": "ssh-tunnel";
+            }>>;
+            trustedProxy: z.ZodOptional<z.ZodObject<{
+                peers: z.ZodArray<z.ZodString>;
+                origins: z.ZodArray<z.ZodString>;
+                ownerProof: z.ZodString;
+                csrfToken: z.ZodString;
+            }, z.core.$strict>>;
+        }, z.core.$strict>>;
     }, z.core.$strict>>;
     localMonitor: z.ZodDefault<z.ZodObject<{
         enabled: z.ZodDefault<z.ZodBoolean>;
@@ -107,6 +119,15 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             rateLimit: number;
             apiKey?: string | undefined;
         } | undefined;
+        ownerRequest?: {
+            loopbackAccessMode?: "loopback" | "ssh-tunnel" | undefined;
+            trustedProxy?: {
+                peers: string[];
+                origins: string[];
+                ownerProof: string;
+                csrfToken: string;
+            } | undefined;
+        } | undefined;
     };
     localMonitor: {
         enabled: boolean;
@@ -163,6 +184,15 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             port: number;
             rateLimit: number;
             apiKey?: string | undefined;
+        } | undefined;
+        ownerRequest?: {
+            loopbackAccessMode?: "loopback" | "ssh-tunnel" | undefined;
+            trustedProxy?: {
+                peers: string[];
+                origins: string[];
+                ownerProof: string;
+                csrfToken: string;
+            } | undefined;
         } | undefined;
     };
     localMonitor: {

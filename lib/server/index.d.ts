@@ -1,7 +1,7 @@
 import { type RuntimeConfig } from "./config.js";
 import type { UsageStatsHostContext } from "./context.js";
 export declare const name = "usage-stats";
-export declare const inject: readonly ["webServer", "credentials", "sessions", "sessionPersistence", "settings", "llm"];
+export declare const inject: readonly ["webServer"];
 export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<import("zod").ZodObject<{
     refresh: import("zod").ZodDefault<import("zod").ZodObject<{
         usageSeconds: import("zod").ZodDefault<import("zod").ZodNumber>;
@@ -51,6 +51,18 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             port: import("zod").ZodDefault<import("zod").ZodNumber>;
             apiKey: import("zod").ZodOptional<import("zod").ZodString>;
             rateLimit: import("zod").ZodDefault<import("zod").ZodNumber>;
+        }, import("zod/v4/core").$strict>>;
+        ownerRequest: import("zod").ZodOptional<import("zod").ZodObject<{
+            loopbackAccessMode: import("zod").ZodOptional<import("zod").ZodEnum<{
+                loopback: "loopback";
+                "ssh-tunnel": "ssh-tunnel";
+            }>>;
+            trustedProxy: import("zod").ZodOptional<import("zod").ZodObject<{
+                peers: import("zod").ZodArray<import("zod").ZodString>;
+                origins: import("zod").ZodArray<import("zod").ZodString>;
+                ownerProof: import("zod").ZodString;
+                csrfToken: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>>;
     }, import("zod/v4/core").$strict>>;
     localMonitor: import("zod").ZodDefault<import("zod").ZodObject<{
@@ -110,6 +122,15 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             rateLimit: number;
             apiKey?: string | undefined;
         } | undefined;
+        ownerRequest?: {
+            loopbackAccessMode?: "loopback" | "ssh-tunnel" | undefined;
+            trustedProxy?: {
+                peers: string[];
+                origins: string[];
+                ownerProof: string;
+                csrfToken: string;
+            } | undefined;
+        } | undefined;
     };
     localMonitor: {
         enabled: boolean;
@@ -166,6 +187,15 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             port: number;
             rateLimit: number;
             apiKey?: string | undefined;
+        } | undefined;
+        ownerRequest?: {
+            loopbackAccessMode?: "loopback" | "ssh-tunnel" | undefined;
+            trustedProxy?: {
+                peers: string[];
+                origins: string[];
+                ownerProof: string;
+                csrfToken: string;
+            } | undefined;
         } | undefined;
     };
     localMonitor: {

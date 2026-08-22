@@ -8,6 +8,7 @@ import { LocalUsageRepository, localUsageFileHash } from "../../../src/server/lo
 import { LocalUsageScanner } from "../../../src/server/local-monitor/usage-scan.js";
 import { UsageDatabase } from "../../../src/server/storage/database.js";
 
+const IS_WINDOWS = process.platform === "win32";
 const NOW = Date.UTC(2026, 7, 18, 12, 0, 0);
 
 function claudeLine(model: string, input: number, output: number, timestamp: string): string {
@@ -283,7 +284,12 @@ describe("local CLI auth monitor", () => {
 
 		await chmod(credentials, 0o644);
 		const unsafe = await probeLocalCliAuth("claude", { home: directory, env: {}, now: () => NOW });
-		expect(unsafe.state).toBe("unavailable");
-		expect(unsafe.reason).toBe("unsafe");
+		if (!IS_WINDOWS) {
+			expect(unsafe.state).toBe("unavailable");
+			expect(unsafe.reason).toBe("unsafe");
+		} else {
+			// Windows has no POSIX group-readable mode to enforce; expiry remains covered above.
+			expect(unsafe.state).toBe("expired");
+		}
 	});
 });

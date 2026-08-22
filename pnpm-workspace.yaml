@@ -5,4 +5,5 @@ allowBuilds:
   protobufjs: false
 overrides:
   "@earendil-works/pi-ai": "0.84.2"
+  dsh-coding-oauth-core: "file:vendor/dsh-coding-oauth-core"
 storeDir: output/pnpm-store

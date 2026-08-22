@@ -14,8 +14,10 @@ import { evaluateUsageAlerts } from "./alerts/service.js";
 import { registerCredentialRoutes } from "./api/credentials.js";
 import { registerLegacyRoutes } from "./api/legacy.js";
 import { type ApiFreshness, registerV1Routes } from "./api/router.js";
-import { applyCodingOAuth, type CodingOAuthRuntime } from "./coding-oauth/compose.js";
 import { XAI_PI_PROVIDER } from "./coding-oauth/ids.js";
+import { acquireHubCodingOAuthOwnership } from "./coding-oauth/participant.js";
+import { createOwnerRequestPolicy } from "./coding-oauth/web-origin.js";
+import { registerWebRouteSetupAtomically } from "./coding-oauth/web-routes.js";
 import { DEFAULT_RUNTIME_CONFIG, type RuntimeConfig, RuntimeConfigSchema } from "./config.js";
 import type { UsageStatsHostContext } from "./context.js";
 import {
@@ -24,6 +26,7 @@ import {
 	writeAutoExportFile,
 } from "./export/auto-export.js";
 import { FeesRepository } from "./fees/repository.js";
+import { DshHostAdapter } from "./host/adapter.js";
 import { configuredProviders } from "./host/providers.js";
 import { DshSessionInventory } from "./host/session-inventory.js";
 import { collectLocalCliAuth, type LocalPluginSessionStatus } from "./local-monitor/auth-status.js";
@@ -44,7 +47,10 @@ import { bucketKey, bucketTimestamp } from "./usage/time.js";
 
 export const name = "usage-stats";
 
-export const inject = ["webServer", "credentials", "sessions", "sessionPersistence", "settings", "llm"] as const;
+// Only WebServer is load-bearing. Optional DSH services are shape-probed at
+// point of use so a missing Settings/Credentials/LLM service cannot fail-fast
+// the entire host plugin tree.
+export const inject = ["webServer"] as const;
 
 export const Config = RuntimeConfigSchema;
 
@@ -54,10 +60,6 @@ export interface ApplyDependencies {
 	readonly now?: () => number;
 }
 
-function fromContext<T>(ctx: UsageStatsHostContext, name: string, direct: T | undefined): T | undefined {
-	return (ctx.get?.(name) as T | undefined) ?? direct;
-}
-
 export async function apply(
 	ctx: UsageStatsHostContext,
 	rawConfig: RuntimeConfig = DEFAULT_RUNTIME_CONFIG,
@@ -65,39 +67,40 @@ export async function apply(
 ): Promise<void> {
 	const config = RuntimeConfigSchema.parse(rawConfig);
 	const now = dependencies.now ?? Date.now;
-	const webServer = fromContext(ctx, "webServer", ctx.webServer);
+	const host = new DshHostAdapter(ctx);
+	const webServer = host.webServer();
 	if (webServer === undefined) throw new Error("usage-stats requires the webServer service");
-	const credentials = fromContext(ctx, "credentials", ctx.credentials);
-	const sessions = fromContext(ctx, "sessions", ctx.sessions);
-	const persistence = fromContext(ctx, "sessionPersistence", ctx.sessionPersistence);
-	const settings = fromContext(ctx, "settings", ctx.settings);
-	const llm = fromContext(ctx, "llm", ctx.llm);
-
-	let codingOAuthRuntime: CodingOAuthRuntime | undefined;
-	if (config.codingOAuth.enabled) {
-		if (llm === undefined) {
-			ctx.logger.warn("usage-stats: coding OAuth is enabled but the llm service is unavailable");
-		} else {
-			try {
-				// Pass the live Cordis context through: it is a service-resolving
-				// proxy, and spreading it would drop prototype methods (inject,
-				// effect, get, emit) that the composition relies on.
-				codingOAuthRuntime = applyCodingOAuth(ctx as never, {
-					proxyKimi: config.codingOAuth.proxyKimi,
-					...(config.codingOAuth.proxy === undefined ? {} : { proxy: config.codingOAuth.proxy }),
-					...(config.codingOAuth.retryPolicy === undefined
+	const ownerRequestConfig = config.codingOAuth.ownerRequest;
+	const ownerRequestPolicy = createOwnerRequestPolicy(
+		ownerRequestConfig === undefined
+			? {}
+			: {
+					...(ownerRequestConfig.loopbackAccessMode === undefined
 						? {}
-						: { retryPolicy: config.codingOAuth.retryPolicy as never }),
-					...(config.codingOAuth.capabilities === undefined
-						? {}
-						: { capabilities: config.codingOAuth.capabilities as never }),
-					...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway as never }),
-				});
-			} catch (error) {
-				ctx.logger.warn("usage-stats: coding OAuth composition failed closed (details redacted)");
-				if (config.debug) ctx.logger.warn(String(error instanceof Error ? error.name : "error"));
-			}
-		}
+						: { loopbackAccessMode: ownerRequestConfig.loopbackAccessMode }),
+					...(ownerRequestConfig.trustedProxy === undefined ? {} : { trustedProxy: ownerRequestConfig.trustedProxy }),
+				},
+		host.ownerRequestPolicy(),
+	);
+	const codingOAuthOwnership = config.codingOAuth.enabled
+		? acquireHubCodingOAuthOwnership(ctx, host, {
+				proxyKimi: config.codingOAuth.proxyKimi,
+				...(config.codingOAuth.proxy === undefined ? {} : { proxy: config.codingOAuth.proxy }),
+				...(config.codingOAuth.retryPolicy === undefined
+					? {}
+					: { retryPolicy: config.codingOAuth.retryPolicy as never }),
+				...(config.codingOAuth.capabilities === undefined
+					? {}
+					: { capabilities: config.codingOAuth.capabilities as never }),
+				...(config.codingOAuth.gateway === undefined ? {} : { gateway: config.codingOAuth.gateway as never }),
+				...(config.codingOAuth.ownerRequest === undefined
+					? {}
+					: { ownerRequest: config.codingOAuth.ownerRequest as never }),
+			})
+		: undefined;
+	const codingOAuthRuntime = () => codingOAuthOwnership?.holder.current();
+	if (codingOAuthOwnership !== undefined) {
+		ctx.effect(() => () => codingOAuthOwnership.lease.release(), "usage-stats: release coding OAuth ownership");
 	}
 
 	let database: UsageDatabase;
@@ -123,8 +126,8 @@ export async function apply(
 
 	const warnings: string[] = [];
 	const inventory = new DshSessionInventory({
-		sessions,
-		persistence,
+		sessions: () => host.sessions(),
+		persistence: () => host.persistence(),
 		onWarning(message) {
 			const safeWarning = "session snapshot inventory degraded; fallback mode is active";
 			const existing = warnings.indexOf(safeWarning);
@@ -142,6 +145,7 @@ export async function apply(
 		now,
 	});
 	let usageUpdatedAt: number | null = null;
+	let usageState: ApiFreshness["usageState"] = "not-collected";
 	let lastRetentionAt = 0;
 	const enforceRetention = (at: number): void => {
 		if (at - lastRetentionAt < 86_400_000) return;
@@ -158,8 +162,15 @@ export async function apply(
 	};
 	const projectionApi = {
 		async synchronize() {
-			const result = await projection.synchronize();
+			let result: Awaited<ReturnType<UsageProjectionService["synchronize"]>>;
+			try {
+				result = await projection.synchronize();
+			} catch (error) {
+				if (usageUpdatedAt !== null) usageState = "stale";
+				throw error;
+			}
 			usageUpdatedAt = result.completedAt;
+			usageState = result.failedSessions > 0 ? "stale" : "fresh";
 			enforceRetention(result.completedAt);
 			for (const message of [projectionWarning, "initial usage projection failed; background retry scheduled"]) {
 				removeWarning(message);
@@ -191,13 +202,13 @@ export async function apply(
 			? {}
 			: { oauthClientIds: { copilot: config.oauthDevice.copilotClientId } }),
 	};
-	const accountCredentials =
-		codingOAuthRuntime === undefined
-			? credentials
-			: createOAuthQuotaCredentialBridge(credentials, oauthTokenSourceFromRuntime(codingOAuthRuntime));
+	const accountCredentials = createOAuthQuotaCredentialBridge(
+		() => host.credentials(),
+		oauthTokenSourceFromRuntime(codingOAuthRuntime),
+	);
 	const accountService = new AccountService({
 		credentials: accountCredentials,
-		getProviders: () => configuredProviders(settings),
+		getProviders: () => configuredProviders(host.settings()),
 		config: accountConfig,
 		repository: accountSnapshots,
 		registry,
@@ -206,20 +217,28 @@ export async function apply(
 		deps: accountDeps,
 	});
 	await accountService.specs();
-	if (codingOAuthRuntime !== undefined) {
-		const refreshOAuthQuotas = (): void => {
-			void accountService.refresh([...OAUTH_QUOTA_ACCOUNT_IDS]).catch(() => {
-				ctx.logger.warn("usage-stats: OAuth quota refresh failed (details redacted)");
+	const refreshOAuthQuotas = (): void => {
+		void accountService.refresh([...OAUTH_QUOTA_ACCOUNT_IDS]).catch(() => {
+			ctx.logger.warn("usage-stats: OAuth quota refresh failed (details redacted)");
+		});
+	};
+	if (codingOAuthOwnership !== undefined) {
+		ctx.effect(() => {
+			let releaseRuntime = (): void => undefined;
+			const unsubscribe = codingOAuthOwnership.holder.subscribe((runtime) => {
+				releaseRuntime();
+				releaseRuntime = runtime?.onCredentialChange(refreshOAuthQuotas) ?? (() => undefined);
+				if (runtime !== undefined) refreshOAuthQuotas();
 			});
-		};
-		refreshOAuthQuotas();
-		ctx.effect(
-			() => codingOAuthRuntime.onCredentialChange(refreshOAuthQuotas),
-			"usage-stats: refresh quotas after OAuth credential change",
-		);
+			return () => {
+				unsubscribe();
+				releaseRuntime();
+			};
+		}, "usage-stats: follow coding OAuth credential changes");
 	}
 	const providersApi = {
 		list: async () => {
+			const runtime = codingOAuthRuntime();
 			const [accounts, specs] = await Promise.all([accountService.list(), accountService.specs()]);
 			const credentialRefs = new Map<string, string>();
 			for (const spec of specs) {
@@ -230,8 +249,8 @@ export async function apply(
 			return collectProvidersData({
 				accounts,
 				credentialRefs,
-				credentialsWritable: typeof credentials?.set === "function",
-				...(codingOAuthRuntime === undefined ? {} : { codingOAuth: codingOAuthRuntime }),
+				credentialsWritable: typeof host.credentials()?.set === "function",
+				...(runtime === undefined ? {} : { codingOAuth: runtime }),
 				now,
 			});
 		},
@@ -264,6 +283,7 @@ export async function apply(
 	const freshness = (): ApiFreshness => ({
 		usageUpdatedAt,
 		accountsUpdatedAt: accountService.lastRefreshAt,
+		usageState,
 		partial: warnings.length > 0,
 		warnings: [...warnings],
 	});
@@ -272,8 +292,9 @@ export async function apply(
 		? {
 				async snapshot() {
 					const sessions: LocalPluginSessionStatus[] = [];
-					if (codingOAuthRuntime !== undefined) {
-						const grok = await codingOAuthRuntime.grok.store
+					const runtime = codingOAuthRuntime();
+					if (runtime !== undefined) {
+						const grok = await runtime.grok.store
 							.read(XAI_PI_PROVIDER)
 							.then((credential): { authenticated: boolean; expiresAt: number | null } =>
 								credential?.type === "oauth"
@@ -290,7 +311,7 @@ export async function apply(
 							authenticated: grok.authenticated,
 							expiresAt: grok.expiresAt,
 						});
-						for (const session of codingOAuthRuntime.subscriptions) {
+						for (const session of runtime.subscriptions) {
 							const status = await session.status().catch(() => ({ authenticated: false }) as const);
 							sessions.push({
 								provider: session.definition.slug,
@@ -337,8 +358,8 @@ export async function apply(
 			})()
 		: undefined;
 
-	const routeDisposers = [
-		...registerV1Routes(webServer, {
+	const disposeRoutes = registerWebRouteSetupAtomically(webServer, (tracked) => {
+		registerV1Routes(tracked, {
 			logger: ctx.logger,
 			projection: projectionApi,
 			queries: queryService,
@@ -350,27 +371,33 @@ export async function apply(
 			alerts: alertsApi,
 			...(localAuthApi === undefined ? {} : { localAuth: localAuthApi }),
 			...(localUsageApi === undefined ? {} : { localUsage: localUsageApi }),
+			ownerRequestPolicy,
 			freshness,
+			compatibility: (accessMode) =>
+				host.compatibility({
+					uiOwner: codingOAuthOwnership?.lease.snapshot().uiOwner ?? null,
+					accessMode,
+				}),
 			now,
-		}),
-		...registerLegacyRoutes(webServer, {
+		});
+		registerLegacyRoutes(tracked, {
 			logger: ctx.logger,
 			projection: projectionApi,
 			usage,
 			accounts: accountService,
 			preferences,
+			ownerRequestPolicy,
 			now,
-		}),
-		...registerCredentialRoutes(webServer, {
+		});
+		registerCredentialRoutes(tracked, {
 			logger: ctx.logger,
-			credentials,
+			credentials: () => host.credentials(),
 			accounts: accountService,
 			accountDeps,
-		}),
-	];
-	for (const [index, dispose] of routeDisposers.entries()) {
-		ctx.effect(() => dispose, `usage-stats: route ${index + 1}`);
-	}
+			ownerRequestPolicy,
+		});
+	});
+	ctx.effect(() => disposeRoutes, "usage-stats: atomic route group");
 
 	const cutoffNow = now();
 	usage.pruneBefore(cutoffNow - config.retention.usageDays * 86_400_000);

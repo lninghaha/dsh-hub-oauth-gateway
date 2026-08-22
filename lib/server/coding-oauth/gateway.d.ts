@@ -25,6 +25,10 @@ export interface GatewayPublicStatus {
     running: boolean;
     bind: string;
     port: number;
+    model: string | null;
+    models: string[];
+    keyAvailable: boolean;
+    keyConfigured: boolean;
     keyHint: string;
     warning: string;
 }

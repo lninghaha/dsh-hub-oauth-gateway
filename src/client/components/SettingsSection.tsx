@@ -1,6 +1,6 @@
 import type { SettingsSectionOwnerProps } from "@deepseek-ai/dsh-client-ui-settings/client";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import type { UserPreferences } from "../../shared/preferences.js";
 import {
 	applyPresetToPreferences,
@@ -8,6 +8,7 @@ import {
 	defaultUserPreferences,
 	resetModulesToPreset,
 } from "../../shared/preferences.js";
+import { useCodingOAuthStatusQuery, useGatewayStatusQuery } from "../coding-oauth-api.js";
 import { SETTINGS_OPEN_EVENT, SETTINGS_TAB_STORAGE_KEY, usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
 import {
@@ -16,11 +17,13 @@ import {
 	useDeviceCodeMutation,
 	useDevicePollMutation,
 	usePreferencesQuery,
+	usePricingQuery,
 	useSavePreferencesMutation,
 	useSetCredentialMutation,
 	useUnsetCredentialMutation,
 } from "../queries.js";
 import { SETTINGS_TABS } from "../settings-tabs.js";
+import { CompatibilityPanel } from "./CompatibilityPanel.js";
 import { SelectPill, SettingsRow, TextInput, Toggle } from "./controls.js";
 import { FeesEditor } from "./FeesEditor.js";
 import { parseNonNegativeNumber } from "./form-utils.js";
@@ -31,6 +34,16 @@ import { PricingEditor } from "./PricingEditor.js";
 import { ProviderManagement } from "./ProviderManagement.js";
 
 type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;
+type SettingsTab = (typeof SETTINGS_TABS)[number];
+const ONBOARDING_GATEWAY_SKIP_KEY = "dsh.usage-stats.onboarding.gateway-not-needed";
+
+function readGatewaySkipped(): boolean {
+	try {
+		return localStorage.getItem(ONBOARDING_GATEWAY_SKIP_KEY) === "1";
+	} catch {
+		return false;
+	}
+}
 
 function Field({ label, children }: { readonly label: string; readonly children: ReactNode }) {
 	return (
@@ -38,6 +51,84 @@ function Field({ label, children }: { readonly label: string; readonly children:
 			<legend>{label}</legend>
 			{children}
 		</fieldset>
+	);
+}
+
+function GettingStarted({ t, onOpen }: { readonly t: Translate; readonly onOpen: (tab: SettingsTab) => void }) {
+	const oauth = useCodingOAuthStatusQuery();
+	const pricing = usePricingQuery();
+	const gateway = useGatewayStatusQuery();
+	const [gatewaySkipped, setGatewaySkipped] = useState(readGatewaySkipped);
+	const setGatewayNotNeeded = (value: boolean): void => {
+		setGatewaySkipped(value);
+		try {
+			if (value) localStorage.setItem(ONBOARDING_GATEWAY_SKIP_KEY, "1");
+			else localStorage.removeItem(ONBOARDING_GATEWAY_SKIP_KEY);
+		} catch {
+			// Persistence is optional; the in-memory choice remains useful.
+		}
+	};
+	if (oauth.isPending || pricing.isPending || gateway.isPending) {
+		return (
+			<section className="dus-onboarding" aria-labelledby="dus-onboarding-title">
+				<h3 id="dus-onboarding-title">{t("onboarding.title")}</h3>
+				<p role="status">{t("onboarding.loading")}</p>
+			</section>
+		);
+	}
+	const subscriptionReady = Object.values(oauth.data?.providers ?? {}).some(
+		(provider) => provider.status === "signed-in",
+	);
+	const pricingReady =
+		pricing.data?.ok === true && (pricing.data.data.catalogUpdatedAt !== null || pricing.data.data.rules.length > 0);
+	const gatewayReady = (gateway.data?.enabled === true && gateway.data.keyAvailable) || gatewaySkipped;
+	const steps = [
+		{ id: "subscription", done: subscriptionReady, tab: "accounts" as const },
+		{ id: "pricing", done: pricingReady, tab: "fees" as const },
+		{ id: "gateway", done: gatewayReady, tab: "gateway" as const },
+	] as const;
+	const completed = steps.filter((step) => step.done).length;
+	if (completed === steps.length) return null;
+	return (
+		<section className="dus-onboarding" aria-labelledby="dus-onboarding-title">
+			<div className="dus-onboarding-heading">
+				<div>
+					<h3 id="dus-onboarding-title">{t("onboarding.title")}</h3>
+					<p>{t("onboarding.intro")}</p>
+				</div>
+				<span role="status">{t("onboarding.progress", { completed, total: steps.length })}</span>
+			</div>
+			<ol className="dus-onboarding-steps">
+				{steps.map((step) => (
+					<li key={step.id} className={step.done ? "is-complete" : ""}>
+						<span className="dus-onboarding-state" aria-hidden="true">
+							{step.done ? "✓" : "○"}
+						</span>
+						<div>
+							<strong>{t(`onboarding.${step.id}.title`)}</strong>
+							<p>{t(`onboarding.${step.id}.hint`)}</p>
+						</div>
+						<div className="dus-onboarding-actions">
+							<button
+								type="button"
+								className="dus-button is-small"
+								onClick={() => {
+									if (step.id === "gateway" && gatewaySkipped) setGatewayNotNeeded(false);
+									onOpen(step.tab);
+								}}
+							>
+								{step.done ? t("onboarding.review") : t("onboarding.start")}
+							</button>
+							{step.id === "gateway" && !gatewayReady ? (
+								<button type="button" className="dus-button is-small" onClick={() => setGatewayNotNeeded(true)}>
+									{t("onboarding.gateway.skip")}
+								</button>
+							) : null}
+						</div>
+					</li>
+				))}
+			</ol>
+		</section>
 	);
 }
 
@@ -562,12 +653,20 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 		defaultUserPreferences(Intl.DateTimeFormat().resolvedOptions().timeZone),
 	);
 	const [initialized, setInitialized] = useState(false);
-	const [activeSettingsTab, setActiveSettingsTab] = useState<(typeof SETTINGS_TABS)[number]>("display");
+	const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("display");
+	const openSettingsTab = useCallback((tab: SettingsTab): void => {
+		setActiveSettingsTab(tab);
+		try {
+			sessionStorage.setItem(SETTINGS_TAB_STORAGE_KEY, tab);
+		} catch {
+			// Storage is an optional convenience; navigation must still work.
+		}
+	}, []);
 	useEffect(() => {
 		try {
 			const stored = sessionStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
 			if (stored !== null && (SETTINGS_TABS as readonly string[]).includes(stored)) {
-				setActiveSettingsTab(stored as (typeof SETTINGS_TABS)[number]);
+				setActiveSettingsTab(stored as SettingsTab);
 			}
 		} catch {
 			// ignore
@@ -575,12 +674,12 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 		const openHandler = (event: Event): void => {
 			const tab = (event as CustomEvent<{ tab?: string }>).detail?.tab;
 			if (tab !== undefined && (SETTINGS_TABS as readonly string[]).includes(tab)) {
-				setActiveSettingsTab(tab as (typeof SETTINGS_TABS)[number]);
+				openSettingsTab(tab as SettingsTab);
 			}
 		};
 		window.addEventListener(SETTINGS_OPEN_EVENT, openHandler);
 		return () => window.removeEventListener(SETTINGS_OPEN_EVENT, openHandler);
-	}, []);
+	}, [openSettingsTab]);
 	useEffect(() => {
 		if (initialized || preferences.data?.ok !== true) return;
 		setDraft(preferences.data.data);
@@ -619,6 +718,8 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					</button>
 				</div>
 			</div>
+			<GettingStarted t={t} onOpen={openSettingsTab} />
+			<CompatibilityPanel t={t} />
 			<nav className="dus-settings-tabs" aria-label={t("settings.title")}>
 				{SETTINGS_TABS.map((tab) => (
 					<button
@@ -626,7 +727,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 						type="button"
 						className={`dus-tab${activeSettingsTab === tab ? " is-active" : ""}`}
 						aria-current={activeSettingsTab === tab ? "page" : undefined}
-						onClick={() => setActiveSettingsTab(tab)}
+						onClick={() => openSettingsTab(tab)}
 					>
 						{t(`settings.tab.${tab}`)}
 					</button>
@@ -654,7 +755,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 			{activeSettingsTab === "capabilities" ? <CapabilitiesTab t={t} /> : null}
 			{activeSettingsTab === "providers" ? (
 				<div className="dus-settings-stack" data-settings-tab="providers">
-					<ProviderManagement t={t} onOpenAccounts={() => setActiveSettingsTab("accounts")} />
+					<ProviderManagement t={t} onOpenAccounts={() => openSettingsTab("accounts")} />
 					<CredentialEditor t={t} />
 				</div>
 			) : null}

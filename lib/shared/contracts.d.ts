@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DshCompatibilitySchema } from "./compatibility.js";
 import { FeesDataSchema } from "./fees.js";
 export declare const API_BASE = "/api/usage-stats/v1";
 export declare const API_PATHS: Readonly<{
@@ -20,10 +21,12 @@ export declare const API_PATHS: Readonly<{
     oauthDevicePoll: "/api/usage-stats/v1/oauth/device/poll";
     export: "/api/usage-stats/v1/export";
     health: "/api/usage-stats/v1/health";
+    compatibility: "/api/usage-stats/v1/compatibility";
     localAuth: "/api/usage-stats/v1/local/auth";
     localUsage: "/api/usage-stats/v1/local/usage";
     localUsageScan: "/api/usage-stats/v1/local/usage/scan";
 }>;
+export { DshCompatibilitySchema };
 export declare const ExportLayoutSchema: z.ZodEnum<{
     daily: "daily";
     filtered: "filtered";
@@ -32,10 +35,23 @@ export declare const ExportLayoutSchema: z.ZodEnum<{
 export type ExportLayout = z.infer<typeof ExportLayoutSchema>;
 export type { AccountFeeRecord, FeesData } from "./fees.js";
 export { FeesDataSchema };
+export declare const UsageFreshnessStateSchema: z.ZodEnum<{
+    stale: "stale";
+    "not-collected": "not-collected";
+    fresh: "fresh";
+}>;
+export type UsageFreshnessState = z.infer<typeof UsageFreshnessStateSchema>;
 export declare const ApiMetaSchema: z.ZodObject<{
     schemaVersion: z.ZodLiteral<1>;
     generatedAt: z.ZodNumber;
     sourceUpdatedAt: z.ZodNullable<z.ZodNumber>;
+    usageUpdatedAt: z.ZodNullable<z.ZodNumber>;
+    accountsUpdatedAt: z.ZodNullable<z.ZodNumber>;
+    usageState: z.ZodEnum<{
+        stale: "stale";
+        "not-collected": "not-collected";
+        fresh: "fresh";
+    }>;
     partial: z.ZodBoolean;
     stale: z.ZodBoolean;
     warnings: z.ZodArray<z.ZodString>;
@@ -249,14 +265,14 @@ export type AccountsData = z.infer<typeof AccountsDataSchema>;
 export declare const UsageAlertSchema: z.ZodObject<{
     id: z.ZodString;
     kind: z.ZodEnum<{
-        quota: "quota";
-        cost: "cost";
         account: "account";
+        cost: "cost";
+        quota: "quota";
     }>;
     level: z.ZodEnum<{
+        info: "info";
         warning: "warning";
         critical: "critical";
-        info: "info";
     }>;
     title: z.ZodString;
     providerId: z.ZodNullable<z.ZodString>;
@@ -269,14 +285,14 @@ export declare const AlertsDataSchema: z.ZodObject<{
     alerts: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
-            quota: "quota";
-            cost: "cost";
             account: "account";
+            cost: "cost";
+            quota: "quota";
         }>;
         level: z.ZodEnum<{
+            info: "info";
             warning: "warning";
             critical: "critical";
-            info: "info";
         }>;
         title: z.ZodString;
         providerId: z.ZodNullable<z.ZodString>;

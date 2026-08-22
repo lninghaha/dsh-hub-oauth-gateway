@@ -74,9 +74,12 @@ const gatewayFixture = {
 	running: false,
 	bind: "127.0.0.1",
 	port: 18_080,
+	model: "grok-4",
+	keyAvailable: true,
 	keyHint: "****abcd",
 	warning: "local API gateway warning",
 };
+let revealedGatewayKey: string | undefined;
 
 vi.mock("../../../src/client/coding-oauth-api.js", async () => {
 	const actual = await vi.importActual<typeof import("../../../src/client/coding-oauth-api.js")>(
@@ -111,7 +114,12 @@ vi.mock("../../../src/client/coding-oauth-api.js", async () => {
 		useOAuthSourceCancelMutation: () => ({ mutate: vi.fn(), isPending: false }),
 		useGatewayStatusQuery: () => ({ data: gatewayFixture, error: null, isPending: false }),
 		useGatewayPatchMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
-		useGatewayRevealMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+		useGatewayRevealMutation: () => ({
+			mutate: vi.fn(),
+			isPending: false,
+			data: revealedGatewayKey === undefined ? undefined : { apiKey: revealedGatewayKey },
+			error: null,
+		}),
 		useGatewayRotateMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
 		useCapabilitiesQuery: () => ({ data: capabilitiesFixture, error: null, isPending: false, refetch: vi.fn() }),
 		useCapabilitiesPatchMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, error: null }),
@@ -133,6 +141,7 @@ function renderWithClient(node: ReactNode): void {
 describe("coding OAuth settings tabs", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		revealedGatewayKey = undefined;
 	});
 
 	afterEach(() => {
@@ -148,7 +157,9 @@ describe("coding OAuth settings tabs", () => {
 		expect(document.querySelector('[data-oauth-provider="antigravity"]')).toBeTruthy();
 		const claude = document.querySelector('[data-oauth-provider="claude"]');
 		expect(claude).toBeTruthy();
-		fireEvent.click(claude!.querySelector(".dus-oauth-card-toggle")!);
+		const toggle = claude?.querySelector(".dus-oauth-card-toggle");
+		expect(toggle).toBeTruthy();
+		fireEvent.click(toggle as Element);
 		expect(document.querySelector('[data-oauth-source="claude"]')).toBeTruthy();
 		expect(screen.queryByText(en["oauth.importTitle"])).toBeNull();
 	});
@@ -157,7 +168,9 @@ describe("coding OAuth settings tabs", () => {
 		renderWithClient(<AccountsTab t={t} />);
 		const card = document.querySelector('[data-oauth-provider="kimi"]');
 		expect(card).toBeTruthy();
-		fireEvent.click(card!.querySelector(".dus-oauth-card-toggle")!);
+		const toggle = card?.querySelector(".dus-oauth-card-toggle");
+		expect(toggle).toBeTruthy();
+		fireEvent.click(toggle as Element);
 		expect(screen.getByText(en["oauth.loginDevice"])).toBeTruthy();
 	});
 
@@ -165,7 +178,9 @@ describe("coding OAuth settings tabs", () => {
 		renderWithClient(<AccountsTab t={t} />);
 		const card = document.querySelector('[data-oauth-provider="grok"]');
 		expect(card).toBeTruthy();
-		fireEvent.click(card!.querySelector(".dus-oauth-card-toggle")!);
+		const toggle = card?.querySelector(".dus-oauth-card-toggle");
+		expect(toggle).toBeTruthy();
+		fireEvent.click(toggle as Element);
 		expect(screen.getByText(en["oauth.loginBrowser"])).toBeTruthy();
 		expect(screen.getByText(en["oauth.loginDevice"])).toBeTruthy();
 	});
@@ -177,6 +192,25 @@ describe("coding OAuth settings tabs", () => {
 		expect(screen.getByText(en["gateway.reveal"])).toBeTruthy();
 		expect(screen.getByText(en["gateway.rotate"])).toBeTruthy();
 		expect(screen.getByText("127.0.0.1")).toBeTruthy();
+		expect(screen.getByText(en["gateway.snippetsKeyHidden"])).toBeTruthy();
+		expect(document.querySelector("pre")).toBeNull();
+		expect(document.body.textContent).not.toContain('"apiKey":"****abcd"');
+	});
+
+	it("renders executable Gateway snippets only with a revealed real key", () => {
+		revealedGatewayKey = "dsh-live-test-key";
+		renderWithClient(<GatewayTab t={t} />);
+		expect(document.querySelector("pre")?.textContent).toContain('"grok-4"');
+		expect(document.querySelector("pre")?.textContent).toContain("dsh-live-test-key");
+		expect(document.querySelector("pre")?.textContent).not.toContain("****abcd");
+	});
+
+	it("reports copy failure when the Clipboard API is unavailable", async () => {
+		Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+		renderWithClient(<GatewayTab t={t} />);
+		fireEvent.click(screen.getAllByRole("button", { name: en["gateway.copy"] })[0] as HTMLButtonElement);
+		expect(await screen.findByText(en["gateway.copyFailed"])).toBeTruthy();
+		expect(screen.queryByText(en["gateway.copied"])).toBeNull();
 	});
 
 	it("renders the capabilities tab with all seven default-off switches", () => {

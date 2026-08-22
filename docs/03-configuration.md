@@ -266,8 +266,11 @@ Integrated coding-subscription OAuth owner. Keep this enabled after cutover so G
 | `proxyKimi` | `false` | Also send Kimi China traffic through the proxy |
 | `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-subscription-oauth` settings namespace |
 | `gateway` | disabled | Opt-in isolated local OpenAI-compatible gateway; loopback bind only |
+| `ownerRequest` | strict loopback fallback | Prefer DSH-native owner authentication; otherwise configure SSH access mode or a complete trusted HTTPS proxy policy |
 
-Do not enable this owner in the same Cordis process as a live `dsh-coding-subscription-oauth` bundle. The two implementations share routes, settings, and credential files.
+Hub and `dsh-coding-subscription-oauth` may be installed together. Their exact `dsh-coding-oauth-core` ABI elects one host-wide owner: Hub wins regardless of activation order, while the standalone package remains on standby and resumes after Hub unloads. Routes, adapter ids, settings namespace, credential filenames, and login state remain unchanged; an ABI mismatch fails closed instead of registering a second runtime.
+
+For remote Settings, keep DSH Web bound to loopback and use SSH or an owner-authenticated HTTPS reverse proxy. The fallback path `codingOAuth.ownerRequest.trustedProxy` requires `peers`, `origins`, `ownerProof`, and an independent `csrfToken`. Authorization uses the actual TCP peer, exact HTTPS Origin and matching public Host, `Sec-Fetch-Site: same-origin`, owner proof, and mutation CSRF; `X-Forwarded-*` is ignored for authorization. A same-host loopback peer listed in `peers` is always treated as proxy traffic, so preserve the public Host and retain a separate SSH repair path. Keep real proofs in local ignored deployment configuration or a secret-injection layer, never in the repository.
 
 The coding OAuth settings UI lives under **Settings → Usage Center → 订阅账号 / 网关 / 能力** (Subscriptions / Gateway / Capabilities tabs): per-provider sign-in cards (device code, browser PKCE, or pasted redirect), model selection, the allowlisted CLI credential pull wizard, gateway enable/port/key lifecycle, and the seven default-off capability switches.
 

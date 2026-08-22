@@ -6,49 +6,49 @@
  */
 import { z } from "zod";
 export declare const LocalAuthToolKindSchema: z.ZodEnum<{
+    grok: "grok";
+    codex: "codex";
     kimi: "kimi";
     claude: "claude";
-    codex: "codex";
-    grok: "grok";
 }>;
 export type LocalAuthToolKind = z.infer<typeof LocalAuthToolKindSchema>;
 export declare const LocalAuthCliStateSchema: z.ZodEnum<{
     unavailable: "unavailable";
-    "signed-out": "signed-out";
-    "signed-in": "signed-in";
     expired: "expired";
+    "signed-in": "signed-in";
+    "signed-out": "signed-out";
 }>;
 export type LocalAuthCliState = z.infer<typeof LocalAuthCliStateSchema>;
 export declare const LocalAuthCliStatusSchema: z.ZodObject<{
     kind: z.ZodEnum<{
+        grok: "grok";
+        codex: "codex";
         kimi: "kimi";
         claude: "claude";
-        codex: "codex";
-        grok: "grok";
     }>;
     displayPath: z.ZodString;
     state: z.ZodEnum<{
         unavailable: "unavailable";
-        "signed-out": "signed-out";
-        "signed-in": "signed-in";
         expired: "expired";
+        "signed-in": "signed-in";
+        "signed-out": "signed-out";
     }>;
     expiresAt: z.ZodNullable<z.ZodNumber>;
     hasRefreshToken: z.ZodBoolean;
     reason: z.ZodNullable<z.ZodEnum<{
-        too_large: "too_large";
         missing: "missing";
-        unsafe: "unsafe";
         invalid: "invalid";
+        too_large: "too_large";
+        unsafe: "unsafe";
     }>>;
 }, z.core.$strict>;
 export type LocalAuthCliStatus = z.infer<typeof LocalAuthCliStatusSchema>;
 export declare const LocalAuthSessionStatusSchema: z.ZodObject<{
     provider: z.ZodEnum<{
+        grok: "grok";
+        codex: "codex";
         kimi: "kimi";
         claude: "claude";
-        codex: "codex";
-        grok: "grok";
     }>;
     route: z.ZodString;
     authenticated: z.ZodBoolean;
@@ -60,33 +60,33 @@ export declare const LocalAuthDataSchema: z.ZodObject<{
     generatedAt: z.ZodNumber;
     cli: z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
+            grok: "grok";
+            codex: "codex";
             kimi: "kimi";
             claude: "claude";
-            codex: "codex";
-            grok: "grok";
         }>;
         displayPath: z.ZodString;
         state: z.ZodEnum<{
             unavailable: "unavailable";
-            "signed-out": "signed-out";
-            "signed-in": "signed-in";
             expired: "expired";
+            "signed-in": "signed-in";
+            "signed-out": "signed-out";
         }>;
         expiresAt: z.ZodNullable<z.ZodNumber>;
         hasRefreshToken: z.ZodBoolean;
         reason: z.ZodNullable<z.ZodEnum<{
-            too_large: "too_large";
             missing: "missing";
-            unsafe: "unsafe";
             invalid: "invalid";
+            too_large: "too_large";
+            unsafe: "unsafe";
         }>>;
     }, z.core.$strict>>;
     sessions: z.ZodArray<z.ZodObject<{
         provider: z.ZodEnum<{
+            grok: "grok";
+            codex: "codex";
             kimi: "kimi";
             claude: "claude";
-            codex: "codex";
-            grok: "grok";
         }>;
         route: z.ZodString;
         authenticated: z.ZodBoolean;
@@ -102,33 +102,33 @@ export declare const LocalAuthResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
     generatedAt: z.ZodNumber;
     cli: z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
+            grok: "grok";
+            codex: "codex";
             kimi: "kimi";
             claude: "claude";
-            codex: "codex";
-            grok: "grok";
         }>;
         displayPath: z.ZodString;
         state: z.ZodEnum<{
             unavailable: "unavailable";
-            "signed-out": "signed-out";
-            "signed-in": "signed-in";
             expired: "expired";
+            "signed-in": "signed-in";
+            "signed-out": "signed-out";
         }>;
         expiresAt: z.ZodNullable<z.ZodNumber>;
         hasRefreshToken: z.ZodBoolean;
         reason: z.ZodNullable<z.ZodEnum<{
-            too_large: "too_large";
             missing: "missing";
-            unsafe: "unsafe";
             invalid: "invalid";
+            too_large: "too_large";
+            unsafe: "unsafe";
         }>>;
     }, z.core.$strict>>;
     sessions: z.ZodArray<z.ZodObject<{
         provider: z.ZodEnum<{
+            grok: "grok";
+            codex: "codex";
             kimi: "kimi";
             claude: "claude";
-            codex: "codex";
-            grok: "grok";
         }>;
         route: z.ZodString;
         authenticated: z.ZodBoolean;

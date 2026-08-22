@@ -1,16 +1,16 @@
 import { z } from "zod";
 export declare const DashboardPresetSchema: z.ZodEnum<{
-    minimal: "minimal";
-    quota: "quota";
     cost: "cost";
+    quota: "quota";
+    minimal: "minimal";
     analyst: "analyst";
 }>;
 export type DashboardPreset = z.infer<typeof DashboardPresetSchema>;
 export declare const SidebarMetricSchema: z.ZodEnum<{
+    alerts: "alerts";
     todayTokens: "todayTokens";
     todayCost: "todayCost";
     lowestQuota: "lowestQuota";
-    alerts: "alerts";
 }>;
 export type SidebarMetric = z.infer<typeof SidebarMetricSchema>;
 /** How the Usage Center surfaces its primary chrome entry. Extensible enum. */
@@ -26,11 +26,11 @@ export declare const HudPositionSchema: z.ZodObject<{
 export type HudPosition = z.infer<typeof HudPositionSchema>;
 export declare const DashboardModuleIdSchema: z.ZodEnum<{
     accounts: "accounts";
+    breakdown: "breakdown";
     alerts: "alerts";
     kpi: "kpi";
     heatmap: "heatmap";
     trend: "trend";
-    breakdown: "breakdown";
     local: "local";
 }>;
 export type DashboardModuleId = z.infer<typeof DashboardModuleIdSchema>;
@@ -43,16 +43,16 @@ export declare const UserPreferencesSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     display: z.ZodObject<{
         preset: z.ZodEnum<{
-            minimal: "minimal";
-            quota: "quota";
             cost: "cost";
+            quota: "quota";
+            minimal: "minimal";
             analyst: "analyst";
         }>;
         sidebarMetric: z.ZodEnum<{
+            alerts: "alerts";
             todayTokens: "todayTokens";
             todayCost: "todayCost";
             lowestQuota: "lowestQuota";
-            alerts: "alerts";
         }>;
         entryMode: z.ZodDefault<z.ZodEnum<{
             sidebar: "sidebar";
@@ -64,8 +64,8 @@ export declare const UserPreferencesSchema: z.ZodObject<{
         }, z.core.$strict>>>;
         defaultRange: z.ZodEnum<{
             month: "month";
-            today: "today";
             "7d": "7d";
+            today: "today";
             "30d": "30d";
         }>;
         comparePrevious: z.ZodBoolean;
@@ -84,20 +84,20 @@ export declare const UserPreferencesSchema: z.ZodObject<{
         modules: z.ZodDefault<z.ZodObject<{
             order: z.ZodArray<z.ZodEnum<{
                 accounts: "accounts";
+                breakdown: "breakdown";
                 alerts: "alerts";
                 kpi: "kpi";
                 heatmap: "heatmap";
                 trend: "trend";
-                breakdown: "breakdown";
                 local: "local";
             }>>;
             hidden: z.ZodArray<z.ZodEnum<{
                 accounts: "accounts";
+                breakdown: "breakdown";
                 alerts: "alerts";
                 kpi: "kpi";
                 heatmap: "heatmap";
                 trend: "trend";
-                breakdown: "breakdown";
                 local: "local";
             }>>;
         }, z.core.$strict>>;

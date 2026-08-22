@@ -3,6 +3,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExactWebServer, UsageStatsApiDependencies } from "../../../src/server/api/router.js";
 import { registerV1Routes } from "../../../src/server/api/router.js";
+import {
+	createOwnerRequestPolicy,
+	OWNER_CSRF_HEADER,
+	OWNER_PROOF_HEADER,
+} from "../../../src/server/coding-oauth/web-origin.js";
 import { FeesRepository } from "../../../src/server/fees/repository.js";
 import { PricingRepository } from "../../../src/server/pricing/repository.js";
 import { PreferencesRepository } from "../../../src/server/settings/repository.js";
@@ -10,6 +15,7 @@ import { UsageDatabase } from "../../../src/server/storage/database.js";
 import { emptySessionCursor } from "../../../src/server/usage/projector.js";
 import { UsageQueryService } from "../../../src/server/usage/query.js";
 import { UsageRepository } from "../../../src/server/usage/repository.js";
+import { CODING_OAUTH_CORE_ABI } from "../../../src/shared/compatibility.js";
 import { API_PATHS } from "../../../src/shared/contracts.js";
 import { defaultUserPreferences } from "../../../src/shared/preferences.js";
 
@@ -110,7 +116,13 @@ describe("v1 API router", () => {
 				get: vi.fn(async () => null),
 				refresh: vi.fn(async () => []),
 			},
-			freshness: () => ({ usageUpdatedAt: now, accountsUpdatedAt: null, partial: false, warnings: [] }),
+			freshness: () => ({
+				usageUpdatedAt: now,
+				accountsUpdatedAt: null,
+				usageState: "fresh",
+				partial: false,
+				warnings: [],
+			}),
 			now: () => now,
 		};
 		registerV1Routes(webServer, dependencies);
@@ -137,7 +149,7 @@ describe("v1 API router", () => {
 		await routes.get(API_PATHS.overview)?.(crossSite.value, crossSiteDenied as unknown as ServerResponse);
 		expect(crossSiteDenied.status).toBe(403);
 		expect(JSON.parse(crossSiteDenied.body)).toMatchObject({
-			error: { code: "cross-site-rejected", details: { reason: "cross-site-corroboration-missing" } },
+			error: { code: "cross-site-rejected", details: { reason: "fetch-metadata" } },
 		});
 
 		const misclassified = request("GET", API_PATHS.overview);
@@ -145,14 +157,14 @@ describe("v1 API router", () => {
 		misclassified.value.headers.referer = "http://localhost:3080/";
 		const accepted = new TestResponse();
 		await routes.get(API_PATHS.overview)?.(misclassified.value, accepted as unknown as ServerResponse);
-		expect(accepted.status).toBe(200);
+		expect(accepted.status).toBe(403);
 
 		const embedded = request("GET", API_PATHS.overview);
 		embedded.value.headers["sec-fetch-site"] = "cross-site";
 		embedded.value.headers["x-dsh-hub-oauth-gateway-authority"] = "localhost:3080";
 		const corroborated = new TestResponse();
 		await routes.get(API_PATHS.overview)?.(embedded.value, corroborated as unknown as ServerResponse);
-		expect(corroborated.status).toBe(200);
+		expect(corroborated.status).toBe(403);
 
 		const proxied = request("GET", API_PATHS.overview);
 		proxied.value.headers.host = "127.0.0.1:3080";
@@ -170,6 +182,112 @@ describe("v1 API router", () => {
 		const denied = new TestResponse();
 		await routes.get(API_PATHS.overview)?.(foreign.value, denied as unknown as ServerResponse);
 		expect(denied.status).toBe(403);
+	});
+
+	it("uses the strict owner policy for trusted HTTPS proxy reads and mutations", async () => {
+		(dependencies as { ownerRequestPolicy?: UsageStatsApiDependencies["ownerRequestPolicy"] }).ownerRequestPolicy =
+			createOwnerRequestPolicy({
+				trustedProxy: {
+					peers: ["10.0.0.8"],
+					origins: ["https://dsh.example.test"],
+					ownerProof: "owner-proof-secret",
+					csrfToken: "csrf-proof-secret",
+				},
+			});
+		const secureHeaders = {
+			origin: "https://dsh.example.test",
+			"sec-fetch-site": "same-origin",
+			[OWNER_PROOF_HEADER]: "owner-proof-secret",
+		};
+		const proxied = request("GET", API_PATHS.overview, undefined, "dsh.example.test", "10.0.0.8");
+		Object.assign(proxied.value.headers, secureHeaders);
+		const proxiedResponse = new TestResponse();
+		await routes.get(API_PATHS.overview)?.(proxied.value, proxiedResponse as unknown as ServerResponse);
+		expect(proxiedResponse.status).toBe(200);
+
+		const compatibility = vi.fn(
+			(accessMode: Parameters<NonNullable<UsageStatsApiDependencies["compatibility"]>>[0]) => ({
+				coreAbi: CODING_OAUTH_CORE_ABI,
+				dshVersion: "0.1.0-rc.6",
+				status: "healthy" as const,
+				uiOwner: "hub" as const,
+				accessMode,
+				capabilities: { webServer: { state: "available" as const } },
+				diagnostics: [],
+			}),
+		);
+		(dependencies as { compatibility?: UsageStatsApiDependencies["compatibility"] }).compatibility = compatibility;
+		const compatibilityRequest = request("GET", API_PATHS.compatibility, undefined, "dsh.example.test", "10.0.0.8");
+		Object.assign(compatibilityRequest.value.headers, secureHeaders);
+		const compatibilityResponse = new TestResponse();
+		await routes.get(API_PATHS.compatibility)?.(
+			compatibilityRequest.value,
+			compatibilityResponse as unknown as ServerResponse,
+		);
+		expect(compatibility).toHaveBeenCalledWith("trusted-https-proxy");
+		expect(JSON.parse(compatibilityResponse.body).data.accessMode).toBe("trusted-https-proxy");
+
+		const spoofed = request("GET", API_PATHS.overview, undefined, "dsh.example.test", "192.0.2.24");
+		Object.assign(spoofed.value.headers, secureHeaders, { "x-forwarded-for": "10.0.0.8" });
+		const spoofedResponse = new TestResponse();
+		await routes.get(API_PATHS.overview)?.(spoofed.value, spoofedResponse as unknown as ServerResponse);
+		expect(spoofedResponse.status).toBe(403);
+
+		const preferences = defaultUserPreferences("UTC");
+		const missingCsrf = request("PUT", API_PATHS.settings, preferences, "dsh.example.test", "10.0.0.8");
+		Object.assign(missingCsrf.value.headers, secureHeaders);
+		const missingCsrfResponse = new TestResponse();
+		const denied = routes.get(API_PATHS.settings)?.(
+			missingCsrf.value,
+			missingCsrfResponse as unknown as ServerResponse,
+		);
+		missingCsrf.emitBody();
+		await denied;
+		expect(missingCsrfResponse.status).toBe(403);
+
+		const authorized = request("PUT", API_PATHS.settings, preferences, "dsh.example.test", "10.0.0.8");
+		Object.assign(authorized.value.headers, secureHeaders, { [OWNER_CSRF_HEADER]: "csrf-proof-secret" });
+		const authorizedResponse = new TestResponse();
+		const saved = routes.get(API_PATHS.settings)?.(authorized.value, authorizedResponse as unknown as ServerResponse);
+		authorized.emitBody();
+		await saved;
+		expect(authorizedResponse.status).toBe(200);
+	});
+
+	it("reports usage freshness independently from account refreshes and warning text", async () => {
+		(dependencies as unknown as { freshness: UsageStatsApiDependencies["freshness"] }).freshness = () => ({
+			usageUpdatedAt: null,
+			accountsUpdatedAt: now,
+			usageState: "not-collected",
+			partial: false,
+			warnings: [],
+		});
+		const notCollected = request("GET", API_PATHS.overview);
+		const notCollectedResponse = new TestResponse();
+		await routes.get(API_PATHS.overview)?.(notCollected.value, notCollectedResponse as unknown as ServerResponse);
+		expect(JSON.parse(notCollectedResponse.body).meta).toMatchObject({
+			sourceUpdatedAt: now,
+			usageUpdatedAt: null,
+			accountsUpdatedAt: now,
+			usageState: "not-collected",
+			stale: false,
+		});
+
+		(dependencies as unknown as { freshness: UsageStatsApiDependencies["freshness"] }).freshness = () => ({
+			usageUpdatedAt: now - 1_000,
+			accountsUpdatedAt: now,
+			usageState: "stale",
+			partial: true,
+			warnings: ["projection failed; last successful result retained"],
+		});
+		const stale = request("GET", API_PATHS.overview);
+		const staleResponse = new TestResponse();
+		await routes.get(API_PATHS.overview)?.(stale.value, staleResponse as unknown as ServerResponse);
+		expect(JSON.parse(staleResponse.body).meta).toMatchObject({
+			usageUpdatedAt: now - 1_000,
+			usageState: "stale",
+			stale: true,
+		});
 	});
 
 	it("rejects foreign browser preflight without returning permissive CORS headers", async () => {
@@ -199,7 +317,9 @@ describe("v1 API router", () => {
 			"x-dsh-hub-oauth-gateway, x-dsh-hub-oauth-gateway-authority";
 		const proxiedResponse = new TestResponse();
 		await routes.get(API_PATHS.overview)?.(proxiedPreflight.value, proxiedResponse as unknown as ServerResponse);
-		expect(proxiedResponse.status).toBe(403);
+		// Forwarded headers are ignored; this remains a local same-origin request
+		// and reaches the route's method gate without receiving CORS permission.
+		expect(proxiedResponse.status).toBe(405);
 		expect(proxiedResponse.headers.has("access-control-allow-origin")).toBe(false);
 		expect(proxiedResponse.headers.has("access-control-allow-headers")).toBe(false);
 	});
@@ -224,7 +344,7 @@ describe("v1 API router", () => {
 		const acceptedHandle = routes.get(API_PATHS.settings)?.(misclassified.value, accepted as unknown as ServerResponse);
 		misclassified.emitBody();
 		await acceptedHandle;
-		expect(accepted.status).toBe(200);
+		expect(accepted.status).toBe(403);
 
 		const embedded = request("PUT", API_PATHS.settings, preferences);
 		embedded.value.headers["sec-fetch-site"] = "cross-site";
@@ -236,7 +356,7 @@ describe("v1 API router", () => {
 		);
 		embedded.emitBody();
 		await corroboratedHandle;
-		expect(corroborated.status).toBe(200);
+		expect(corroborated.status).toBe(403);
 
 		const proxied = request("PUT", API_PATHS.settings, preferences);
 		proxied.value.headers.host = "127.0.0.1:3080";

@@ -11,6 +11,8 @@ import {
 } from "../../../src/server/usage/projector.js";
 import { UsageRepository } from "../../../src/server/usage/repository.js";
 
+const IS_WINDOWS = process.platform === "win32";
+
 function events(...items: Array<Record<string, unknown>>): SessionEvent[] {
 	return items as unknown as SessionEvent[];
 }
@@ -31,8 +33,10 @@ async function expectUnmutatedDatabase(
 	path: string,
 	expected: { applicationId: number; userVersion?: number; mode: number; directoryMode: number },
 ): Promise<void> {
-	expect((await stat(directory)).mode & 0o777).toBe(expected.directoryMode);
-	expect((await stat(path)).mode & 0o777).toBe(expected.mode);
+	if (!IS_WINDOWS) {
+		expect((await stat(directory)).mode & 0o777).toBe(expected.directoryMode);
+		expect((await stat(path)).mode & 0o777).toBe(expected.mode);
+	}
 	const names = await readdir(directory);
 	expect(names.some((name) => name.endsWith("-wal") || name.endsWith("-shm"))).toBe(false);
 	const db = new DatabaseSync(path, { readOnly: true });
@@ -69,8 +73,10 @@ describe("SQLite usage projection", () => {
 			await chmod(path, 0o666);
 			const disk = await UsageDatabase.open(path);
 			disk.close();
-			expect((await stat(directory)).mode & 0o777).toBe(0o700);
-			expect((await stat(path)).mode & 0o777).toBe(0o600);
+			if (!IS_WINDOWS) {
+				expect((await stat(directory)).mode & 0o777).toBe(0o700);
+				expect((await stat(path)).mode & 0o777).toBe(0o600);
+			}
 		} finally {
 			await rm(directory, { recursive: true, force: true });
 		}

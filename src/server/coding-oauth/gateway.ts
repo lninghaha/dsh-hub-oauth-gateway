@@ -41,6 +41,10 @@ export interface GatewayPublicStatus {
 	running: boolean;
 	bind: string;
 	port: number;
+	model: string | null;
+	models: string[];
+	keyAvailable: boolean;
+	keyConfigured: boolean;
 	keyHint: string;
 	warning: string;
 }
@@ -95,15 +99,30 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 	};
 
 	const activeConfig = (): GatewayConfig => ({ ...yaml, port });
+	const availableModels = async (): Promise<string[]> => {
+		try {
+			return (await backend().listModels()).map((item) => item.id);
+		} catch {
+			return [];
+		}
+	};
 
-	const snapshot = async (enabled?: boolean): Promise<GatewayPublicStatus> => ({
-		enabled: enabled ?? (await desiredEnabled()),
-		running: server !== undefined,
-		bind: yaml.bind,
-		port,
-		keyHint: apiKey.length === 0 ? "" : maskGatewayApiKey(apiKey),
-		warning: GATEWAY_TOS_WARNING,
-	});
+	const snapshot = async (enabled?: boolean): Promise<GatewayPublicStatus> => {
+		const models = await availableModels();
+		const keyAvailable = apiKey.length > 0;
+		return {
+			enabled: enabled ?? (await desiredEnabled()),
+			running: server !== undefined,
+			bind: yaml.bind,
+			port,
+			model: models[0] ?? null,
+			models,
+			keyAvailable,
+			keyConfigured: keyAvailable,
+			keyHint: keyAvailable ? maskGatewayApiKey(apiKey) : "",
+			warning: GATEWAY_TOS_WARNING,
+		};
+	};
 
 	const persistState = async (next: { enabled?: boolean; port?: number; apiKey?: string }): Promise<void> => {
 		const document = await loadGatewayKeyDocument(path);
