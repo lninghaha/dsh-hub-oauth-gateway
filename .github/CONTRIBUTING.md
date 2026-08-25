@@ -143,8 +143,9 @@ compatibility, privacy boundaries, docs/changelog synchronization, generated
 artifacts, and npm package contents. Maintainers may ask to split unrelated
 changes.
 
-At least one maintainer approval and green required CI are expected before
-merge. Authors should not rewrite shared history after review without warning.
+The maintainer may approve and merge; additional reviews are optional. Green
+required CI remains a required technical gate. Authors should not rewrite shared
+history after review without warning.
 
 ## Releases
 

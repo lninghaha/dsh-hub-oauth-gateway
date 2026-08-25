@@ -298,7 +298,7 @@ Release alone do not finish a release.
    credential-bearing personal profile.
 6. Confirm the changelog version, package version, bundle banner, and tag will
    all be identical.
-7. Only after explicit human approval: commit, push, create annotated tag
+7. Only after an explicit maintainer decision: commit, push, create annotated tag
    `v<version>`, and create a GitHub Release whose assets **must** include
    `dsh-hub-oauth-gateway-<version>.tgz` (from `pnpm run release:pack`, same
    bytes users would install via npm), with release notes from the changelog.
