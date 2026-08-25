@@ -7,6 +7,18 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.10.0
+
+### Fixed
+
+- Keep capability settings routes active when the optional settings service is absent or reloads, using the same Web route lifetime as OAuth, Gateway, and credential import.
+- Inject pi-ai request authentication through the existing owner-locked OAuth stores, reject unknown provider writes, and apply the DSH `0.1.1-rc.2` image request limits.
+- Preserve opaque replay envelopes while restoring native provider identity for Codex Fast, remap xAI capacity responses to retryable rate limits, and use five retries with 5–80 second exponential delays.
+
+### Changed
+
+- Verify the exact DeepSeek Harness `0.1.1-rc.2` BOM, pair co-installation with `dsh-coding-subscription-oauth@0.6.2`, and update `undici` to `^7.24.8`.
+
 ## 1.9.1
 
 ### Fixed

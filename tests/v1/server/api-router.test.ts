@@ -208,7 +208,7 @@ describe("v1 API router", () => {
 		const compatibility = vi.fn(
 			(accessMode: Parameters<NonNullable<UsageStatsApiDependencies["compatibility"]>>[0]) => ({
 				coreAbi: CODING_OAUTH_CORE_ABI,
-				dshVersion: "0.1.0-rc.6",
+				dshVersion: "0.1.1-rc.2",
 				status: "healthy" as const,
 				uiOwner: "hub" as const,
 				accessMode,

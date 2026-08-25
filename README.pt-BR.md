@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.1** · anteriormente `dsh-usage-stats`
+**v1.10.0** · anteriormente `dsh-usage-stats`
 
 **Centro de uso local-first para [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, custo estimado, saldos de conta, cotas de assinatura, tendências, previsões, alertas e exportações — além de OAuth de assinaturas de coding (Grok Build, Codex, Kimi Code, Claude Code), um gateway de API loopback opcional e monitoramento local opt-in de auth/uso. **Não cole tokens no chat.**
 
@@ -131,7 +131,7 @@ Depois abra **Settings → Usage Center**. Para Accounts / Gateway / Capabilitie
 
 ## Requisitos
 
-- DeepSeek Harness Web, verificado com `@deepseek-ai/dsh 0.1.0-rc.6`
+- DeepSeek Harness Web, verificado com `@deepseek-ai/dsh 0.1.1-rc.2`
 - Node.js `^22.19.0 || >=24.0.0`
 - Backend DSH Web em loopback; proxy reverso HTTPS local controlado para rede privada autenticada é OK. Não exponha só a API do plugin nem publique sem autenticação na internet pública.
 

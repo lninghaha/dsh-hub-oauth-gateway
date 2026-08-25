@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.1** · ранее `dsh-usage-stats`
+**v1.10.0** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -131,7 +131,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## Требования
 
-- DeepSeek Harness Web, проверено с `@deepseek-ai/dsh 0.1.0-rc.6`
+- DeepSeek Harness Web, проверено с `@deepseek-ai/dsh 0.1.1-rc.2`
 - Node.js `^22.19.0 || >=24.0.0`
 - Loopback backend DSH Web; допустим контролируемый локальный HTTPS reverse proxy к аутентифицированной частной сети. Не выставляйте API плагина отдельно и не публикуйте без аутентификации в публичный интернет.
 

@@ -6,7 +6,7 @@ const subscriptionStatus = {
 	uiOwner: "standalone",
 	compatibility: {
 		coreAbi: "dsh-coding-oauth-core/v1",
-		dshVersion: "0.1.0-rc.6",
+		dshVersion: "0.1.1-rc.2",
 		status: "degraded",
 		uiOwner: "standalone",
 		accessMode: "ssh-tunnel",

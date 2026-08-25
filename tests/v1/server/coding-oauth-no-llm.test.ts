@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CODING_OAUTH_STATUS_PATH } from "../../../src/server/coding-oauth/auth-routes.js";
+import { CAPABILITY_SETTINGS_PATH } from "../../../src/server/coding-oauth/capability-routes.js";
 import { applyCodingOAuth } from "../../../src/server/coding-oauth/compose.js";
 
 class TestResponse {
@@ -61,6 +62,7 @@ describe("coding OAuth base runtime without LLM", () => {
 		const runtime = applyCodingOAuth(context as never, {});
 		await runtime.ready;
 		expect(routes.has(CODING_OAUTH_STATUS_PATH)).toBe(true);
+		expect(routes.has(CAPABILITY_SETTINGS_PATH)).toBe(true);
 		const request = new EventEmitter() as EventEmitter & {
 			method: string;
 			url: string;

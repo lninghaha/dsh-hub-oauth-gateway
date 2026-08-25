@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const root = resolve(".");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
-assert.equal(manifest.version, "1.9.1");
+assert.equal(manifest.version, "1.10.0");
 assert.notEqual(manifest.private, true, "release package must not be private");
 
 for (const path of [
