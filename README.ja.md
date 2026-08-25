@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.1** · 旧称 `dsh-usage-stats`
+**v1.10.0** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -131,7 +131,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## 要件
 
-- DeepSeek Harness Web、`@deepseek-ai/dsh 0.1.0-rc.6` で検証済み
+- DeepSeek Harness Web、`@deepseek-ai/dsh 0.1.1-rc.2` で検証済み
 - Node.js `^22.19.0 || >=24.0.0`
 - ループバック DSH Web バックエンド；認証済みプライベートネットワークへの制御されたローカル HTTPS リバースプロキシは可。プラグイン API 単体の公開や無認証の公インターネット公開はしないでください。
 

@@ -481,19 +481,42 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		});
 
 	let settingsOwner = 0;
+	const createFallbackCapabilityController = (): ReturnType<typeof createCapabilitySettingsController> =>
+		createCapabilitySettingsController({
+			...(config.capabilities === undefined ? {} : { base: config.capabilities }),
+			onListenerError: () => logger.warn("a capability settings listener failed"),
+		});
+	let capabilityController = createFallbackCapabilityController();
+	const capabilityRoutesController = {
+		snapshot: () => capabilityController.snapshot(),
+		current: () => capabilityController.current(),
+		patch: (patch: CapabilitySettingsPatch, expectedRevision: number) =>
+			capabilityController.patch(patch, expectedRevision),
+		replace: (section: CapabilitySettingsPatch, expectedRevision: number) =>
+			capabilityController.replace(section, expectedRevision),
+	};
 	let releaseActiveSettings = (): void => undefined;
-	ctx.effect(() => () => releaseActiveSettings(), "dsh-coding-subscription-oauth: capability settings bridge");
+	ctx.effect(
+		() => () => {
+			releaseActiveSettings();
+			capabilityController.dispose();
+		},
+		"dsh-coding-subscription-oauth: capability settings bridge",
+	);
 	ctx.inject(["settings"], (settingsCtx) => {
 		// Re-injection may happen before Cordis runs the previous child effect's
 		// disposer. Release it synchronously so an obsolete watcher cannot race a
 		// newly attached settings service.
 		releaseActiveSettings();
 		const owner = ++settingsOwner;
+		const previousController = capabilityController;
 		const controller = createCapabilitySettingsController({
 			settings: settingsCtx.get("settings") as CapabilitySettingsService,
 			...(config.capabilities === undefined ? {} : { base: config.capabilities }),
 			onListenerError: () => logger.warn("a capability settings listener failed"),
 		});
+		capabilityController = controller;
+		previousController.dispose();
 		runtime.set(controller.current());
 		const unsubscribe = controller.subscribe((snapshot) => {
 			runtime.set(snapshot.value);
@@ -506,19 +529,12 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			controller.dispose();
 			if (owner === settingsOwner) {
 				releaseActiveSettings = (): void => undefined;
-				runtime.set(baseCapabilities);
+				capabilityController = createFallbackCapabilityController();
+				runtime.set(capabilityController.current());
 			}
 		};
 		releaseActiveSettings = release;
 		settingsCtx.effect(() => release, "dsh-coding-subscription-oauth: capability settings");
-		settingsCtx.inject(["webServer"], (webCtx) => {
-			registerCapabilityRoutes(webCtx, {
-				controller,
-				usage: () => usage.read(),
-				credentialInfo: () => describeImagineCredential(webCtx.get("credentials") as CredentialProvider | undefined),
-				ownerRequestPolicy,
-			});
-		});
 	});
 
 	const gateway = createCodingOAuthGatewayController({
@@ -541,6 +557,12 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 
 	let webRoutesMounted = false;
 	const webRoutesFiber = ctx.inject(["webServer"], (webCtx) => {
+		registerCapabilityRoutes(webCtx, {
+			controller: capabilityRoutesController,
+			usage: () => usage.read(),
+			credentialInfo: () => describeImagineCredential(webCtx.get("credentials") as CredentialProvider | undefined),
+			ownerRequestPolicy,
+		});
 		registerGatewayRoutes(webCtx, gateway, ownerRequestPolicy);
 		registerCodingOAuthRoutes(webCtx, grok, subscriptions, ownerRequestPolicy, {
 			uiOwner: "hub",

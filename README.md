@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.9.1** · formerly `dsh-usage-stats`
+**v1.10.0** · formerly `dsh-usage-stats`
 
 **Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). `1.9.1` fixes a `1.9.0` startup failure on strict Cordis injection guards; keep profile/config/credential files and restart one existing DSH Web process only after Hub `1.9.1` and Subscription `0.6.1` are both updated. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.10.0` and Subscription `0.6.2` share the verified DSH `0.1.1-rc.2` contract. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -131,7 +131,7 @@ Then open **Settings → Usage Center**. For Accounts / Gateway / Capabilities, 
 
 ## Requirements
 
-- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.0-rc.6`
+- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.1-rc.2`
 - Node.js `^22.19.0 || >=24.0.0`
 - Loopback DSH Web backend; a controlled local HTTPS reverse proxy to an authenticated private network is OK. Do not expose the plugin API alone or publish unauthenticated to the public internet.
 

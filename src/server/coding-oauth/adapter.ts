@@ -3,7 +3,7 @@
 import type { AttachmentStore } from "@deepseek-ai/dsh-attachment";
 import type { RetryPolicyConfig } from "@deepseek-ai/dsh-llm";
 import { type LlmAdapter, LlmError, resolveRetryPolicy } from "@deepseek-ai/dsh-llm";
-import type { ResolvedPiAiProviderProfile } from "@deepseek-ai/dsh-llm-pi-ai";
+import type { PiAiAdapterOptions, ResolvedPiAiProviderProfile } from "@deepseek-ai/dsh-llm-pi-ai";
 import { PiAiAdapter } from "@deepseek-ai/dsh-llm-pi-ai";
 import type { AliasLlmRoutePolicy } from "./alias-adapter.js";
 import { AliasLlmAdapter } from "./alias-adapter.js";
@@ -26,6 +26,59 @@ import type { OAuthProviderSession } from "./oauth-session.js";
 import { grokBuildBaselineModels, grokBuildFingerprintHeaders } from "./provider.js";
 import { safeMessage } from "./redact.js";
 import type { GrokBuildSession } from "./session.js";
+
+type PiAiAuthInjection = PiAiAdapterOptions["auth"];
+type PiAiCredentialStore = PiAiAuthInjection["credentials"];
+
+const REQUEST_IMAGE_POLICY = {
+	maxRequestImageBytes: 20 * 1024 * 1024,
+	requestImagePixelBudget: 2048 * 2048,
+	requestImageMaxBytes: 1024 * 1024,
+} as const;
+
+/**
+ * Route pi-ai credential operations to the already owner-locked OAuth files.
+ * The adapter may ask its collection about every profile, so an unknown id is
+ * never allowed to reach a writable store. Reads are empty and writes fail
+ * closed, preserving the existing per-provider refresh lock and file policy.
+ */
+function oauthAuthInjection(grok: GrokBuildSession, subscriptions: readonly OAuthProviderSession[]): PiAiAuthInjection {
+	const stores = new Map<string, PiAiCredentialStore>([
+		[XAI_PI_PROVIDER, grok.store],
+		...subscriptions.map((session) => [session.definition.nativeProviderId, session.store] as const),
+	]);
+	const storeFor = (providerId: string): PiAiCredentialStore | undefined => stores.get(providerId);
+	return {
+		credentials: {
+			async read(providerId, options) {
+				return storeFor(providerId)?.read(providerId, options);
+			},
+			async list(options) {
+				const entries = await Promise.all([...stores.values()].map((store) => store.list(options)));
+				return entries.flat();
+			},
+			async modify(providerId, fn, options) {
+				const store = storeFor(providerId);
+				if (store === undefined)
+					throw new Error(`refusing credential write for unknown OAuth provider "${providerId}"`);
+				return store.modify(providerId, fn, options);
+			},
+			async delete(providerId, options) {
+				const store = storeFor(providerId);
+				if (store === undefined)
+					throw new Error(`refusing credential deletion for unknown OAuth provider "${providerId}"`);
+				await store.delete(providerId, options);
+			},
+		},
+		authContext: {
+			// Subscription adapters obtain request credentials only from their
+			// owner-scoped stores. Do not let a foreign environment/file credential
+			// silently change a selected OAuth route.
+			env: async () => undefined,
+			fileExists: async () => false,
+		},
+	};
+}
 
 /** Prefer grok-4.6 when the current (live or baseline) list has it. */
 export function preferredGrokBuildModel(models: readonly { id: string }[] = grokBuildBaselineModels()): string {
@@ -58,12 +111,17 @@ const MIN_OAUTH_VALIDITY_MS = 60_000;
  * set: retrying a billing-limit 403 cannot succeed and only delays the real
  * message. Genuine credential death is converted to MISSING_CREDENTIAL (not
  * retryable) by the resolver below, so it cannot loop either.
+ *
+ * Five stacked exponential delays (5s → 10s → 20s → 40s → 80s, ~155s total)
+ * pair with the xAI capacity remap in {@link AliasLlmAdapter}: "at capacity"
+ * finish errors become RATE_LIMIT so they enter this policy instead of failing
+ * as PI_AI_ERROR.
  */
 const CODING_OAUTH_RETRY_POLICY = {
 	mode: "normal" as const,
-	maxRetries: 2,
+	maxRetries: 5,
 	retryableCodes: ["EMPTY_RESPONSE", "RATE_LIMIT", "SERVER", "TIMEOUT", "TRANSPORT", "AUTH"],
-	backoff: { initialDelayMs: 500, maxDelayMs: 10_000, jitterRatio: 0.1 },
+	backoff: { initialDelayMs: 5_000, maxDelayMs: 80_000, jitterRatio: 0.1 },
 };
 
 function profile(
@@ -82,6 +140,7 @@ function profile(
 			"dsh-coding-subscription-oauth retryPolicy",
 		),
 		configuredMaxTokens: new Map(),
+		...REQUEST_IMAGE_POLICY,
 		...(headers === undefined ? {} : { headers }),
 		piProvider,
 	};
@@ -105,6 +164,7 @@ export function createGrokBuildAdapter(
 				const auth = await session.models.getAuth(XAI_PI_PROVIDER, { minOAuthValidityMs: MIN_OAUTH_VALIDITY_MS });
 				return auth?.auth.apiKey;
 			}),
+		auth: oauthAuthInjection(session, []),
 		resolveAttachments,
 	});
 }
@@ -251,10 +311,16 @@ export function createCodingOAuthAdapter(
 			if (session === undefined) throw new LlmError(`Unknown OAuth provider "${provider}"`, "NO_ADAPTER");
 			return resolveOAuthToken(session.definition.displayName, () => session.resolveAccessToken());
 		},
+		auth: oauthAuthInjection(grok, subscriptions),
 		resolveAttachments,
 	});
 
-	return new AliasLlmAdapter(inner, aliases, policies);
+	// The Fast wrapper restores wire/replay model identity to openai-codex.
+	// Keep the opaque envelope untouched and map public Fast source identity to
+	// that native replay provider before PiAiAdapter validates it.
+	const replayProviders = new Map(aliases);
+	replayProviders.set(CODEX_OAUTH_FAST_ROUTE, CODEX_PI_PROVIDER);
+	return new AliasLlmAdapter(inner, aliases, policies, replayProviders);
 }
 
 /**

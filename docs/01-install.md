@@ -1,6 +1,6 @@
 # Installation and usage · dsh-hub-oauth-gateway
 
-**v1.9.1**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
+**v1.10.0**. This document expands the Quick start in [`README.md`](../README.md). Prefer the published npm package for end users.
 
 ```bash
 dsh plugin --profile web add dsh-hub-oauth-gateway
@@ -8,7 +8,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## Prerequisites
 
-- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.0-rc.6`
+- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.1-rc.2`
 - Node.js `^22.19.0 || >=24.0.0` (see `.nvmrc`)
 - Loopback DSH Web backend; do not expose the plugin API alone or publish unauthenticated to the public internet
 - Optional HTTP/HTTPS proxy for coding-subscription domains
@@ -39,7 +39,7 @@ The installer atomically replaces `~/.dsh/profiles/node_modules/dsh-hub-oauth-ga
 Each formal GitHub Release must attach `dsh-hub-oauth-gateway-<version>.tgz` matching the npm artifact (see [`00-project-rules.md`](00-project-rules.md) §8):
 
 ```bash
-dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.9.1.tgz
+dsh plugin --profile web add /path/to/dsh-hub-oauth-gateway-1.10.0.tgz
 ```
 
 ### Development / Git
@@ -54,10 +54,10 @@ dsh plugin --profile web add "$PWD"
 
 ## Upgrade notes
 
-- This release is verified against the exact DSH BOM `@deepseek-ai/dsh 0.1.0-rc.6`; do not replace it with `*` or an unverified broad range.
+- This release is verified against the exact DSH BOM `@deepseek-ai/dsh 0.1.1-rc.2`; do not replace it with `*` or an unverified broad range.
 - When upgrading the combined installation, make sure `dsh-coding-oauth-core@0.1.0` is available from the npm registry first. Core is a shared npm dependency, not a separate DSH plugin, so operators do **not** run `dsh plugin add` for it.
-- Upgrade Hub `1.9.0` to `1.9.1` before restarting: `1.9.0` could read an optional Cordis service before it was injected and fail the whole plugin tree. No database, credential, OAuth, Gateway, route, adapter, or model ID is migrated by this patch.
-- Install Hub `1.9.1` and Subscription `0.6.1` into the same **web profile**, then restart the existing DSH Web process once. Hub owns the full UI; Subscription becomes the compact status entry. Updating either package alone remains supported, but co-installed `1.9.0`/`0.6.0` should be upgraded together before that restart.
+- Upgrade Hub to `1.10.0` and Subscription to `0.6.2` before restarting. This pair aligns request authentication, image limits, opaque replay, retry handling, and optional-service lifecycles with DSH `0.1.1-rc.2`. No database, credential, OAuth, Gateway, route, adapter, or model ID migration is required.
+- Install Hub `1.10.0` and Subscription `0.6.2` into the same **web profile**, then restart the existing DSH Web process once. Hub owns the full UI; Subscription becomes the compact status entry.
 - The Cordis id `usage-stats`, the `usage-stats-v1.sqlite` history, OAuth credential files, and Gateway configuration are preserved. Do not remove the old storage or credentials as part of an upgrade. The old `dsh-usage-stats` entry must be removed only when replacing it with this package, never in addition to it.
 - For rollback, restore the previous plugin tarball/version and restart once; keep the profile and data files. Check the Settings compatibility diagnostic before changing configuration.
 - DSH Web remains loopback-only. Remote Settings requires an SSH tunnel or a trusted HTTPS reverse proxy with the owner proof and CSRF proof described below; an upgrade is not permission to bind DSH or the Gateway to `0.0.0.0`.
