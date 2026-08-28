@@ -44,6 +44,10 @@ vi.mock("../../../src/client/coding-oauth-api.js", () => ({
 	useOAuthSourceCancelMutation: () => ({ mutate: cancelMutate, isPending: false }),
 }));
 
+vi.mock("../../../src/client/queries.js", () => ({
+	useAccountsQuery: () => ({ data: { ok: true, data: { accounts: [] } }, error: null, isPending: false }),
+}));
+
 const statusFixture = {
 	providers: {
 		grok: { status: "signed-out", grokImportAvailable: false },
@@ -99,8 +103,12 @@ describe("AccountsTab CLI pull state", () => {
 	beforeEach(() => {
 		previewData = previewFixture;
 		commitData = { action: "imported", displayPath: previewFixture.displayPath, expiresAt: 10, warnings: [] };
-		previewMutate.mockImplementation(() => {
+		previewMutate.mockImplementation((kind: string, options?: { onSuccess?: (data: typeof previewFixture) => void }) => {
 			previewData = previewFixture;
+			options?.onSuccess?.(previewFixture);
+		});
+		commitMutate.mockImplementation(() => {
+			commitData = { action: "imported", displayPath: previewFixture.displayPath, expiresAt: 10, warnings: [] };
 		});
 		previewReset.mockImplementation(() => {
 			previewData = undefined;
@@ -126,13 +134,12 @@ describe("AccountsTab CLI pull state", () => {
 		expect(previewReset).toHaveBeenCalledTimes(1);
 		expect(cancelMutate).toHaveBeenCalledWith(previewFixture.previewId);
 
+		expect(screen.getByRole("button", { name: en["oauth.importClaudeCode"] })).toBeTruthy();
+
 		rendered.rerender(<AccountsTab t={t} />);
-		fireEvent.click(screen.getByRole("button", { name: en["oauth.importPull"] }));
+		fireEvent.click(screen.getByRole("button", { name: en["oauth.importClaudeCode"] }));
 		expect(commitReset).toHaveBeenCalledTimes(2);
-		expect(previewMutate).toHaveBeenCalledWith("claude");
-		rendered.rerender(<AccountsTab t={t} />);
-		expect(screen.getByRole("button", { name: en["oauth.importCommit"] })).toBeTruthy();
-		fireEvent.click(screen.getByRole("button", { name: en["oauth.importCommit"] }));
+		expect(previewMutate).toHaveBeenCalledWith("claude", expect.objectContaining({ onSuccess: expect.any(Function) }));
 		expect(commitMutate).toHaveBeenCalledWith({ kind: "claude", previewId: previewFixture.previewId });
 	});
 });

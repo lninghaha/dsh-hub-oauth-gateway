@@ -10,6 +10,19 @@ export declare const OAUTH_SOURCE_MAX_BYTES: number;
 export declare const OAUTH_IMPORT_PREVIEW_TTL_MS: number;
 /** Bound credential-bearing preview material retained by one process. */
 export declare const OAUTH_IMPORT_MAX_PREVIEW_TICKETS = 32;
+/** macOS Keychain service name used by the official Claude Code CLI (MIT peer shape). */
+export declare const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
+/** Sentinel path for Claude Code credentials stored in the macOS Keychain. */
+export declare const CLAUDE_CODE_KEYCHAIN_SOURCE_PATH = "keychain:Claude Code-credentials";
+export type OAuthSourceOrigin = "file" | "keychain";
+/** Injectable Keychain reader for tests. Never logs stdout. */
+export type OAuthSourceExecFile = (file: string, args: readonly string[], options: {
+    timeout: number;
+    encoding: "utf8";
+    maxBuffer: number;
+}) => Promise<{
+    stdout: string;
+}>;
 /** CLI import kinds only — Copilot has no allowlisted CLI credential file. */
 export type OAuthSourceKind = "grok" | "codex" | "kimi" | "claude";
 export declare const OAUTH_SOURCE_KINDS: readonly ["grok", "codex", "kimi", "claude"];
@@ -36,6 +49,10 @@ export interface OAuthSourceSpec {
 export interface OAuthSourcePathOptions {
     env?: NodeJS.Dict<string>;
     home?: string;
+    /** Defaults to `process.platform`. Inject `darwin` in tests to exercise Keychain preference. */
+    platform?: NodeJS.Platform;
+    /** Defaults to `child_process/promises.execFile`. Injected for Keychain unit tests. */
+    execFile?: OAuthSourceExecFile;
 }
 export interface OAuthSourceFileIdentity {
     dev: number;
@@ -55,6 +72,8 @@ export interface OAuthSourceDiscovery {
     available: boolean;
     expiresAt?: number;
     reason?: OAuthSourceUnavailableReason;
+    /** Where the discovered credential was read from. Omitted when unavailable. */
+    origin?: OAuthSourceOrigin;
 }
 export interface OAuthSourceProbe {
     kind: OAuthSourceKind;
@@ -62,6 +81,12 @@ export interface OAuthSourceProbe {
     displayPath: string;
     expiresAt?: number;
     reason?: OAuthSourceUnavailableReason;
+    origin?: OAuthSourceOrigin;
+}
+/** Hardened source material plus secret-free origin metadata. */
+export interface OAuthSourceMaterial extends HardenedOAuthSourceRead {
+    origin: OAuthSourceOrigin;
+    displayPath: string;
 }
 export interface OAuthImportDestinationView {
     path?: string;
@@ -160,8 +185,20 @@ export declare function parseGrokCliAuthDocument(text: string): OAuthSourceCrede
 export declare function parseCodexCliAuthDocument(text: string): OAuthSourceCredential;
 /** Kimi Code CLI document. Snake_case `access_token` / `refresh_token` / `expires_at` seconds. */
 export declare function parseKimiCliAuthDocument(text: string): OAuthSourceCredential;
-/** Claude Code CLI document. `claudeAiOauth` camelCase `accessToken` / `refreshToken` / `expiresAt` ms. */
+/**
+ * Claude Code CLI / Keychain document. Prefers nested `claudeAiOauth`, then a
+ * flat blob with the same camelCase fields (`accessToken` / `refreshToken` /
+ * `expiresAt` ms). Matches the official Claude Code credential shape.
+ */
 export declare function parseClaudeCliAuthDocument(text: string): OAuthSourceCredential;
+/**
+ * Read one allowlisted OAuth source. Claude on darwin prefers the macOS
+ * Keychain service {@link CLAUDE_CODE_KEYCHAIN_SERVICE}, then falls back to the
+ * hardened credentials file. Other kinds always use the hardened file reader.
+ */
+export declare function readOAuthSourceMaterial(kind: OAuthSourceKind, options?: OAuthSourcePathOptions): Promise<OAuthSourceMaterial>;
+/** Read Claude Code credentials from the macOS Keychain. Never logs the secret. */
+export declare function readClaudeKeychainRaw(options?: OAuthSourcePathOptions): Promise<string | undefined>;
 export declare function probeOAuthSource(kind: OAuthSourceKind, options?: OAuthSourcePathOptions): Promise<OAuthSourceProbe>;
 export declare function discoverOAuthSources(options?: OAuthSourcePathOptions): Promise<OAuthSourceDiscovery[]>;
 /**

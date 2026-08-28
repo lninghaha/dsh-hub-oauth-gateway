@@ -7,6 +7,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Added
+
+- Claude Code one-click import: discover macOS Keychain `Claude Code-credentials` on darwin (file fallback), with an Accounts “Import Claude Code” control that runs preview→commit (`accountMode: add` when possible) and still requires explicit overwrite confirm.
+- OAuth signed-in cards show Usage Center cached quota bars (GET-only; hidden when no snapshot).
+- Codex Fast Speed UX: Standard/Fast hint under the existing `codexFast` capability, documenting that the session picker uses `codex-oauth-fast`.
+- Desktop Market Path A catalog at `catalog/catalog-source.json` and `catalog/v1/plugins.json` for `dsh-hub-oauth-gateway@1.10.0`.
+
+
 ## 1.10.0
 
 ### Fixed
