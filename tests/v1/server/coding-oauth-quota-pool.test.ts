@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { QuotaWindow } from "../../../src/shared/domain.js";
 import {
 	orderPoolAccounts,
 	QUOTA_FULL_RATIO,
 	selectAccount,
 	urgencyFromSnapshots,
 } from "../../../src/server/coding-oauth/quota-pool.js";
+import type { QuotaWindow } from "../../../src/shared/domain.js";
 
 function window(partial: Partial<QuotaWindow> & Pick<QuotaWindow, "id" | "usedRatio">): QuotaWindow {
 	return {
@@ -38,14 +38,8 @@ describe("urgencyFromSnapshots", () => {
 
 	it("uses remaining ratio / time-until-reset as urgency", () => {
 		const now = 1_000_000;
-		const soon = urgencyFromSnapshots(
-			[window({ id: "soon", usedRatio: 0.2, resetsAt: now + 1_000 })],
-			now,
-		);
-		const later = urgencyFromSnapshots(
-			[window({ id: "later", usedRatio: 0.2, resetsAt: now + 10_000 })],
-			now,
-		);
+		const soon = urgencyFromSnapshots([window({ id: "soon", usedRatio: 0.2, resetsAt: now + 1_000 })], now);
+		const later = urgencyFromSnapshots([window({ id: "later", usedRatio: 0.2, resetsAt: now + 10_000 })], now);
 		expect(soon.urgency).toBeGreaterThan(later.urgency);
 		expect(soon.urgency).toBeCloseTo(0.8 / 1_000);
 	});
@@ -139,9 +133,7 @@ describe("selectAccount", () => {
 		const ordered = orderPoolAccounts({
 			accounts: ["unknown", "measured"],
 			activeId: "unknown",
-			snapshotsByAccountId: new Map([
-				["measured", [window({ id: "m", usedRatio: 0.5, resetsAt: now + 5_000 })]],
-			]),
+			snapshotsByAccountId: new Map([["measured", [window({ id: "m", usedRatio: 0.5, resetsAt: now + 5_000 })]]]),
 			stickyId: undefined,
 			strategy: "quota_aware",
 			switchMargin: 2,

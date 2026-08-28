@@ -177,11 +177,7 @@ export function useCodingOAuthSetActiveAccountMutation() {
 	return useMutation(
 		{
 			mutationFn: ({ provider, accountId }: { provider: CodingOAuthProviderSlug; accountId: string }) =>
-				postCodingOAuth(
-					CODING_OAUTH_PATHS.accountsSetActive,
-					{ provider, accountId },
-					CodingOAuthWebStatusSchema,
-				),
+				postCodingOAuth(CODING_OAUTH_PATHS.accountsSetActive, { provider, accountId }, CodingOAuthWebStatusSchema),
 			onSuccess: invalidateCodingOAuthQueries,
 		},
 		usageQueryClient,

@@ -19,9 +19,9 @@ import {
 } from "./catalog.js";
 import { GROK_BUILD_MODELS_CACHE_FILENAME, GROK_BUILD_ROUTE, XAI_PI_PROVIDER } from "./ids.js";
 import { grokBuildBaselineModels, grokBuildProvider } from "./provider.js";
+import { currentPoolAccountOverride } from "./quota-pool.js";
 import { safeMessage } from "./redact.js";
 import { GrokBuildCredentialStore } from "./store.js";
-import { currentPoolAccountOverride } from "./quota-pool.js";
 
 const MODELS_CACHE_VERSION = 2;
 

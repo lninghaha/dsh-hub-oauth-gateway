@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import type { OAuthCredential } from "@earendil-works/pi-ai";
+import { afterEach, describe, expect, it } from "vitest";
 import { OAuthCredentialFileStore } from "../../../src/server/coding-oauth/store.js";
 
 const temporaryDirectories = new Set<string>();
@@ -37,11 +37,7 @@ describe("OAuthCredentialFileStore AuthDocument v2", () => {
 			refresh: "refresh-v1",
 			accountId: "safe-user",
 		});
-		await writeFile(
-			path,
-			`${JSON.stringify({ version: 1, credential }, null, 2)}\n`,
-			{ mode: 0o600 },
-		);
+		await writeFile(path, `${JSON.stringify({ version: 1, credential }, null, 2)}\n`, { mode: 0o600 });
 
 		expect(await store.getActiveAccountId()).toBe("safe-user");
 		expect(await store.listAccounts()).toEqual([
@@ -187,7 +183,11 @@ describe("OAuthCredentialFileStore AuthDocument v2", () => {
 		const inactiveExpires = Date.now() + 9_000_000;
 		await store.upsertAccount({
 			id: "active",
-			credential: oauthCredential({ access: "access-active", refresh: "refresh-active", expires: Date.now() + 5_000_000 }),
+			credential: oauthCredential({
+				access: "access-active",
+				refresh: "refresh-active",
+				expires: Date.now() + 5_000_000,
+			}),
 			makeActive: true,
 		});
 		await store.upsertAccount({

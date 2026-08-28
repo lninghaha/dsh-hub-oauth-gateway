@@ -427,9 +427,7 @@ export class OAuthCredentialFileStore implements CredentialStore {
 
 	private async mutateDocument(
 		options: { allowUnreadable: boolean },
-		fn: (
-			current: AuthDocumentV2 | undefined,
-		) => Promise<AuthDocumentV2 | undefined | typeof UNCHANGED>,
+		fn: (current: AuthDocumentV2 | undefined) => Promise<AuthDocumentV2 | undefined | typeof UNCHANGED>,
 	): Promise<AuthDocumentV2 | undefined> {
 		await mkdir(dirname(this.filename), { recursive: true, mode: 0o700 });
 		return withFileLock(this.filename, async () => {

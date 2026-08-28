@@ -11,27 +11,17 @@ import {
 	CAPABILITY_LIMIT_BOUNDS,
 	type CapabilitySettingsPatch,
 } from "../../../shared/coding-oauth.js";
+import { CODEX_FAST_SESSION_ROUTE, CODEX_STANDARD_SESSION_ROUTE, codexSpeedHint } from "../../codex-fast-session.js";
 import {
 	CodingOAuthApiError,
 	useCapabilitiesPatchMutation,
 	useCapabilitiesQuery,
 	useImagineCredentialQuery,
 } from "../../coding-oauth-api.js";
-import {
-	CODEX_FAST_SESSION_ROUTE,
-	CODEX_STANDARD_SESSION_ROUTE,
-	codexSpeedHint,
-} from "../../codex-fast-session.js";
 import type { Translate } from "../../locales.js";
 import { SettingsRow, Toggle } from "../controls.js";
 
-function CodexSpeedControl({
-	enabled,
-	t,
-}: {
-	readonly enabled: boolean;
-	readonly t: Translate;
-}) {
+function CodexSpeedControl({ enabled, t }: { readonly enabled: boolean; readonly t: Translate }) {
 	const hint = codexSpeedHint(enabled, enabled);
 	if (hint === "hidden") return null;
 	return (

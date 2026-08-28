@@ -12,12 +12,7 @@ import { lstat, open } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, posix, resolve } from "node:path";
 import { promisify } from "node:util";
-import {
-	CLAUDE_PI_PROVIDER,
-	CODEX_PI_PROVIDER,
-	KIMI_PI_PROVIDER,
-	XAI_PI_PROVIDER,
-} from "./ids.js";
+import { CLAUDE_PI_PROVIDER, CODEX_PI_PROVIDER, KIMI_PI_PROVIDER, XAI_PI_PROVIDER } from "./ids.js";
 
 /** Hard ceiling for a CLI source or destination document. */
 export const OAUTH_SOURCE_MAX_BYTES = 64 * 1024;

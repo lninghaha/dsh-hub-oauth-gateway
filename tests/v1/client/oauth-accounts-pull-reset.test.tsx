@@ -103,10 +103,12 @@ describe("AccountsTab CLI pull state", () => {
 	beforeEach(() => {
 		previewData = previewFixture;
 		commitData = { action: "imported", displayPath: previewFixture.displayPath, expiresAt: 10, warnings: [] };
-		previewMutate.mockImplementation((kind: string, options?: { onSuccess?: (data: typeof previewFixture) => void }) => {
-			previewData = previewFixture;
-			options?.onSuccess?.(previewFixture);
-		});
+		previewMutate.mockImplementation(
+			(kind: string, options?: { onSuccess?: (data: typeof previewFixture) => void }) => {
+				previewData = previewFixture;
+				options?.onSuccess?.(previewFixture);
+			},
+		);
 		commitMutate.mockImplementation(() => {
 			commitData = { action: "imported", displayPath: previewFixture.displayPath, expiresAt: 10, warnings: [] };
 		});

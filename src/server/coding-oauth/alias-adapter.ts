@@ -14,7 +14,7 @@ import type {
 import { LlmAdapter, LlmError } from "@deepseek-ai/dsh-llm";
 import { remapXaiCapacityFailure } from "./grok-errors.js";
 import { remapAuthFailureIfContextOverflow } from "./kimi-errors.js";
-import { type PoolPick, iterateWithPoolAccount } from "./quota-pool.js";
+import { iterateWithPoolAccount, type PoolPick } from "./quota-pool.js";
 
 export interface AliasLlmRoutePolicy {
 	/** User-facing provider name shown above models in the model selector. */
@@ -142,11 +142,9 @@ export class AliasLlmAdapter extends LlmAdapter {
 
 		let lastError: unknown;
 		for (const pick of candidates) {
-			const iterator = iterateWithPoolAccount(
-				poolNative,
-				pick.accountId,
-				this.streamOne(route, streamOptions),
-			)[Symbol.asyncIterator]();
+			const iterator = iterateWithPoolAccount(poolNative, pick.accountId, this.streamOne(route, streamOptions))[
+				Symbol.asyncIterator
+			]();
 			let first: IteratorResult<StreamChunk>;
 			try {
 				first = await iterator.next();

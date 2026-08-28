@@ -134,8 +134,7 @@ export function orderPoolAccounts(input: SelectAccountInput): PoolPick[] {
 	const accounts = [...new Set(input.accounts.filter((id) => id.length > 0))];
 	if (accounts.length === 0) return [];
 
-	const stickyId =
-		input.stickyId !== undefined && accounts.includes(input.stickyId) ? input.stickyId : undefined;
+	const stickyId = input.stickyId !== undefined && accounts.includes(input.stickyId) ? input.stickyId : undefined;
 
 	if (input.strategy === "priority") {
 		const ordered = priorityOrder(accounts, input.activeId, stickyId);
@@ -168,9 +167,7 @@ export function orderPoolAccounts(input: SelectAccountInput): PoolPick[] {
 	const picks: PoolPick[] = [];
 	for (const [index, accountId] of scored.entries()) {
 		const reason =
-			stickyId !== undefined && index === 0 && accountId === stickyId
-				? "sticky"
-				: ("quota_aware" as const);
+			stickyId !== undefined && index === 0 && accountId === stickyId ? "sticky" : ("quota_aware" as const);
 		picks.push({ accountId, reason });
 	}
 	for (const accountId of quotaFull) {
@@ -300,7 +297,9 @@ export function currentPoolAccountOverride(): PoolOverride | undefined {
 	return poolOverrideStorage.getStore();
 }
 
-export type GetQuotaWindows = (accountId: string) => readonly QuotaWindow[] | undefined | Promise<readonly QuotaWindow[] | undefined>;
+export type GetQuotaWindows = (
+	accountId: string,
+) => readonly QuotaWindow[] | undefined | Promise<readonly QuotaWindow[] | undefined>;
 
 export interface AccountPoolControllerOptions {
 	readonly mode: PoolMode;

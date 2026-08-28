@@ -474,7 +474,8 @@ export const zh = {
 	"capabilities.codexSpeedStandard": "标准",
 	"capabilities.codexSpeedFast": "Fast",
 	"capabilities.codexSpeedWaiting": "等待实时目录出现 priority 模型后再发布 Fast 路由。",
-	"capabilities.codexSpeedPickerHint": "会话模型选择器在请求 Fast 时使用已有的 codex-oauth-fast 路由（非第二套 Fast 栈）。",
+	"capabilities.codexSpeedPickerHint":
+		"会话模型选择器在请求 Fast 时使用已有的 codex-oauth-fast 路由（非第二套 Fast 栈）。",
 	"capabilities.grokImagineImage": "Grok Imagine 图像",
 	"capabilities.grokImagineImageHint": "走官方 api.x.ai，使用独立的 XAI_API_KEY 凭据（非 OAuth）。",
 	"capabilities.grokImagineVideo": "Grok Imagine 视频",

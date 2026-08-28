@@ -221,9 +221,7 @@ function AccountList({
 						<li className="dus-oauth-account-row" key={account.id} data-account-id={account.id}>
 							<span className="dus-oauth-account-label">
 								{title}
-								{isActive ? (
-									<span className="dus-row-hint"> · {t("oauth.accountActive")}</span>
-								) : null}
+								{isActive ? <span className="dus-row-hint"> · {t("oauth.accountActive")}</span> : null}
 							</span>
 							<div className="dus-inline-actions">
 								{isActive ? null : (
