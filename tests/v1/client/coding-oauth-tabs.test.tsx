@@ -181,6 +181,10 @@ vi.mock("../../../src/client/coding-oauth-api.js", async () => {
 	};
 });
 
+vi.mock("../../../src/client/queries.js", () => ({
+	useAccountsQuery: () => ({ data: { ok: true, data: { accounts: [] } }, error: null, isPending: false }),
+}));
+
 const t = translator(((key: string) => (en as Record<string, string>)[key] ?? key) as never);
 
 function renderWithClient(node: ReactNode): void {
@@ -212,6 +216,7 @@ describe("coding OAuth settings tabs", () => {
 		expect(toggle).toBeTruthy();
 		fireEvent.click(toggle as Element);
 		expect(document.querySelector('[data-oauth-source="claude"]')).toBeTruthy();
+		expect(screen.getByRole("button", { name: en["oauth.importClaudeCode"] })).toBeTruthy();
 		expect(screen.queryByText(en["oauth.importTitle"])).toBeNull();
 	});
 
@@ -292,5 +297,15 @@ describe("coding OAuth settings tabs", () => {
 		}
 		expect(screen.getByText(en["capabilities.codexSearch"])).toBeTruthy();
 		expect(screen.getByText(en["capabilities.grokImagineVideo"])).toBeTruthy();
+		expect(document.querySelector("[data-codex-speed]")).toBeNull();
+	});
+
+	it("shows Codex Speed Standard/Fast hint when codexFast is enabled", () => {
+		capabilitiesFixture.value.codexFast = true;
+		renderWithClient(<CapabilitiesTab t={t} />);
+		expect(document.querySelector('[data-codex-speed="standard-and-fast"]')).toBeTruthy();
+		expect(screen.getByText(en["capabilities.codexSpeedTitle"])).toBeTruthy();
+		expect(screen.getByText(en["capabilities.codexSpeedPickerHint"])).toBeTruthy();
+		capabilitiesFixture.value.codexFast = false;
 	});
 });

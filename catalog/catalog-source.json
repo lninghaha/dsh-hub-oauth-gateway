@@ -1,0 +1,22 @@
+{
+  "manifestVersion": "1.0.0",
+  "providerId": "io.github.lninghaha.dsh-hub-oauth-gateway",
+  "name": "DSH Hub OAuth Gateway",
+  "description": "Local-first usage, cost, quota, and coding-subscription OAuth for DeepSeek Harness Web. Path A catalog source for Desktop Market GUI install.",
+  "homepage": "https://github.com/lninghaha/dsh-hub-oauth-gateway",
+  "attribution": {
+    "name": "lninghaha",
+    "url": "https://github.com/lninghaha"
+  },
+  "transport": {
+    "kind": "https-json",
+    "endpoint": "https://lninghaha.github.io/dsh-hub-oauth-gateway/v1/plugins",
+    "method": "GET"
+  },
+  "query": {
+    "supported": ["q", "category", "cursor", "limit"],
+    "defaultLimit": 50,
+    "maxLimit": 50,
+    "sorts": []
+  }
+}

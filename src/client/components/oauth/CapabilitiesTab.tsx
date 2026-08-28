@@ -17,8 +17,44 @@ import {
 	useCapabilitiesQuery,
 	useImagineCredentialQuery,
 } from "../../coding-oauth-api.js";
+import {
+	CODEX_FAST_SESSION_ROUTE,
+	CODEX_STANDARD_SESSION_ROUTE,
+	codexSpeedHint,
+} from "../../codex-fast-session.js";
 import type { Translate } from "../../locales.js";
 import { SettingsRow, Toggle } from "../controls.js";
+
+function CodexSpeedControl({
+	enabled,
+	t,
+}: {
+	readonly enabled: boolean;
+	readonly t: Translate;
+}) {
+	const hint = codexSpeedHint(enabled, enabled);
+	if (hint === "hidden") return null;
+	return (
+		<div className="dus-oauth-speed" data-codex-speed={hint}>
+			<div className="dus-row-hint">
+				<strong>{t("capabilities.codexSpeedTitle")}</strong>
+			</div>
+			<div className="dus-oauth-speed-options">
+				<span className="dus-oauth-speed-chip">
+					{t("capabilities.codexSpeedStandard")} · <code>{CODEX_STANDARD_SESSION_ROUTE}</code>
+				</span>
+				{hint === "standard-and-fast" ? (
+					<span className="dus-oauth-speed-chip is-fast">
+						{t("capabilities.codexSpeedFast")} · <code>{CODEX_FAST_SESSION_ROUTE}</code>
+					</span>
+				) : (
+					<span className="dus-row-hint">{t("capabilities.codexSpeedWaiting")}</span>
+				)}
+			</div>
+			<p className="dus-row-hint">{t("capabilities.codexSpeedPickerHint")}</p>
+		</div>
+	);
+}
 
 export function CapabilitiesTab({ t }: { readonly t: Translate }) {
 	const snapshot = useCapabilitiesQuery();
@@ -61,19 +97,21 @@ export function CapabilitiesTab({ t }: { readonly t: Translate }) {
 					) : null}
 					{patch.isSuccess ? <p className="dus-save-state">{t("capabilities.saved")}</p> : null}
 					{CAPABILITY_FLAG_DEFS.map((flag) => (
-						<SettingsRow
-							key={flag.key}
-							title={t(flag.labelKey)}
-							hint={t(`${flag.labelKey}Hint`)}
-							control={
-								<Toggle
-									label={t(flag.labelKey)}
-									checked={data.value[flag.key]}
-									disabled={!data.writable || patch.isPending}
-									onChange={(next) => write({ [flag.key]: next })}
-								/>
-							}
-						/>
+						<div key={flag.key}>
+							<SettingsRow
+								title={t(flag.labelKey)}
+								hint={t(`${flag.labelKey}Hint`)}
+								control={
+									<Toggle
+										label={t(flag.labelKey)}
+										checked={data.value[flag.key]}
+										disabled={!data.writable || patch.isPending}
+										onChange={(next) => write({ [flag.key]: next })}
+									/>
+								}
+							/>
+							{flag.key === "codexFast" ? <CodexSpeedControl enabled={data.value.codexFast} t={t} /> : null}
+						</div>
 					))}
 					<SettingsRow
 						title={t("capabilities.searchResults")}
