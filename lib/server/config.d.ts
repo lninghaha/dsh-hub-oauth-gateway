@@ -61,6 +61,14 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
                 csrfToken: z.ZodString;
             }, z.core.$strict>>;
         }, z.core.$strict>>;
+        pool: z.ZodDefault<z.ZodObject<{
+            mode: z.ZodDefault<z.ZodEnum<{
+                off: "off";
+                priority: "priority";
+                quota_aware: "quota_aware";
+            }>>;
+            switchMargin: z.ZodDefault<z.ZodNumber>;
+        }, z.core.$strict>>;
     }, z.core.$strict>>;
     localMonitor: z.ZodDefault<z.ZodObject<{
         enabled: z.ZodDefault<z.ZodBoolean>;
@@ -98,6 +106,10 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
     codingOAuth: {
         enabled: boolean;
         proxyKimi: boolean;
+        pool: {
+            mode: "off" | "priority" | "quota_aware";
+            switchMargin: number;
+        };
         proxy?: string | undefined;
         retryPolicy?: Record<string, unknown> | undefined;
         capabilities?: {
@@ -164,6 +176,10 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
     codingOAuth: {
         enabled: boolean;
         proxyKimi: boolean;
+        pool: {
+            mode: "off" | "priority" | "quota_aware";
+            switchMargin: number;
+        };
         proxy?: string | undefined;
         retryPolicy?: Record<string, unknown> | undefined;
         capabilities?: {

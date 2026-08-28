@@ -20,6 +20,8 @@ vi.mock("../../../src/client/coding-oauth-api.js", () => ({
 	useCodingOAuthCancelMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useCodingOAuthLogoutMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useCodingOAuthModelsMutation: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, error: null }),
+	useCodingOAuthSetActiveAccountMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+	useCodingOAuthRemoveAccountMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useOAuthSourcesQuery: () => ({
 		data: { sources: [{ kind: "claude", displayPath: "~/.claude/.credentials.json", available: true }] },
 		error: null,

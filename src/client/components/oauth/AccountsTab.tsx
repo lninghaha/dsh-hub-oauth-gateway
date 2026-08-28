@@ -7,18 +7,22 @@
 
 import { useEffect, useState } from "react";
 import type {
+	AccountSummary,
 	CodingOAuthProviderSlug,
 	GrokBuildWebAuthStatus,
 	OAuthImportPreview,
 	OAuthSourceDiscovery,
 	SubscriptionWebAuthStatus,
 } from "../../../shared/coding-oauth.js";
+import { OAUTH_MAX_ACCOUNTS } from "../../../shared/coding-oauth.js";
 import {
 	useCodingOAuthCancelMutation,
 	useCodingOAuthCodeMutation,
 	useCodingOAuthLoginMutation,
 	useCodingOAuthLogoutMutation,
 	useCodingOAuthModelsMutation,
+	useCodingOAuthRemoveAccountMutation,
+	useCodingOAuthSetActiveAccountMutation,
 	useCodingOAuthStatusQuery,
 	useOAuthSourceCancelMutation,
 	useOAuthSourceCommitMutation,
@@ -174,6 +178,91 @@ function SigningInPanel({
 	);
 }
 
+function AccountList({
+	provider,
+	accounts,
+	activeAccountId,
+	methods,
+	t,
+}: {
+	readonly provider: CodingOAuthProviderSlug;
+	readonly accounts: readonly AccountSummary[];
+	readonly activeAccountId: string;
+	readonly methods: readonly { id: string; label: string }[];
+	readonly t: Translate;
+}) {
+	const setActive = useCodingOAuthSetActiveAccountMutation();
+	const remove = useCodingOAuthRemoveAccountMutation();
+	const login = useCodingOAuthLoginMutation();
+	const atCap = accounts.length >= OAUTH_MAX_ACCOUNTS;
+	const mutationError = [setActive.error, remove.error, login.error].find(
+		(value): value is Error => value instanceof Error,
+	);
+	return (
+		<div className="dus-oauth-accounts">
+			<div className="dus-row-hint">{t("oauth.accountsListHint")}</div>
+			<ul className="dus-oauth-account-list">
+				{accounts.map((account) => {
+					const isActive = account.id === activeAccountId;
+					const title = account.label ?? account.accountId ?? account.id;
+					return (
+						<li className="dus-oauth-account-row" key={account.id} data-account-id={account.id}>
+							<span className="dus-oauth-account-label">
+								{title}
+								{isActive ? (
+									<span className="dus-row-hint"> · {t("oauth.accountActive")}</span>
+								) : null}
+							</span>
+							<div className="dus-inline-actions">
+								{isActive ? null : (
+									<button
+										type="button"
+										className="dus-button"
+										disabled={setActive.isPending}
+										onClick={() => setActive.mutate({ provider, accountId: account.id })}
+									>
+										{t("oauth.accountSetDefault")}
+									</button>
+								)}
+								<button
+									type="button"
+									className="dus-button is-danger"
+									disabled={remove.isPending}
+									onClick={() => remove.mutate({ provider, accountId: account.id })}
+								>
+									{t("oauth.accountRemove")}
+								</button>
+							</div>
+						</li>
+					);
+				})}
+			</ul>
+			{atCap ? (
+				<div className="dus-row-hint">{t("oauth.accountsAtCap", { max: OAUTH_MAX_ACCOUNTS })}</div>
+			) : (
+				<div className="dus-inline-actions">
+					{methods.map((method) => (
+						<button
+							key={method.id}
+							type="button"
+							className="dus-button"
+							disabled={login.isPending}
+							onClick={() => login.mutate({ provider, method: method.id, accountMode: "add" })}
+						>
+							{t("oauth.accountAdd")} · {method.label}
+						</button>
+					))}
+				</div>
+			)}
+			{mutationError === undefined ? null : (
+				<p className="dus-error-inline" role="alert">
+					{mutationError.message}
+				</p>
+			)}
+		</div>
+	);
+}
+
 function ProviderCard({
 	provider,
 	title,
@@ -233,7 +322,7 @@ function ProviderCard({
 									type="button"
 									className="dus-button is-primary"
 									disabled={login.isPending}
-									onClick={() => login.mutate({ provider, method: method.id })}
+									onClick={() => login.mutate({ provider, method: method.id, accountMode: "add" })}
 								>
 									{method.label}
 								</button>
@@ -244,6 +333,13 @@ function ProviderCard({
 					{status.status === "signed-in" ? (
 						<>
 							{expiryLabel === null ? null : <span className="dus-row-hint">{expiryLabel}</span>}
+							<AccountList
+								provider={provider}
+								accounts={status.accounts}
+								activeAccountId={status.activeAccountId}
+								methods={methods}
+								t={t}
+							/>
 							<ModelPicker provider={provider} available={status.available} selected={status.selected} t={t} />
 							<div className="dus-inline-actions">
 								<button

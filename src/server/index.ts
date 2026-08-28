@@ -96,6 +96,10 @@ export async function apply(
 				...(config.codingOAuth.ownerRequest === undefined
 					? {}
 					: { ownerRequest: config.codingOAuth.ownerRequest as never }),
+				pool: {
+					mode: config.codingOAuth.pool.mode,
+					switchMargin: config.codingOAuth.pool.switchMargin,
+				},
 			})
 		: undefined;
 	const codingOAuthRuntime = () => codingOAuthOwnership?.holder.current();
@@ -227,6 +231,15 @@ export async function apply(
 			let releaseRuntime = (): void => undefined;
 			const unsubscribe = codingOAuthOwnership.holder.subscribe((runtime) => {
 				releaseRuntime();
+				if (runtime !== undefined) {
+					runtime.setQuotaWindowsSource(async (accountId: string) => {
+						const accounts = await accountService.list();
+						const match =
+							accounts.find((account) => account.profileId === accountId) ??
+							accounts.find((account) => account.providerId === accountId);
+						return match?.windows;
+					});
+				}
 				releaseRuntime = runtime?.onCredentialChange(refreshOAuthQuotas) ?? (() => undefined);
 				if (runtime !== undefined) refreshOAuthQuotas();
 			});

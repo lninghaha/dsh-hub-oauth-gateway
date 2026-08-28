@@ -2,9 +2,9 @@
  * Persistent OAuth session and static model selection for one subscription provider.
  * @module dsh-coding-subscription-oauth/oauth-session
  */
-import type { Api, AuthInteraction, Credential, Model, MutableModels, OAuthCredential, Provider } from "@earendil-works/pi-ai";
+import type { Api, AuthInteraction, Credential, CredentialStore, Model, MutableModels, OAuthCredential, Provider } from "@earendil-works/pi-ai";
 import type { OAuthProviderDefinition } from "./oauth-providers.js";
-import { OAuthCredentialFileStore } from "./store.js";
+import { type LoginPersistOptions, OAuthCredentialFileStore } from "./store.js";
 export declare function oauthModelsCachePath(basename: string, dshHome?: string): string;
 export interface OAuthProviderStatus {
     authenticated: boolean;
@@ -19,7 +19,9 @@ export declare class OAuthProviderSession {
     private selectedIds;
     private readonly onCatalogChange;
     private readonly onCredentialChange;
-    constructor(definition: OAuthProviderDefinition, onCatalogChange?: () => void, store?: OAuthCredentialFileStore, cacheFile?: string, onCredentialChange?: () => void);
+    constructor(definition: OAuthProviderDefinition, onCatalogChange?: () => void, store?: OAuthCredentialFileStore, cacheFile?: string, onCredentialChange?: () => void, 
+    /** Optional CredentialStore overlay (pool proxy); defaults to `store`. */
+    credentials?: CredentialStore);
     availableModels(): Model<Api>[];
     selectedModelIds(): string[] | undefined;
     visibleModels(): Model<Api>[];
@@ -27,7 +29,8 @@ export declare class OAuthProviderSession {
     loadCachedModels(): Promise<void>;
     setSelectedModels(ids: readonly string[]): Promise<void>;
     status(): Promise<OAuthProviderStatus>;
-    login(interaction: AuthInteraction): Promise<Credential>;
+    login(interaction: AuthInteraction, persist?: LoginPersistOptions): Promise<Credential>;
+    notifyCredentialChange(): void;
     resolveAccessToken(): Promise<string | undefined>;
     /**
      * Backdate the stored token's expiry so the next `getAuth()` refreshes.

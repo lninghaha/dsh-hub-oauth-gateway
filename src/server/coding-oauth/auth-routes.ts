@@ -5,6 +5,12 @@ import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-host-webserver";
 import type {} from "@deepseek-ai/dsh-llm";
 import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
+import {
+	CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
+	CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
+	type AccountSummary,
+	type LoginAccountMode,
+} from "../../shared/coding-oauth.js";
 import { CODING_OAUTH_CORE_ABI, type DshCompatibility } from "../../shared/compatibility.js";
 import { grokBuildAuthStatus, importGrokBuildSession, loginGrokBuildSession } from "./auth.js";
 import type { CatalogSource } from "./catalog.js";
@@ -26,13 +32,13 @@ import {
 	GROK_BUILD_AUTH_LOGOUT_PATH,
 	GROK_BUILD_AUTH_MODELS_PATH,
 	GROK_BUILD_AUTH_STATUS_PATH,
-	XAI_PI_PROVIDER,
 } from "./ids.js";
 import { loginGrokBuildPkce } from "./oauth.js";
 import type { SubscriptionLoginMethod } from "./oauth-providers.js";
 import type { OAuthProviderSession } from "./oauth-session.js";
 import { safeMessage } from "./redact.js";
 import type { GrokBuildSession } from "./session.js";
+import type { LoginPersistOptions, OAuthCredentialFileStore } from "./store.js";
 import { LOOPBACK_OWNER_REQUEST_POLICY, type OwnerAccessMode, type OwnerRequestPolicy } from "./web-origin.js";
 import { registerWebRouteSetupAtomically } from "./web-routes.js";
 
@@ -71,6 +77,8 @@ export type GrokBuildWebAuthStatus =
 			catalogSource: CatalogSource;
 			catalogError?: string;
 			grokImportAvailable: boolean;
+			accounts: AccountSummary[];
+			activeAccountId: string;
 	  }
 	| { status: "error"; message: string; grokImportAvailable: boolean };
 
@@ -99,6 +107,29 @@ async function grokImportAvailable(): Promise<boolean> {
 	return (await probeGrokAuth()).available;
 }
 
+async function signedInAccountFields(store: OAuthCredentialFileStore): Promise<{
+	accounts: AccountSummary[];
+	activeAccountId: string;
+}> {
+	const accounts = [...(await store.listAccounts())];
+	const activeAccountId = await store.getActiveAccountId();
+	if (activeAccountId === undefined || accounts.length === 0) {
+		throw new Error("signed-in status requires at least one stored account");
+	}
+	return { accounts, activeAccountId };
+}
+
+function readLoginPersistOptions(body: Record<string, unknown>): LoginPersistOptions {
+	const mode: LoginAccountMode = body.accountMode === "overwrite-active" ? "overwrite-active" : "add";
+	if (mode === "overwrite-active") {
+		return {
+			mode,
+			...(body.confirmOverwrite === true ? { confirmOverwrite: true } : {}),
+		};
+	}
+	return { mode: "add" };
+}
+
 /**
  * One lifecycle owner for the pending login (PKCE or device), the published
  * challenge, the pasted-code channel, and the public status.
@@ -108,6 +139,7 @@ export class GrokBuildWebAuth {
 	private operation: Promise<void> | undefined;
 	private cancellation: AbortController | undefined;
 	private method: GrokBuildLoginMethod = "pkce";
+	private loginPersist: LoginPersistOptions = { mode: "add" };
 	private challenge: LoginChallenge | undefined;
 	private challengeWaiters: Array<{ resolve(value: LoginChallenge): void; reject(error: unknown): void }> = [];
 	private codeResolver: ((code: string) => void) | undefined;
@@ -123,10 +155,11 @@ export class GrokBuildWebAuth {
 	}
 
 	/** Start (or join) a login. A different method aborts and restarts the flow. */
-	async signIn(method: GrokBuildLoginMethod): Promise<LoginChallenge> {
+	async signIn(method: GrokBuildLoginMethod, persist: LoginPersistOptions = { mode: "add" }): Promise<LoginChallenge> {
 		if (this.operation !== undefined && this.method !== method) {
 			await this.cancel();
 		}
+		this.loginPersist = persist;
 		if (this.operation === undefined) this.start(method);
 		if (this.challenge !== undefined) return this.challenge;
 		return new Promise<LoginChallenge>((resolve, reject) => {
@@ -164,6 +197,18 @@ export class GrokBuildWebAuth {
 
 	async setModels(ids: readonly string[]): Promise<void> {
 		await this.session.setSelectedModels(ids);
+		this.state = await this.readStoredStatus();
+	}
+
+	async setActiveAccount(id: string): Promise<void> {
+		await this.session.store.setActiveAccount(id);
+		this.session.notifyCredentialChange();
+		this.state = await this.readStoredStatus();
+	}
+
+	async removeAccount(id: string): Promise<void> {
+		await this.session.store.removeAccount(id);
+		this.session.notifyCredentialChange();
 		this.state = await this.readStoredStatus();
 	}
 
@@ -227,10 +272,8 @@ export class GrokBuildWebAuth {
 					signal.addEventListener("abort", onAbort, { once: true });
 				}),
 		});
-		const written = await this.session.store.modify(XAI_PI_PROVIDER, async () => credential);
-		if (written === undefined || written.type !== "oauth") {
-			throw new Error("grok-build: failed to persist the login credential");
-		}
+		await this.session.store.persistLoginCredential(credential, this.loginPersist);
+		this.session.notifyCredentialChange();
 		await this.session.refreshLiveCatalog();
 	}
 
@@ -249,6 +292,7 @@ export class GrokBuildWebAuth {
 				},
 			},
 			this.session,
+			this.loginPersist,
 		);
 	}
 
@@ -297,6 +341,7 @@ export class GrokBuildWebAuth {
 		if (!stored.authenticated) return { status: "signed-out", grokImportAvailable: grok };
 		const available = this.session.availableModels().map((model) => model.id);
 		const selected = this.session.selectedModelIds();
+		const accounts = await signedInAccountFields(this.session.store);
 		return {
 			status: "signed-in",
 			models: this.session.visibleModels().map((model) => model.id),
@@ -304,6 +349,7 @@ export class GrokBuildWebAuth {
 			selected: selected ?? available,
 			catalogSource: this.session.catalogSource,
 			grokImportAvailable: grok,
+			...accounts,
 			...(this.session.catalogError === undefined ? {} : { catalogError: this.session.catalogError }),
 		};
 	}
@@ -325,7 +371,7 @@ export type SubscriptionWebAuthStatus = {
 } & (
 	| { status: "signed-out" }
 	| { status: "signing-in"; method: SubscriptionLoginMethod; url?: string; userCode?: string }
-	| { status: "signed-in"; expiresAt?: number }
+	| { status: "signed-in"; expiresAt?: number; accounts: AccountSummary[]; activeAccountId: string }
 	| { status: "error"; message: string }
 );
 
@@ -354,6 +400,7 @@ export class SubscriptionWebAuth {
 	private operation: Promise<void> | undefined;
 	private cancellation: AbortController | undefined;
 	private method: SubscriptionLoginMethod;
+	private loginPersist: LoginPersistOptions = { mode: "add" };
 	private challenge: SubscriptionLoginChallenge | undefined;
 	private challengeWaiters: Array<{ resolve(value: SubscriptionLoginChallenge): void; reject(error: unknown): void }> =
 		[];
@@ -371,11 +418,15 @@ export class SubscriptionWebAuth {
 		return this.readStoredStatus();
 	}
 
-	async signIn(method: SubscriptionLoginMethod): Promise<SubscriptionLoginChallenge> {
+	async signIn(
+		method: SubscriptionLoginMethod,
+		persist: LoginPersistOptions = { mode: "add" },
+	): Promise<SubscriptionLoginChallenge> {
 		if (!this.session.definition.loginMethods.includes(method)) {
 			throw new Error(`${this.session.definition.route}: login method "${method}" is not supported`);
 		}
 		if (this.operation !== undefined && this.method !== method) await this.cancel();
+		this.loginPersist = persist;
 		if (this.operation === undefined) this.start(method);
 		if (this.challenge !== undefined) return this.challenge;
 		return new Promise<SubscriptionLoginChallenge>((resolve, reject) => {
@@ -423,6 +474,18 @@ export class SubscriptionWebAuth {
 		this.state = await this.readStoredStatus();
 	}
 
+	async setActiveAccount(id: string): Promise<void> {
+		await this.session.store.setActiveAccount(id);
+		this.session.notifyCredentialChange();
+		this.state = await this.readStoredStatus();
+	}
+
+	async removeAccount(id: string): Promise<void> {
+		await this.session.store.removeAccount(id);
+		this.session.notifyCredentialChange();
+		this.state = await this.readStoredStatus();
+	}
+
 	async signOut(): Promise<void> {
 		this.cancellation?.abort(new Error(`${this.session.definition.route}: sign-in cancelled`));
 		await this.operation?.catch(() => undefined);
@@ -441,7 +504,7 @@ export class SubscriptionWebAuth {
 
 	private baseStatus(): Omit<
 		SubscriptionWebAuthStatus,
-		"status" | "method" | "url" | "userCode" | "message" | "expiresAt"
+		"status" | "method" | "url" | "userCode" | "message" | "expiresAt" | "accounts" | "activeAccountId"
 	> {
 		const available = this.session.availableModels().map((model) => model.id);
 		const selected = this.session.selectedModelIds() ?? available;
@@ -461,9 +524,14 @@ export class SubscriptionWebAuth {
 		const base = this.baseStatus();
 		try {
 			const stored = await this.session.status();
-			return stored.authenticated
-				? { ...base, status: "signed-in", ...(stored.expiresAt === undefined ? {} : { expiresAt: stored.expiresAt }) }
-				: { ...base, status: "signed-out" };
+			if (!stored.authenticated) return { ...base, status: "signed-out" };
+			const accounts = await signedInAccountFields(this.session.store);
+			return {
+				...base,
+				status: "signed-in",
+				...accounts,
+				...(stored.expiresAt === undefined ? {} : { expiresAt: stored.expiresAt }),
+			};
 		} catch (error: unknown) {
 			return { ...base, status: "error", message: safeMessage(error) };
 		}
@@ -495,17 +563,20 @@ export class SubscriptionWebAuth {
 	}
 
 	private async run(cancellation: AbortController): Promise<void> {
-		await this.session.login({
-			signal: cancellation.signal,
-			prompt: (prompt) => {
-				if (prompt.type === "select") return Promise.resolve(optionForLoginMethod(prompt, this.method));
-				if (prompt.type === "manual_code") return this.awaitCode(prompt, cancellation.signal);
-				return Promise.reject(new Error(`${this.session.definition.route}: unsupported OAuth prompt ${prompt.type}`));
+		await this.session.login(
+			{
+				signal: cancellation.signal,
+				prompt: (prompt) => {
+					if (prompt.type === "select") return Promise.resolve(optionForLoginMethod(prompt, this.method));
+					if (prompt.type === "manual_code") return this.awaitCode(prompt, cancellation.signal);
+					return Promise.reject(new Error(`${this.session.definition.route}: unsupported OAuth prompt ${prompt.type}`));
+				},
+				notify: (event) => {
+					this.onEvent(event);
+				},
 			},
-			notify: (event) => {
-				this.onEvent(event);
-			},
-		});
+			this.loginPersist,
+		);
 	}
 
 	private awaitCode(prompt: AuthPrompt, cancellation: AbortSignal): Promise<string> {
@@ -821,9 +892,10 @@ export function registerCodingOAuthRoutes(
 						const body = await readJsonRequest(req);
 						const slug = providerSlug(body);
 						const value = recordBody(body);
+						const persist = readLoginPersistOptions(value);
 						if (slug === "grok") {
 							const method: GrokBuildLoginMethod = value.method === "device" ? "device" : "pkce";
-							return json(res, 200, await grok.signIn(method));
+							return json(res, 200, await grok.signIn(method, persist));
 						}
 						const auth = subscription(slug);
 						const requested = value.method;
@@ -831,7 +903,7 @@ export function registerCodingOAuthRoutes(
 							requested === "browser" || requested === "device"
 								? requested
 								: auth.session.definition.recommendedLoginMethod;
-						json(res, 200, await auth.signIn(method));
+						json(res, 200, await auth.signIn(method, persist));
 					} catch (error: unknown) {
 						json(res, requestErrorStatus(error, 500), { error: safeMessage(error) });
 					}
@@ -910,6 +982,50 @@ export function registerCodingOAuthRoutes(
 						const slug = providerSlug(body);
 						if (slug === "grok") await grok.signOut();
 						else await subscription(slug).signOut();
+						json(res, 200, await allStatus(decision.accessMode));
+					} catch (error: unknown) {
+						json(res, requestErrorStatus(error, 500), { error: safeMessage(error) });
+					}
+				},
+			}),
+			webServer.register({
+				kind: "exact",
+				path: CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
+				handler: async (req, res) => {
+					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
+					const decision = ownerRequestPolicy.authorize(req);
+					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
+					try {
+						const body = recordBody(await readJsonRequest(req));
+						const slug = providerSlug(body);
+						const accountId = body.accountId;
+						if (typeof accountId !== "string" || accountId.trim().length === 0) {
+							return json(res, 400, { error: "accountId must be a non-empty string" });
+						}
+						if (slug === "grok") await grok.setActiveAccount(accountId);
+						else await subscription(slug).setActiveAccount(accountId);
+						json(res, 200, await allStatus(decision.accessMode));
+					} catch (error: unknown) {
+						json(res, requestErrorStatus(error, 500), { error: safeMessage(error) });
+					}
+				},
+			}),
+			webServer.register({
+				kind: "exact",
+				path: CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
+				handler: async (req, res) => {
+					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
+					const decision = ownerRequestPolicy.authorize(req);
+					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
+					try {
+						const body = recordBody(await readJsonRequest(req));
+						const slug = providerSlug(body);
+						const accountId = body.accountId;
+						if (typeof accountId !== "string" || accountId.trim().length === 0) {
+							return json(res, 400, { error: "accountId must be a non-empty string" });
+						}
+						if (slug === "grok") await grok.removeAccount(accountId);
+						else await subscription(slug).removeAccount(accountId);
 						json(res, 200, await allStatus(decision.accessMode));
 					} catch (error: unknown) {
 						json(res, requestErrorStatus(error, 500), { error: safeMessage(error) });

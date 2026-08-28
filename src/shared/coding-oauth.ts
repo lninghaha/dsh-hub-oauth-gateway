@@ -29,6 +29,13 @@ import { DshCompatibilitySchema } from "./compatibility.js";
 
 export const CODING_OAUTH_API_BASE = "/plugins/dsh-grok-build";
 
+/** Hub-local multi-account mutations (peer core contracts do not list these yet). */
+export const CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH = `${CODING_OAUTH_API_BASE}/oauth/accounts/set-active` as const;
+export const CODING_OAUTH_ACCOUNTS_REMOVE_PATH = `${CODING_OAUTH_API_BASE}/oauth/accounts/remove` as const;
+
+/** Operator-owned account hard cap mirrored for Settings copy and client guards. */
+export const OAUTH_MAX_ACCOUNTS = 8;
+
 export const CODING_OAUTH_PATHS = Object.freeze({
 	status: CODING_OAUTH_STATUS_PATH,
 	login: CODING_OAUTH_LOGIN_PATH,
@@ -36,6 +43,8 @@ export const CODING_OAUTH_PATHS = Object.freeze({
 	cancel: CODING_OAUTH_LOGIN_CANCEL_PATH,
 	logout: CODING_OAUTH_LOGOUT_PATH,
 	models: CODING_OAUTH_MODELS_PATH,
+	accountsSetActive: CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
+	accountsRemove: CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
 	sources: OAUTH_IMPORT_SOURCES_PATH,
 	sourcePreview: OAUTH_IMPORT_PREVIEW_PATH,
 	sourceCommit: OAUTH_IMPORT_COMMIT_PATH,
@@ -50,6 +59,18 @@ export const CODING_OAUTH_PATHS = Object.freeze({
 
 export const CodingOAuthProviderSlugSchema = z.enum(["grok", "codex", "kimi", "claude"]);
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
+
+export const LoginAccountModeSchema = z.enum(["add", "overwrite-active"]);
+export type LoginAccountMode = z.infer<typeof LoginAccountModeSchema>;
+
+/** Secret-free row for Settings account lists. Never includes tokens. */
+export const AccountSummarySchema = z.object({
+	id: z.string().min(1).max(128),
+	label: z.string().min(1).optional(),
+	expires: z.number().positive(),
+	accountId: z.string().min(1).optional(),
+});
+export type AccountSummary = z.infer<typeof AccountSummarySchema>;
 
 export const GrokBuildLoginMethodSchema = z.enum(["pkce", "device"]);
 export type GrokBuildLoginMethod = z.infer<typeof GrokBuildLoginMethodSchema>;
@@ -77,6 +98,8 @@ export const GrokBuildWebAuthStatusSchema = z.discriminatedUnion("status", [
 		catalogSource: CatalogSourceSchema,
 		catalogError: z.string().optional(),
 		grokImportAvailable: z.boolean(),
+		accounts: z.array(AccountSummarySchema),
+		activeAccountId: z.string().min(1).max(128),
 	}),
 	z.object({ status: z.literal("error"), message: z.string(), grokImportAvailable: z.boolean() }),
 ]);
@@ -103,7 +126,12 @@ export const SubscriptionWebAuthStatusSchema = z.intersection(
 			url: z.string().optional(),
 			userCode: z.string().optional(),
 		}),
-		z.object({ status: z.literal("signed-in"), expiresAt: z.number().optional() }),
+		z.object({
+			status: z.literal("signed-in"),
+			expiresAt: z.number().optional(),
+			accounts: z.array(AccountSummarySchema),
+			activeAccountId: z.string().min(1).max(128),
+		}),
 		z.object({ status: z.literal("error"), message: z.string() }),
 	]),
 );

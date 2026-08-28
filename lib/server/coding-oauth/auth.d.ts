@@ -4,7 +4,7 @@
  */
 import type { AuthInteraction } from "@earendil-works/pi-ai";
 import type { GrokBuildSession } from "./session.js";
-import { GrokBuildCredentialStore } from "./store.js";
+import { GrokBuildCredentialStore, type LoginPersistOptions } from "./store.js";
 /** Non-secret login state shown by the launcher. */
 export interface GrokBuildAuthStatus {
     authenticated: boolean;
@@ -16,14 +16,14 @@ export interface GrokBuildAuthStatus {
  * `grok-cli:access`); the PKCE authorization-code flow lands in a later
  * milestone as the primary path.
  */
-export declare function loginGrokBuild(interaction: AuthInteraction, store?: GrokBuildCredentialStore): Promise<void>;
+export declare function loginGrokBuild(interaction: AuthInteraction, store?: GrokBuildCredentialStore, persist?: LoginPersistOptions): Promise<void>;
 /** Copy ~/.grok/auth.json into the dsh store. Does not modify the Grok file. */
-export declare function importGrokBuildFromGrok(store?: GrokBuildCredentialStore, filename?: string): Promise<void>;
+export declare function importGrokBuildFromGrok(store?: GrokBuildCredentialStore, filename?: string, persist?: LoginPersistOptions): Promise<void>;
 /** Remove the stored Grok Build credential. */
 export declare function logoutGrokBuild(store?: GrokBuildCredentialStore): Promise<void>;
 /** Read non-secret login state without refreshing the token. */
 export declare function grokBuildAuthStatus(store?: GrokBuildCredentialStore): Promise<GrokBuildAuthStatus>;
 /** Login then refresh the account model list when a session is available. */
-export declare function loginGrokBuildSession(interaction: AuthInteraction, session: GrokBuildSession): Promise<void>;
-export declare function importGrokBuildSession(session: GrokBuildSession, filename?: string): Promise<void>;
+export declare function loginGrokBuildSession(interaction: AuthInteraction, session: GrokBuildSession, persist?: LoginPersistOptions): Promise<void>;
+export declare function importGrokBuildSession(session: GrokBuildSession, filename?: string, persist?: LoginPersistOptions): Promise<void>;
 //# sourceMappingURL=auth.d.ts.map

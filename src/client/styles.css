@@ -1847,6 +1847,32 @@ body {
   gap: 6px;
 }
 
+.dus-oauth-accounts {
+  display: grid;
+  gap: 6px;
+}
+
+.dus-oauth-account-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.dus-oauth-account-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dus-oauth-account-label {
+  min-width: 0;
+  word-break: break-word;
+}
+
 .dus-oauth-import {
   display: grid;
   gap: 8px;

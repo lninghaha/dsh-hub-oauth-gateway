@@ -3,6 +3,7 @@
  * @module dsh-coding-subscription-oauth/store
  */
 
+import { randomBytes } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { withFileLock, writeFileAtomic } from "@deepseek-ai/dsh-atomic-write";
@@ -14,10 +15,20 @@ import { OAuthSourceError, readHardenedOAuthSourceFile } from "./oauth-sources.j
 /** On-disk multi-account format. Readers still accept v1 and migrate under lock. */
 const AUTH_FORMAT_VERSION = 2 as const;
 const AUTH_FORMAT_VERSION_V1 = 1 as const;
-const MAX_ACCOUNTS = 8;
+/** Operator-owned account hard cap (Settings + store). */
+export const OAUTH_MAX_ACCOUNTS = 8;
+const MAX_ACCOUNTS = OAUTH_MAX_ACCOUNTS;
 const LEGACY_ACCOUNT_ID = "legacy";
 const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._:@+-]+$/u;
 const UNCHANGED = Symbol("unchanged");
+
+/** How a login or import writes into the multi-account document. */
+export type LoginPersistMode = "add" | "overwrite-active";
+
+export interface LoginPersistOptions {
+	mode: LoginPersistMode;
+	confirmOverwrite?: boolean;
+}
 
 /** Non-empty account id; max 128; restricted charset for path-safe operator labels. */
 export type AccountId = string;
@@ -196,13 +207,18 @@ function activeCredential(document: AuthDocumentV2): OAuthCredential {
 	return cloneCredential(active.credential);
 }
 
-function accountIdForNewCredential(credential: OAuthCredential): AccountId {
+/**
+ * Prefer provider `credential.accountId` when path-safe; otherwise mint a unique
+ * operator id so multiple anonymous logins do not collide on `legacy`.
+ */
+export function resolveAccountIdForCredential(credential: OAuthCredential): AccountId {
 	const accountIdField = (credential as { accountId?: unknown }).accountId;
-	return isValidAccountId(accountIdField) ? accountIdField : LEGACY_ACCOUNT_ID;
+	if (isValidAccountId(accountIdField)) return accountIdField;
+	return `acct-${randomBytes(8).toString("hex")}`;
 }
 
 function documentFromCredential(credential: OAuthCredential): AuthDocumentV2 {
-	const id = accountIdForNewCredential(credential);
+	const id = resolveAccountIdForCredential(credential);
 	return {
 		version: AUTH_FORMAT_VERSION,
 		activeAccountId: id,
@@ -279,6 +295,7 @@ export function grokBuildAuthPath(dshHome?: string): string {
  */
 export class OAuthCredentialFileStore implements CredentialStore {
 	readonly filename: string;
+	private loginPersist: LoginPersistOptions | undefined;
 
 	constructor(
 		readonly providerId: string,
@@ -351,6 +368,63 @@ export class OAuthCredentialFileStore implements CredentialStore {
 		return cloneDocument(validated);
 	}
 
+	private nextDocumentAfterLogin(
+		current: AuthDocumentV2 | undefined,
+		credential: OAuthCredential,
+		options: LoginPersistOptions,
+	): AuthDocumentV2 {
+		const parsed = parseOAuthCredential(credential, this.filename, this.label);
+		if (options.mode === "overwrite-active") {
+			if (current === undefined) return documentFromCredential(parsed);
+			if (options.confirmOverwrite !== true) {
+				throw new Error(`${this.label}: confirmOverwrite is required to replace the active account`);
+			}
+			return withUpdatedActiveCredential(current, parsed);
+		}
+		const id = resolveAccountIdForCredential(parsed);
+		if (current === undefined) {
+			return {
+				version: AUTH_FORMAT_VERSION,
+				activeAccountId: id,
+				accounts: [
+					{
+						id,
+						credential: cloneCredential(parsed),
+						createdAt: Date.now(),
+					},
+				],
+			};
+		}
+		const existingIndex = current.accounts.findIndex((account) => account.id === id);
+		if (existingIndex < 0 && current.accounts.length >= MAX_ACCOUNTS) {
+			throw new Error(`${this.label}: at most ${String(MAX_ACCOUNTS)} accounts may be stored`);
+		}
+		const accounts = current.accounts.map(cloneAccount);
+		if (existingIndex >= 0) {
+			const existing = accounts[existingIndex];
+			if (existing === undefined) {
+				throw new Error(`${this.label}: account "${id}" is not stored`);
+			}
+			accounts[existingIndex] = {
+				id,
+				...(existing.label === undefined ? {} : { label: existing.label }),
+				credential: cloneCredential(parsed),
+				createdAt: existing.createdAt,
+			};
+		} else {
+			accounts.push({
+				id,
+				credential: cloneCredential(parsed),
+				createdAt: Date.now(),
+			});
+		}
+		return {
+			version: AUTH_FORMAT_VERSION,
+			activeAccountId: id,
+			accounts,
+		};
+	}
+
 	private async mutateDocument(
 		options: { allowUnreadable: boolean },
 		fn: (
@@ -402,10 +476,36 @@ export class OAuthCredentialFileStore implements CredentialStore {
 			if (candidate.type !== "oauth") {
 				throw new Error(`${this.label}: ${this.filename} credential type must be oauth`);
 			}
+			if (this.loginPersist !== undefined) {
+				return this.nextDocumentAfterLogin(current, candidate, this.loginPersist);
+			}
 			if (current === undefined) return documentFromCredential(candidate);
 			return withUpdatedActiveCredential(current, candidate);
 		});
 		return document === undefined ? undefined : activeCredential(document);
+	}
+
+	/**
+	 * Redirect `modify` writes (pi-ai `models.login`) through multi-account upsert
+	 * semantics for the duration of `fn`.
+	 */
+	async runLoginPersist<T>(options: LoginPersistOptions, fn: () => Promise<T>): Promise<T> {
+		if (this.loginPersist !== undefined) {
+			throw new Error(`${this.label}: login persist already in progress`);
+		}
+		this.loginPersist = options;
+		try {
+			return await fn();
+		} finally {
+			this.loginPersist = undefined;
+		}
+	}
+
+	/** Persist a login/import credential without going through pi-ai `modify`. */
+	async persistLoginCredential(credential: OAuthCredential, options: LoginPersistOptions): Promise<void> {
+		await this.mutateDocument({ allowUnreadable: true }, async (current) =>
+			this.nextDocumentAfterLogin(current, credential, options),
+		);
 	}
 
 	/**
@@ -448,6 +548,60 @@ export class OAuthCredentialFileStore implements CredentialStore {
 			return UNCHANGED;
 		});
 		return document?.activeAccountId;
+	}
+
+	/**
+	 * Read one account's credential without changing activeAccountId.
+	 * Used by the optional quota-aware pool proxy for sticky per-request routing.
+	 */
+	async readAccount(id: string): Promise<OAuthCredential | undefined> {
+		if (!isValidAccountId(id)) return undefined;
+		const document = await this.mutateDocument({ allowUnreadable: false }, async (current) => {
+			if (current === undefined) return UNCHANGED;
+			return UNCHANGED;
+		});
+		const account = document?.accounts.find((entry) => entry.id === id);
+		return account === undefined ? undefined : cloneCredential(account.credential);
+	}
+
+	/**
+	 * Serialized refresh/write for one account id. Does not move activeAccountId.
+	 * Returns undefined when the account is absent (caller treats as missing credential).
+	 */
+	async modifyAccount(
+		id: string,
+		fn: (current: Credential | undefined) => Promise<Credential | undefined>,
+	): Promise<Credential | undefined> {
+		if (!isValidAccountId(id)) {
+			throw new TypeError(`${this.label}: account id is invalid`);
+		}
+		const document = await this.mutateDocument({ allowUnreadable: true }, async (current) => {
+			if (current === undefined) return UNCHANGED;
+			const index = current.accounts.findIndex((account) => account.id === id);
+			if (index < 0) return UNCHANGED;
+			const existing = current.accounts[index];
+			if (existing === undefined) return UNCHANGED;
+			const candidate = await fn(cloneCredential(existing.credential));
+			if (candidate === undefined) return UNCHANGED;
+			if (candidate.type !== "oauth") {
+				throw new Error(`${this.label}: ${this.filename} credential type must be oauth`);
+			}
+			const accounts = current.accounts.map(cloneAccount);
+			const target = accounts[index];
+			if (target === undefined) return UNCHANGED;
+			accounts[index] = {
+				...target,
+				credential: cloneCredential(candidate),
+			};
+			return {
+				version: AUTH_FORMAT_VERSION,
+				activeAccountId: current.activeAccountId,
+				accounts,
+			};
+		});
+		if (document === undefined) return undefined;
+		const account = document.accounts.find((entry) => entry.id === id);
+		return account === undefined ? undefined : cloneCredential(account.credential);
 	}
 
 	async setActiveAccount(id: string): Promise<void> {

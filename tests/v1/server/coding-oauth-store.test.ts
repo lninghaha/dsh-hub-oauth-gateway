@@ -164,6 +164,24 @@ describe("OAuthCredentialFileStore AuthDocument v2", () => {
 		expect(await store.read("test-provider")).toMatchObject({ access: "access-1-updated" });
 	});
 
+	it("persistLoginCredential add mode upserts without leaking through listAccounts", async () => {
+		const { store } = await createStore();
+		await store.persistLoginCredential(
+			oauthCredential({ access: "access-1", refresh: "refresh-1", accountId: "user-one" }),
+			{ mode: "add" },
+		);
+		await store.persistLoginCredential(
+			oauthCredential({ access: "access-2", refresh: "refresh-2", accountId: "user-two" }),
+			{ mode: "add" },
+		);
+		expect(await store.getActiveAccountId()).toBe("user-two");
+		expect(await store.listAccounts()).toEqual([
+			expect.objectContaining({ id: "user-one", accountId: "user-one" }),
+			expect.objectContaining({ id: "user-two", accountId: "user-two" }),
+		]);
+		expect(JSON.stringify(await store.listAccounts())).not.toMatch(/access-|refresh-/u);
+	});
+
 	it("CredentialStore.modify and invalidate touch only the active account", async () => {
 		const { store } = await createStore();
 		const inactiveExpires = Date.now() + 9_000_000;

@@ -24,8 +24,10 @@ import {
 } from "./ids.js";
 import type { OAuthProviderSession } from "./oauth-session.js";
 import { grokBuildBaselineModels, grokBuildFingerprintHeaders } from "./provider.js";
+import type { AccountPoolController, PoolCredentialProxy } from "./quota-pool.js";
 import { safeMessage } from "./redact.js";
 import type { GrokBuildSession } from "./session.js";
+import type { OAuthCredentialFileStore } from "./store.js";
 
 type PiAiAuthInjection = PiAiAdapterOptions["auth"];
 type PiAiCredentialStore = PiAiAuthInjection["credentials"];
@@ -41,33 +43,45 @@ const REQUEST_IMAGE_POLICY = {
  * The adapter may ask its collection about every profile, so an unknown id is
  * never allowed to reach a writable store. Reads are empty and writes fail
  * closed, preserving the existing per-provider refresh lock and file policy.
+ * When a pool proxy map is provided, reads/writes go through the proxy so a
+ * request-scoped account override can take effect without rewriting activeAccountId.
  */
-function oauthAuthInjection(grok: GrokBuildSession, subscriptions: readonly OAuthProviderSession[]): PiAiAuthInjection {
+function oauthAuthInjection(
+	grok: GrokBuildSession,
+	subscriptions: readonly OAuthProviderSession[],
+	proxies?: ReadonlyMap<string, PoolCredentialProxy>,
+): PiAiAuthInjection {
 	const stores = new Map<string, PiAiCredentialStore>([
-		[XAI_PI_PROVIDER, grok.store],
-		...subscriptions.map((session) => [session.definition.nativeProviderId, session.store] as const),
+		[XAI_PI_PROVIDER, proxies?.get(XAI_PI_PROVIDER) ?? grok.store],
+		...subscriptions.map(
+			(session) =>
+				[
+					session.definition.nativeProviderId,
+					proxies?.get(session.definition.nativeProviderId) ?? session.store,
+				] as const,
+		),
 	]);
 	const storeFor = (providerId: string): PiAiCredentialStore | undefined => stores.get(providerId);
 	return {
 		credentials: {
-			async read(providerId, options) {
-				return storeFor(providerId)?.read(providerId, options);
+			async read(providerId) {
+				return storeFor(providerId)?.read(providerId);
 			},
-			async list(options) {
-				const entries = await Promise.all([...stores.values()].map((store) => store.list(options)));
+			async list() {
+				const entries = await Promise.all([...stores.values()].map((store) => store.list()));
 				return entries.flat();
 			},
-			async modify(providerId, fn, options) {
+			async modify(providerId, fn) {
 				const store = storeFor(providerId);
 				if (store === undefined)
 					throw new Error(`refusing credential write for unknown OAuth provider "${providerId}"`);
-				return store.modify(providerId, fn, options);
+				return store.modify(providerId, fn);
 			},
-			async delete(providerId, options) {
+			async delete(providerId) {
 				const store = storeFor(providerId);
 				if (store === undefined)
 					throw new Error(`refusing credential deletion for unknown OAuth provider "${providerId}"`);
-				await store.delete(providerId, options);
+				await store.delete(providerId);
 			},
 		},
 		authContext: {
@@ -173,6 +187,8 @@ export function createGrokBuildAdapter(
 export interface CodingOAuthAdapterOptions {
 	retryPolicy?: RetryPolicyConfig;
 	codexFast?: { isEligible(modelId: string): boolean };
+	/** Optional multi-account sticky pool (mode≠off and ≥2 AuthDocument v2 accounts). */
+	accountPool?: AccountPoolController;
 }
 
 function isRetryPolicyConfig(value: object): value is RetryPolicyConfig {
@@ -194,6 +210,7 @@ function splitCodingOAuthAdapterArgs(
 	return {
 		...(fourth.retryPolicy === undefined ? {} : { retryPolicy: fourth.retryPolicy }),
 		...(fourth.codexFast === undefined ? {} : { codexFast: fourth.codexFast }),
+		...(fourth.accountPool === undefined ? {} : { accountPool: fourth.accountPool }),
 	};
 }
 
@@ -218,7 +235,7 @@ export function createCodingOAuthAdapter(
 	retryPolicyOrOptions?: RetryPolicyConfig | CodingOAuthAdapterOptions,
 	options?: CodingOAuthAdapterOptions,
 ): LlmAdapter {
-	const { retryPolicy, codexFast } = splitCodingOAuthAdapterArgs(retryPolicyOrOptions, options);
+	const { retryPolicy, codexFast, accountPool } = splitCodingOAuthAdapterArgs(retryPolicyOrOptions, options);
 	const byNativeId = new Map(subscriptions.map((session) => [session.definition.nativeProviderId, session]));
 	const codexSession = byNativeId.get(CODEX_PI_PROVIDER);
 	const aliases = new Map<string, string>([
@@ -256,6 +273,7 @@ export function createCodingOAuthAdapter(
 		});
 	}
 
+	const poolProxies = accountPool === undefined ? undefined : buildPoolProxies(grok, subscriptions, accountPool);
 	const inner = new PiAiAdapter({
 		profiles: () => {
 			const profiles = new Map<string, ResolvedPiAiProviderProfile>();
@@ -311,7 +329,7 @@ export function createCodingOAuthAdapter(
 			if (session === undefined) throw new LlmError(`Unknown OAuth provider "${provider}"`, "NO_ADAPTER");
 			return resolveOAuthToken(session.definition.displayName, () => session.resolveAccessToken());
 		},
-		auth: oauthAuthInjection(grok, subscriptions),
+		auth: oauthAuthInjection(grok, subscriptions, poolProxies),
 		resolveAttachments,
 	});
 
@@ -320,7 +338,47 @@ export function createCodingOAuthAdapter(
 	// that native replay provider before PiAiAdapter validates it.
 	const replayProviders = new Map(aliases);
 	replayProviders.set(CODEX_OAUTH_FAST_ROUTE, CODEX_PI_PROVIDER);
-	return new AliasLlmAdapter(inner, aliases, policies, replayProviders);
+	const poolHooks =
+		accountPool === undefined
+			? undefined
+			: {
+					nativeProviderId(route: string): string | undefined {
+						if (route === GROK_BUILD_ROUTE) return XAI_PI_PROVIDER;
+						if (route === CODEX_OAUTH_FAST_ROUTE) return CODEX_PI_PROVIDER;
+						return aliases.get(route);
+					},
+					async candidates(nativeProviderId: string, sessionId: string | undefined) {
+						const store = storeForNative(grok, subscriptions, nativeProviderId);
+						if (store === undefined) return [];
+						return accountPool.candidates(store, nativeProviderId, sessionId);
+					},
+					remember(nativeProviderId: string, sessionId: string | undefined, accountId: string) {
+						accountPool.remember(nativeProviderId, sessionId, accountId);
+					},
+				};
+	return new AliasLlmAdapter(inner, aliases, policies, replayProviders, poolHooks);
+}
+
+function buildPoolProxies(
+	grok: GrokBuildSession,
+	subscriptions: readonly OAuthProviderSession[],
+	accountPool: AccountPoolController,
+): Map<string, PoolCredentialProxy> {
+	const proxies = new Map<string, PoolCredentialProxy>();
+	proxies.set(XAI_PI_PROVIDER, accountPool.wrap(grok.store));
+	for (const session of subscriptions) {
+		proxies.set(session.definition.nativeProviderId, accountPool.wrap(session.store));
+	}
+	return proxies;
+}
+
+function storeForNative(
+	grok: GrokBuildSession,
+	subscriptions: readonly OAuthProviderSession[],
+	nativeProviderId: string,
+): OAuthCredentialFileStore | undefined {
+	if (nativeProviderId === XAI_PI_PROVIDER) return grok.store;
+	return subscriptions.find((session) => session.definition.nativeProviderId === nativeProviderId)?.store;
 }
 
 /**

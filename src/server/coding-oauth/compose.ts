@@ -78,11 +78,16 @@ import { OAuthProviderSession } from "./oauth-session.js";
 import type { OAuthSourceCredential } from "./oauth-sources.js";
 import { acquireCodingOAuthProxy } from "./proxy.js";
 import { GrokBuildSession } from "./session.js";
-import { GrokBuildCredentialStore, type OAuthCredentialFileStore } from "./store.js";
+import { GrokBuildCredentialStore, OAuthCredentialFileStore, oauthCredentialPath } from "./store.js";
+import {
+	AccountPoolController,
+	type GetQuotaWindows,
+	type PoolMode,
+} from "./quota-pool.js";
 import { createOwnerRequestPolicy, type OwnerRequestPolicyConfig } from "./web-origin.js";
 
 export { createCodingOAuthAdapter, createGrokBuildAdapter, preferredGrokBuildModel } from "./adapter.js";
-export type { AliasLlmRoutePolicy } from "./alias-adapter.js";
+export type { AliasLlmRoutePolicy, AliasLlmPoolHooks } from "./alias-adapter.js";
 export { AliasLlmAdapter } from "./alias-adapter.js";
 export type { GrokBuildAuthStatus } from "./auth.js";
 export {
@@ -199,6 +204,16 @@ export {
 	grokBuildProxyInEffect,
 } from "./proxy.js";
 export { redactProxyUrl, safeMessage } from "./redact.js";
+export {
+	AccountPoolController,
+	PoolCredentialProxy,
+	QUOTA_FULL_RATIO,
+	StickyAccountMap,
+	orderPoolAccounts,
+	selectAccount,
+	urgencyFromSnapshots,
+} from "./quota-pool.js";
+export type { GetQuotaWindows, PoolMode, PoolPick } from "./quota-pool.js";
 export { GrokBuildSession } from "./session.js";
 export {
 	GrokBuildCredentialStore,
@@ -245,6 +260,11 @@ export interface Config {
 	gateway?: Partial<GatewayConfig>;
 	/** Owner-only Settings access over loopback, SSH forwarding, or a trusted HTTPS proxy. */
 	ownerRequest?: OwnerRequestPolicyConfig;
+	/** Optional multi-account sticky pool (default off = active account only). */
+	pool?: {
+		mode?: "off" | "priority" | "quota_aware";
+		switchMargin?: number;
+	};
 }
 
 export const Config: z<Config> = z.object({
@@ -261,6 +281,10 @@ export const Config: z<Config> = z.object({
 			ownerProof: z.string(),
 			csrfToken: z.string(),
 		}),
+	}),
+	pool: z.object({
+		mode: z.union([z.const("off"), z.const("priority"), z.const("quota_aware")]).default("off"),
+		switchMargin: z.number().default(2),
 	}),
 });
 
@@ -313,6 +337,9 @@ function oauthImportStore(store: OAuthCredentialFileStore): OAuthImportDestinati
 				return next === undefined ? current : asStoredCredential(next);
 			});
 			return asSourceCredential(result);
+		},
+		async persistLoginCredential(credential, options) {
+			await store.persistLoginCredential(asStoredCredential(credential), options);
 		},
 	};
 }
@@ -368,6 +395,8 @@ export interface CodingOAuthRuntime {
 	currentCapabilities(): ReturnType<CapabilityRuntimeState["current"]>;
 	/** Register a listener for OAuth login / logout / CLI import (quota refresh). */
 	onCredentialChange(listener: () => void): () => void;
+	/** Late-bind AccountService (or test) windows for quota_aware scoring. */
+	setQuotaWindowsSource(getQuotaWindows: GetQuotaWindows): void;
 }
 
 /**
@@ -417,20 +446,32 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			logger.warn(error);
 		}
 	};
-	const grok = new GrokBuildSession(new GrokBuildCredentialStore(), notifyCatalogChange, emitCredentialChange);
-	const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map(
-		(definition) =>
-			new OAuthProviderSession(
-				definition,
-				() => {
-					if (definition.nativeProviderId === CODEX_PI_PROVIDER) invalidateOptionalAuthState();
-					notifyCatalogChange();
-				},
-				undefined,
-				undefined,
-				emitCredentialChange,
-			),
-	);
+	const grokStore = new GrokBuildCredentialStore();
+	const accountPool = new AccountPoolController({
+		mode: (config.pool?.mode ?? "off") as PoolMode,
+		switchMargin: config.pool?.switchMargin ?? 2,
+	});
+	const grokProxy = accountPool.wrap(grokStore);
+	const grok = new GrokBuildSession(grokStore, notifyCatalogChange, emitCredentialChange, grokProxy);
+	const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map((definition) => {
+		const store = new OAuthCredentialFileStore(
+			definition.nativeProviderId,
+			oauthCredentialPath(definition.authFilename),
+			definition.route,
+		);
+		const proxy = accountPool.wrap(store);
+		return new OAuthProviderSession(
+			definition,
+			() => {
+				if (definition.nativeProviderId === CODEX_PI_PROVIDER) invalidateOptionalAuthState();
+				notifyCatalogChange();
+			},
+			store,
+			undefined,
+			emitCredentialChange,
+			proxy,
+		);
+	});
 	const codex = requireSubscription(subscriptions, CODEX_PI_PROVIDER);
 	const codexAuth = codexAuthFromSession(codex);
 	const usage = createCodexUsageReader({ auth: codexAuth });
@@ -455,6 +496,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 				codexFast: {
 					isEligible: (modelId) => runtime.current().codexFast && codexModels.isPriorityEligible(modelId),
 				},
+				...(accountPool.mode === "off" ? {} : { accountPool }),
 			}),
 		);
 		llmCtx.effect(
@@ -714,6 +756,9 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			return () => {
 				credentialChangeListeners.delete(listener);
 			};
+		},
+		setQuotaWindowsSource(getQuotaWindows) {
+			accountPool.setQuotaWindowsSource(getQuotaWindows);
 		},
 	};
 }

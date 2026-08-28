@@ -4,6 +4,7 @@ import type { RetryPolicyConfig } from "@deepseek-ai/dsh-llm";
 import { type LlmAdapter } from "@deepseek-ai/dsh-llm";
 import { PiAiAdapter } from "@deepseek-ai/dsh-llm-pi-ai";
 import type { OAuthProviderSession } from "./oauth-session.js";
+import type { AccountPoolController } from "./quota-pool.js";
 import type { GrokBuildSession } from "./session.js";
 /** Prefer grok-4.6 when the current (live or baseline) list has it. */
 export declare function preferredGrokBuildModel(models?: readonly {
@@ -17,6 +18,8 @@ export interface CodingOAuthAdapterOptions {
     codexFast?: {
         isEligible(modelId: string): boolean;
     };
+    /** Optional multi-account sticky pool (mode≠off and ≥2 AuthDocument v2 accounts). */
+    accountPool?: AccountPoolController;
 }
 /** Create the four-route OAuth adapter while preserving each pi-ai native id. */
 export declare function createCodingOAuthAdapter(grok: GrokBuildSession, subscriptions: readonly OAuthProviderSession[], resolveAttachments: () => AttachmentStore | undefined, retryPolicy?: RetryPolicyConfig, options?: CodingOAuthAdapterOptions): LlmAdapter;

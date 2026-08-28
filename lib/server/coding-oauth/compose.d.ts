@@ -16,9 +16,10 @@ import { type CapabilitySettingsPatch } from "./capability-settings.js";
 import { type GatewayConfig } from "./gateway-config.js";
 import { OAuthProviderSession } from "./oauth-session.js";
 import { GrokBuildSession } from "./session.js";
+import { type GetQuotaWindows } from "./quota-pool.js";
 import { type OwnerRequestPolicyConfig } from "./web-origin.js";
 export { createCodingOAuthAdapter, createGrokBuildAdapter, preferredGrokBuildModel } from "./adapter.js";
-export type { AliasLlmRoutePolicy } from "./alias-adapter.js";
+export type { AliasLlmRoutePolicy, AliasLlmPoolHooks } from "./alias-adapter.js";
 export { AliasLlmAdapter } from "./alias-adapter.js";
 export type { GrokBuildAuthStatus } from "./auth.js";
 export { grokBuildAuthStatus, importGrokBuildFromGrok, importGrokBuildSession, loginGrokBuild, loginGrokBuildSession, logoutGrokBuild, } from "./auth.js";
@@ -40,6 +41,8 @@ export { GROK_BUILD_BASE_URL, GROK_BUILD_MODELS_URL, GROK_CLIENT_VERSION, grokBu
 export type { CodingOAuthProxyOptions } from "./proxy.js";
 export { codingOAuthProxyInEffect, codingOAuthProxyUnreachableHint, ensureCodingOAuthProxy, ensureGrokBuildProxy, grokBuildProxyInEffect, } from "./proxy.js";
 export { redactProxyUrl, safeMessage } from "./redact.js";
+export { AccountPoolController, PoolCredentialProxy, QUOTA_FULL_RATIO, StickyAccountMap, orderPoolAccounts, selectAccount, urgencyFromSnapshots, } from "./quota-pool.js";
+export type { GetQuotaWindows, PoolMode, PoolPick } from "./quota-pool.js";
 export { GrokBuildSession } from "./session.js";
 export { GrokBuildCredentialStore, grokBuildAuthPath, OAuthCredentialFileStore, oauthCredentialPath, } from "./store.js";
 /** Stable identity string for the coding OAuth plugin (compat with grok-build logs/settings). */
@@ -68,6 +71,11 @@ export interface Config {
     gateway?: Partial<GatewayConfig>;
     /** Owner-only Settings access over loopback, SSH forwarding, or a trusted HTTPS proxy. */
     ownerRequest?: OwnerRequestPolicyConfig;
+    /** Optional multi-account sticky pool (default off = active account only). */
+    pool?: {
+        mode?: "off" | "priority" | "quota_aware";
+        switchMargin?: number;
+    };
 }
 export declare const Config: z<Config>;
 export interface CodingOAuthRuntime {
@@ -82,6 +90,8 @@ export interface CodingOAuthRuntime {
     currentCapabilities(): ReturnType<CapabilityRuntimeState["current"]>;
     /** Register a listener for OAuth login / logout / CLI import (quota refresh). */
     onCredentialChange(listener: () => void): () => void;
+    /** Late-bind AccountService (or test) windows for quota_aware scoring. */
+    setQuotaWindowsSource(getQuotaWindows: GetQuotaWindows): void;
 }
 /**
  * Register the `grok-build` LLM route with a provider-native OAuth store.

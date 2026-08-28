@@ -9,7 +9,7 @@ import { xaiProvider } from "@earendil-works/pi-ai/providers/xai";
 import { importGrokAuth } from "./grok-import.js";
 import { XAI_PI_PROVIDER } from "./ids.js";
 import type { GrokBuildSession } from "./session.js";
-import { GrokBuildCredentialStore } from "./store.js";
+import { GrokBuildCredentialStore, type LoginPersistOptions } from "./store.js";
 
 /** Non-secret login state shown by the launcher. */
 export interface GrokBuildAuthStatus {
@@ -26,18 +26,20 @@ export interface GrokBuildAuthStatus {
 export async function loginGrokBuild(
 	interaction: AuthInteraction,
 	store: GrokBuildCredentialStore = new GrokBuildCredentialStore(),
+	persist: LoginPersistOptions = { mode: "add" },
 ): Promise<void> {
 	const models = createModels({ credentials: store });
 	models.setProvider(xaiProvider());
-	await models.login(XAI_PI_PROVIDER, "oauth", interaction);
+	await store.runLoginPersist(persist, () => models.login(XAI_PI_PROVIDER, "oauth", interaction));
 }
 
 /** Copy ~/.grok/auth.json into the dsh store. Does not modify the Grok file. */
 export async function importGrokBuildFromGrok(
 	store: GrokBuildCredentialStore = new GrokBuildCredentialStore(),
 	filename?: string,
+	persist: LoginPersistOptions = { mode: "add" },
 ): Promise<void> {
-	await importGrokAuth(store, filename);
+	await importGrokAuth(store, filename, persist);
 }
 
 /** Remove the stored Grok Build credential. */
@@ -56,14 +58,22 @@ export async function grokBuildAuthStatus(
 }
 
 /** Login then refresh the account model list when a session is available. */
-export async function loginGrokBuildSession(interaction: AuthInteraction, session: GrokBuildSession): Promise<void> {
-	await loginGrokBuild(interaction, session.store);
+export async function loginGrokBuildSession(
+	interaction: AuthInteraction,
+	session: GrokBuildSession,
+	persist: LoginPersistOptions = { mode: "add" },
+): Promise<void> {
+	await loginGrokBuild(interaction, session.store, persist);
 	await session.refreshLiveCatalog();
 	session.notifyCredentialChange();
 }
 
-export async function importGrokBuildSession(session: GrokBuildSession, filename?: string): Promise<void> {
-	await importGrokBuildFromGrok(session.store, filename);
+export async function importGrokBuildSession(
+	session: GrokBuildSession,
+	filename?: string,
+	persist: LoginPersistOptions = { mode: "add" },
+): Promise<void> {
+	await importGrokBuildFromGrok(session.store, filename, persist);
 	await session.refreshLiveCatalog();
 	session.notifyCredentialChange();
 }

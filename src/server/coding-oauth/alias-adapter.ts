@@ -14,6 +14,7 @@ import type {
 import { LlmAdapter, LlmError } from "@deepseek-ai/dsh-llm";
 import { remapXaiCapacityFailure } from "./grok-errors.js";
 import { remapAuthFailureIfContextOverflow } from "./kimi-errors.js";
+import { type PoolPick, iterateWithPoolAccount } from "./quota-pool.js";
 
 export interface AliasLlmRoutePolicy {
 	/** User-facing provider name shown above models in the model selector. */
@@ -34,6 +35,17 @@ export interface AliasLlmRoutePolicy {
 	 * reruns the step; failures are swallowed so the original AUTH surfaces.
 	 */
 	onAuthFailure?: () => Promise<void>;
+}
+
+/**
+ * Optional multi-account pool hooks. When candidates are returned (≥2), the
+ * adapter tries each account until the first stream chunk, then sticks.
+ */
+export interface AliasLlmPoolHooks {
+	/** Native provider id used by CredentialStore / sticky keys. */
+	nativeProviderId(route: string): string | undefined;
+	candidates(nativeProviderId: string, sessionId: string | undefined): Promise<PoolPick[]>;
+	remember(nativeProviderId: string, sessionId: string | undefined, accountId: string): void;
 }
 
 export function normalizeReplayForRoute(
@@ -63,6 +75,7 @@ export class AliasLlmAdapter extends LlmAdapter {
 		private readonly aliases: ReadonlyMap<string, string>,
 		private readonly policies: ReadonlyMap<string, AliasLlmRoutePolicy> = new Map(),
 		private readonly replayProviders: ReadonlyMap<string, string> = aliases,
+		private readonly pool: AliasLlmPoolHooks | undefined = undefined,
 	) {
 		super();
 	}
@@ -112,8 +125,71 @@ export class AliasLlmAdapter extends LlmAdapter {
 		const messages = options.messages.map((message) =>
 			normalizeReplayForRoute(message, route, this.replayProviders.get(route) ?? native),
 		);
+		const streamOptions = { ...options, provider: native, messages };
+		const poolNative = this.pool?.nativeProviderId(route);
+		const candidates =
+			this.pool === undefined || poolNative === undefined
+				? []
+				: await this.pool.candidates(
+						poolNative,
+						options.sessionId === undefined ? undefined : String(options.sessionId),
+					);
+
+		if (candidates.length === 0 || this.pool === undefined || poolNative === undefined) {
+			yield* this.streamOne(route, streamOptions);
+			return;
+		}
+
+		let lastError: unknown;
+		for (const pick of candidates) {
+			const iterator = iterateWithPoolAccount(
+				poolNative,
+				pick.accountId,
+				this.streamOne(route, streamOptions),
+			)[Symbol.asyncIterator]();
+			let first: IteratorResult<StreamChunk>;
+			try {
+				first = await iterator.next();
+				if (first.done === true) {
+					throw new LlmError(`OAuth account "${pick.accountId}" returned an empty stream`, "EMPTY_RESPONSE");
+				}
+			} catch (error) {
+				lastError = error;
+				try {
+					await iterator.return?.();
+				} catch {
+					// Closing a failed attempt must not mask the original error.
+				}
+				continue;
+			}
+			this.pool.remember(
+				poolNative,
+				options.sessionId === undefined ? undefined : String(options.sessionId),
+				pick.accountId,
+			);
+			try {
+				yield first.value;
+				for (let next = await iterator.next(); next.done !== true; next = await iterator.next()) {
+					yield next.value;
+				}
+			} finally {
+				try {
+					await iterator.return?.();
+				} catch {
+					// Closing a half-consumed member stream must not mask the outcome.
+				}
+			}
+			return;
+		}
+		if (lastError instanceof Error) throw lastError;
+		throw new LlmError(`OAuth account pool exhausted for "${route}"`, "RATE_LIMIT", {
+			...(lastError === undefined ? {} : { cause: lastError }),
+		});
+	}
+
+	private async *streamOne(route: string, options: GenerateOptions): AsyncIterable<StreamChunk> {
 		let authFailureNotified = false;
-		for await (const raw of this.inner.stream({ ...options, provider: native, messages })) {
+		for await (const raw of this.inner.stream(options)) {
 			const chunk =
 				raw.type === "finish" && raw.reason.kind === "error"
 					? {

@@ -1,11 +1,13 @@
 /** Same-origin Web settings routes for Grok Build OAuth. */
 import type { Context } from "@deepseek-ai/cordis";
+import { type AccountSummary } from "../../shared/coding-oauth.js";
 import { type DshCompatibility } from "../../shared/compatibility.js";
 import type { CatalogSource } from "./catalog.js";
 import { ANTIGRAVITY_ROUTE, type CodingOAuthProviderSlug } from "./ids.js";
 import type { SubscriptionLoginMethod } from "./oauth-providers.js";
 import type { OAuthProviderSession } from "./oauth-session.js";
 import type { GrokBuildSession } from "./session.js";
+import type { LoginPersistOptions } from "./store.js";
 import { type OwnerAccessMode, type OwnerRequestPolicy } from "./web-origin.js";
 export { CODING_OAUTH_LOGIN_CANCEL_PATH, CODING_OAUTH_LOGIN_CODE_PATH, CODING_OAUTH_LOGIN_PATH, CODING_OAUTH_LOGOUT_PATH, CODING_OAUTH_MODELS_PATH, CODING_OAUTH_STATUS_PATH, GROK_BUILD_AUTH_IMPORT_PATH, GROK_BUILD_AUTH_LOGIN_CANCEL_PATH, GROK_BUILD_AUTH_LOGIN_CODE_PATH, GROK_BUILD_AUTH_LOGIN_PATH, GROK_BUILD_AUTH_LOGOUT_PATH, GROK_BUILD_AUTH_MODELS_PATH, GROK_BUILD_AUTH_STATUS_PATH, } from "./ids.js";
 export type GrokBuildLoginMethod = "pkce" | "device";
@@ -26,6 +28,8 @@ export type GrokBuildWebAuthStatus = {
     catalogSource: CatalogSource;
     catalogError?: string;
     grokImportAvailable: boolean;
+    accounts: AccountSummary[];
+    activeAccountId: string;
 } | {
     status: "error";
     message: string;
@@ -46,19 +50,22 @@ export declare class GrokBuildWebAuth {
     private operation;
     private cancellation;
     private method;
+    private loginPersist;
     private challenge;
     private challengeWaiters;
     private codeResolver;
     constructor(session: GrokBuildSession);
     status(): Promise<GrokBuildWebAuthStatus>;
     /** Start (or join) a login. A different method aborts and restarts the flow. */
-    signIn(method: GrokBuildLoginMethod): Promise<LoginChallenge>;
+    signIn(method: GrokBuildLoginMethod, persist?: LoginPersistOptions): Promise<LoginChallenge>;
     /** Hand a pasted authorization code (or redirect URL) to a pending PKCE login. */
     submitCode(code: string): Promise<void>;
     /** Abort a pending login without touching any stored credential. */
     cancel(): Promise<void>;
     importGrok(): Promise<void>;
     setModels(ids: readonly string[]): Promise<void>;
+    setActiveAccount(id: string): Promise<void>;
+    removeAccount(id: string): Promise<void>;
     signOut(): Promise<void>;
     dispose(): Promise<void>;
     private start;
@@ -88,6 +95,8 @@ export type SubscriptionWebAuthStatus = {
 } | {
     status: "signed-in";
     expiresAt?: number;
+    accounts: AccountSummary[];
+    activeAccountId: string;
 } | {
     status: "error";
     message: string;
@@ -105,15 +114,18 @@ export declare class SubscriptionWebAuth {
     private operation;
     private cancellation;
     private method;
+    private loginPersist;
     private challenge;
     private challengeWaiters;
     private codeResolver;
     constructor(session: OAuthProviderSession, challengeTimeoutMs?: number);
     status(): Promise<SubscriptionWebAuthStatus>;
-    signIn(method: SubscriptionLoginMethod): Promise<SubscriptionLoginChallenge>;
+    signIn(method: SubscriptionLoginMethod, persist?: LoginPersistOptions): Promise<SubscriptionLoginChallenge>;
     submitCode(code: string): Promise<void>;
     cancel(): Promise<void>;
     setModels(ids: readonly string[]): Promise<void>;
+    setActiveAccount(id: string): Promise<void>;
+    removeAccount(id: string): Promise<void>;
     signOut(): Promise<void>;
     dispose(): Promise<void>;
     private baseStatus;

@@ -11,6 +11,7 @@ import type {
 	Api,
 	AuthInteraction,
 	Credential,
+	CredentialStore,
 	Model,
 	MutableModels,
 	OAuthCredential,
@@ -18,7 +19,8 @@ import type {
 } from "@earendil-works/pi-ai";
 import { createModels } from "@earendil-works/pi-ai";
 import type { OAuthProviderDefinition } from "./oauth-providers.js";
-import { OAuthCredentialFileStore, oauthCredentialPath } from "./store.js";
+import { currentPoolAccountOverride } from "./quota-pool.js";
+import { type LoginPersistOptions, OAuthCredentialFileStore, oauthCredentialPath } from "./store.js";
 
 const MODELS_CACHE_VERSION = 1;
 
@@ -78,6 +80,8 @@ export class OAuthProviderSession {
 		),
 		cacheFile: string = oauthModelsCachePath(definition.modelsCacheFilename),
 		onCredentialChange?: () => void,
+		/** Optional CredentialStore overlay (pool proxy); defaults to `store`. */
+		credentials?: CredentialStore,
 	) {
 		this.store = store;
 		this.cacheFile = resolve(cacheFile);
@@ -85,7 +89,7 @@ export class OAuthProviderSession {
 		this.onCredentialChange = onCredentialChange;
 		const provider = definition.providerFactory();
 		this.catalog = [...provider.getModels()];
-		this.models = createModels({ credentials: store });
+		this.models = createModels({ credentials: credentials ?? store });
 		this.models.setProvider(provider);
 	}
 
@@ -132,18 +136,24 @@ export class OAuthProviderSession {
 		return { authenticated: true, expiresAt: credential.expires };
 	}
 
-	async login(interaction: AuthInteraction): Promise<Credential> {
-		const credential = await this.models.login(this.definition.nativeProviderId, "oauth", interaction);
+	async login(interaction: AuthInteraction, persist: LoginPersistOptions = { mode: "add" }): Promise<Credential> {
+		const credential = await this.store.runLoginPersist(persist, () =>
+			this.models.login(this.definition.nativeProviderId, "oauth", interaction),
+		);
 		this.onCatalogChange?.();
 		this.onCredentialChange?.();
 		return credential;
 	}
 
+	notifyCredentialChange(): void {
+		this.onCredentialChange?.();
+	}
+
 	async resolveAccessToken(): Promise<string | undefined> {
 		const resolved = await this.models.getAuth(this.definition.nativeProviderId);
-		if (resolved === undefined) return undefined;
-		const credential = await this.store.read(this.definition.nativeProviderId);
-		return credential?.type === "oauth" ? credential.access : undefined;
+		// Prefer the resolved auth surface so a pool override (request-scoped
+		// account) is not replaced by a subsequent active-account file read.
+		return resolved?.auth.apiKey;
 	}
 
 	/**
@@ -151,6 +161,14 @@ export class OAuthProviderSession {
 	 * Called after an upstream 401 rejected a locally-valid token.
 	 */
 	async invalidateAccessToken(): Promise<void> {
+		const override = currentPoolAccountOverride();
+		if (override?.providerId === this.definition.nativeProviderId) {
+			await this.store.modifyAccount(override.accountId, async (current) => {
+				if (current?.type !== "oauth") return undefined;
+				return { ...current, expires: Date.now() - 1000 };
+			});
+			return;
+		}
 		await this.store.invalidate(this.definition.nativeProviderId);
 	}
 

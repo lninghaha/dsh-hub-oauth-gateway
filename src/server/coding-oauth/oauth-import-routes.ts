@@ -58,6 +58,10 @@ export interface OAuthImportDestinationStore {
 		providerId: string,
 		fn: (current: OAuthSourceCredential | undefined) => Promise<OAuthSourceCredential | undefined>,
 	): Promise<OAuthSourceCredential | undefined>;
+	persistLoginCredential(
+		credential: OAuthSourceCredential,
+		options: { mode: "add" | "overwrite-active"; confirmOverwrite?: boolean },
+	): Promise<void>;
 }
 
 export interface OAuthImportDestination {
@@ -218,20 +222,20 @@ async function commitSource(
 	pathOptions: OAuthSourcePathOptions,
 	onImported: OAuthImportRouteOptions["onImported"],
 ): Promise<OAuthImportCommitResult> {
-	let result: OAuthImportCommitResult | undefined;
-	await destination.store.modify(destination.providerId, async (current) => {
-		const outcome = await importer.commit({
-			previewId: input.previewId,
-			kind: input.kind,
-			...(input.confirmOverwrite === undefined ? {} : { confirmOverwrite: input.confirmOverwrite }),
-			...pathOptions,
-			destination: { path: destination.store.filename },
-		});
-		result = outcome.result;
-		return outcome.takePersist() ?? current;
+	const outcome = await importer.commit({
+		previewId: input.previewId,
+		kind: input.kind,
+		...(input.confirmOverwrite === undefined ? {} : { confirmOverwrite: input.confirmOverwrite }),
+		...pathOptions,
+		destination: { path: destination.store.filename },
 	});
-	if (result === undefined) {
-		throw new Error("oauth import: destination store did not complete commit");
+	const result = outcome.result;
+	const persist = outcome.takePersist();
+	if (persist !== undefined) {
+		await destination.store.persistLoginCredential(persist, {
+			mode: result.action === "overwritten" ? "overwrite-active" : "add",
+			...(result.action === "overwritten" ? { confirmOverwrite: true } : {}),
+		});
 	}
 	if (result.action === "imported" || result.action === "overwritten") {
 		try {
