@@ -257,13 +257,15 @@ During authorization, the upstream device code stays in an expiring, bounded ser
 
 ## `codingOAuth`
 
-Integrated coding-subscription OAuth owner. Keep this enabled after cutover so Grok Build, Codex, Kimi Code, and Claude Code routes, settings, and credential files stay in this plugin. Disable only in isolated tests.
+Integrated coding-subscription OAuth owner. Keep this enabled after cutover so Grok Build, Codex, Kimi Code, Claude Code, and the optional GitHub Copilot LLM route (`github-copilot-oauth`) stay in this plugin. Copilot registration stays fail-closed until `oauthDevice.copilotClientId` is set. Disable `codingOAuth` only in isolated tests.
 
 | Field | Default | Meaning |
 | --- | ---: | --- |
 | `enabled` | `true` | Register OAuth LLM routes, compatibility HTTP paths, CLI-backed sessions, and optional capabilities |
 | `proxy` | unset | HTTPS proxy URL for the audited coding-subscription host allowlist |
 | `proxyKimi` | `false` | Also send Kimi China traffic through the proxy |
+| `pool.mode` | `off` | Sticky multi-account routing when a provider AuthDocument v2 file has two or more accounts: `off`, `priority`, or `quota_aware` |
+| `pool.switchMargin` | `2` | Quota margin (1–10) used by `quota_aware` before switching away from the sticky account |
 | `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-subscription-oauth` settings namespace |
 | `gateway` | disabled | Opt-in isolated local OpenAI-compatible gateway; loopback bind only |
 | `ownerRequest` | strict loopback fallback | Prefer DSH-native owner authentication; otherwise configure SSH access mode or a complete trusted HTTPS proxy policy |
@@ -272,7 +274,7 @@ Hub and `dsh-coding-subscription-oauth` may be installed together. Their exact `
 
 For remote Settings, keep DSH Web bound to loopback and use SSH or an owner-authenticated HTTPS reverse proxy. The fallback path `codingOAuth.ownerRequest.trustedProxy` requires `peers`, `origins`, `ownerProof`, and an independent `csrfToken`. Authorization uses the actual TCP peer, exact HTTPS Origin and matching public Host, `Sec-Fetch-Site: same-origin`, owner proof, and mutation CSRF; `X-Forwarded-*` is ignored for authorization. A same-host loopback peer listed in `peers` is always treated as proxy traffic, so preserve the public Host and retain a separate SSH repair path. Keep real proofs in local ignored deployment configuration or a secret-injection layer, never in the repository.
 
-The coding OAuth settings UI lives under **Settings → Usage Center → 订阅账号 / 网关 / 能力** (Subscriptions / Gateway / Capabilities tabs): per-provider sign-in cards (device code, browser PKCE, or pasted redirect), model selection, the allowlisted CLI credential pull wizard, gateway enable/port/key lifecycle, and the seven default-off capability switches.
+The coding OAuth settings UI lives under **Settings → Usage Center → Accounts / Gateway / Capabilities**: per-provider sign-in cards (device code, browser PKCE, or pasted redirect), multi-account add / set-default / remove (AuthDocument v2, max 8), **Import Claude Code** (preview → commit; macOS Keychain or file), signed-in Usage Center quota bars (GET-only), model selection, the allowlisted CLI credential pull wizard, gateway enable/port/key lifecycle, and the seven default-off capability switches (including Codex Fast Standard/Fast hint for `codex-oauth-fast`).
 
 ## `localMonitor`
 

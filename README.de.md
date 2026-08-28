@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.0` and Subscription `0.6.2` share the verified DSH `0.1.1-rc.2` contract. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -47,7 +47,7 @@ Release-Historie in [`CHANGELOG.md`](CHANGELOG.md).
 - **Trends und Prognosen** — Stunden/Tag/Woche/Monat-Buckets; begrenzte lineare Extrapolation als eigene Serie.
 - **Konto- und Kontingent-Adapter** — Salden, Fenster, Reset-Zeiten, stale/last-success, Soft-Alerts (keine Hard-Blocks, keine ausgehenden Benachrichtigungen).
 - **CSV / JSON-Export** — gefilterte, tägliche oder Bundle-Layouts; optionale Session-Redaktion; Spreadsheet-Injection-Abwehr.
-- **Coding-Abo-OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / Browser / PKCE-Einfügen; Modelle als `(OAuth)`; einseitiger CLI-Credential-Pull.
+- **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Optionales Loopback-API-Gateway** — standardmäßig aus OpenAI/Anthropic-kompatibler Server für eigene Tools.
 - **Optionale Capabilities** — Codex search / images / usage / Fast und Grok Imagine standardmäßig aus; Live-Anwendung.
 - **Opt-in lokaler Monitor** — read-only CLI-Auth-Snapshots und Cross-Tool-Token-Scans (nie Gesprächsinhalt).
@@ -200,6 +200,9 @@ Sieben Schalter standard **aus**, Anwendung **live**: `codexSearch`, `codexImage
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
         codingOAuth:
           enabled: true
+          pool:
+            mode: off
+            # switchMargin: 2
         localMonitor:
           enabled: false
         localUsage:

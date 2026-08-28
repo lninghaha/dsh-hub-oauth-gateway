@@ -7,6 +7,11 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Documentation
+
+- Align README / install / configuration docs with Hub `1.11.0` operator surfaces: AuthDocument v2 multi-account and `codingOAuth.pool`, Copilot credential filenames, Claude import preview→commit wording, Codex Fast session-picker note, and Desktop Market Path A `catalog/` pointer (not in the npm `files` whitelist).
+
+
 ## 1.11.0
 
 ### Added

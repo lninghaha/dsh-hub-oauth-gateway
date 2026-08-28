@@ -98,6 +98,9 @@ Merge under the existing entry — never a second plugin row:
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
         codingOAuth:
           enabled: true
+          pool:
+            mode: off
+            # switchMargin: 2
           # proxy: http://127.0.0.1:7890
           # proxyKimi: false
           # gateway: { enabled: false, bind: 127.0.0.1, port: 18080 }
@@ -147,7 +150,7 @@ Or use **Settings → Gateway**. Endpoints: `/healthz`, `/v1/models`, `/v1/chat/
 
 ## Optional capabilities
 
-Seven flags default off and apply live: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Numeric limits (`searchResults`, `imageCount`, `videoArtifactTtlMs`) are documented in [`03-configuration.md`](03-configuration.md). `codex-oauth-fast` appears only after a fresh live catalog lists a `priority`-eligible model.
+Seven flags default off and apply live: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Numeric limits (`searchResults`, `imageCount`, `videoArtifactTtlMs`) are documented in [`03-configuration.md`](03-configuration.md). With `codexFast` enabled, the session picker uses the existing `codex-oauth-fast` route (Capabilities shows a Standard/Fast hint). That route appears only after a fresh live catalog lists a `priority`-eligible model. It is not a second Fast stack.
 
 ## Credentials on disk
 
@@ -158,9 +161,10 @@ $DSH_HOME/.grok-build-auth.json
 $DSH_HOME/.codex-oauth-auth.json
 $DSH_HOME/.kimi-code-oauth-auth.json
 $DSH_HOME/.claude-code-oauth-auth.json
+$DSH_HOME/.github-copilot-oauth-auth.json
 ```
 
-Model selection caches: matching `*-models.json` (no tokens). Grok Imagine uses DSH credential reference `XAI_API_KEY` (not Grok OAuth, not process-env fallback).
+Model selection caches: matching `*-models.json` (no tokens), including `.github-copilot-oauth-models.json` when Copilot is configured. Grok Imagine uses DSH credential reference `XAI_API_KEY` (not Grok OAuth, not process-env fallback).
 
 ## Uninstall
 
