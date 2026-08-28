@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	CLAUDE_CODE_KEYCHAIN_SERVICE,
 	CLAUDE_CODE_KEYCHAIN_SOURCE_PATH,
+	inspectOAuthDestinationFile,
 	parseClaudeCliAuthDocument,
 	probeOAuthSource,
 	readClaudeKeychainRaw,
@@ -22,6 +26,13 @@ const FLAT = {
 	expiresAt: 1_700_000_000_100,
 	accountId: "acct-flat",
 };
+
+const temporaryDirectories = new Set<string>();
+
+afterEach(async () => {
+	await Promise.all([...temporaryDirectories].map((directory) => rm(directory, { recursive: true, force: true })));
+	temporaryDirectories.clear();
+});
 
 describe("parseClaudeCliAuthDocument", () => {
 	it("parses nested claudeAiOauth documents", () => {
@@ -83,5 +94,56 @@ describe("Claude Code Keychain discovery", () => {
 
 	it("exposes the Keychain sentinel path constant", () => {
 		expect(CLAUDE_CODE_KEYCHAIN_SOURCE_PATH).toBe(`keychain:${CLAUDE_CODE_KEYCHAIN_SERVICE}`);
+	});
+});
+
+describe("inspectOAuthDestinationFile AuthDocument versions", () => {
+	it("reads v2 active credential for conflict classification", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "hub-oauth-dest-v2-"));
+		temporaryDirectories.add(directory);
+		await mkdir(directory, { recursive: true, mode: 0o700 });
+		const path = join(directory, "provider.json");
+		const expires = 1_800_000_000_000;
+		await writeFile(
+			path,
+			`${JSON.stringify(
+				{
+					version: 2,
+					activeAccountId: "acct-active",
+					accounts: [
+						{
+							id: "acct-other",
+							credential: {
+								type: "oauth",
+								access: "access-other",
+								refresh: "refresh-other",
+								expires: expires - 1_000,
+								accountId: "user-other",
+							},
+							createdAt: 1,
+						},
+						{
+							id: "acct-active",
+							credential: {
+								type: "oauth",
+								access: "access-active",
+								refresh: "refresh-active",
+								expires,
+								accountId: "user-active",
+							},
+							createdAt: 2,
+						},
+					],
+				},
+				null,
+				2,
+			)}\n`,
+			{ mode: 0o600 },
+		);
+
+		const inspected = await inspectOAuthDestinationFile(path);
+		expect(inspected.status).toBe("readable");
+		expect(inspected.credential?.expires).toBe(expires);
+		expect(inspected.credential?.accountId).toBe("user-active");
 	});
 });

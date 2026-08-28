@@ -7,6 +7,7 @@
  * fall back to the signed-in coding-oauth session access token (in memory only —
  * never logged or stored).
  */
+import type { QuotaWindow } from "../../shared/domain.js";
 import type { CodingOAuthRuntime } from "../coding-oauth/compose.js";
 import type { CredentialResolver } from "./types.js";
 export declare const GROK_ACCESS_TOKEN_REF = "GROK_ACCESS_TOKEN";
@@ -16,6 +17,30 @@ export declare const KIMI_API_KEY_REF = "KIMI_API_KEY";
 export declare const GITHUB_COPILOT_TOKEN_REF = "GITHUB_COPILOT_TOKEN";
 /** AccountProvider ids refreshed after OAuth login / CLI pull. */
 export declare const OAUTH_QUOTA_ACCOUNT_IDS: readonly ["grok", "codex", "claude", "kimi-coding", "copilot"];
+export type OAuthQuotaAccountId = (typeof OAUTH_QUOTA_ACCOUNT_IDS)[number];
+/**
+ * Map coding-oauth / pi-ai store provider ids (and Hub route aliases) onto Usage
+ * Center OAuth quota account ids. Pool scoring uses AuthDocument account ids
+ * (`acct-*`, ChatGPT uuids) that never equal these rows, so candidates fall
+ * back through this map when per-account snapshots are unavailable.
+ */
+export declare const STORE_PROVIDER_TO_OAUTH_QUOTA_ACCOUNT: Readonly<Record<string, OAuthQuotaAccountId>>;
+export declare function oauthQuotaAccountIdForStoreProvider(providerId: string): OAuthQuotaAccountId | undefined;
+/** Account row shape used when wiring pool windows from AccountService.list(). */
+export interface OAuthQuotaAccountRow {
+    readonly providerId: string;
+    readonly profileId: string;
+    readonly windows: readonly QuotaWindow[];
+    /** Present only on some host/account shapes; AuthDocument ids never appear here. */
+    readonly id?: string;
+}
+/**
+ * Resolve quota windows for one pool member. Prefer a direct profile/row/provider
+ * id match; otherwise use the Usage Center OAuth row for the store provider.
+ */
+export declare function resolveQuotaWindowsForPoolAccount(accounts: readonly OAuthQuotaAccountRow[], accountId: string, context?: {
+    providerId: string;
+}): readonly QuotaWindow[] | undefined;
 export interface OAuthTokenSource {
     resolveGrokAccessToken(): Promise<string | undefined>;
     resolveCodexAccessToken(): Promise<string | undefined>;

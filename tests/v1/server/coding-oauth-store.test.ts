@@ -223,4 +223,35 @@ describe("OAuthCredentialFileStore AuthDocument v2", () => {
 			expires: inactiveExpires,
 		});
 	});
+
+	it("overwrite-active without confirmOverwrite rejects", async () => {
+		const { store } = await createStore();
+		await store.persistLoginCredential(oauthCredential({ access: "access-keep", refresh: "refresh-keep" }), {
+			mode: "add",
+		});
+		await expect(
+			store.persistLoginCredential(oauthCredential({ access: "access-new", refresh: "refresh-new" }), {
+				mode: "overwrite-active",
+			}),
+		).rejects.toThrow(/confirmOverwrite/u);
+		expect(await store.read("test-provider")).toMatchObject({ access: "access-keep", refresh: "refresh-keep" });
+	});
+
+	it("delete(provider) removes a multi-account document", async () => {
+		const { store, path } = await createStore();
+		await store.upsertAccount({
+			id: "acct-a",
+			credential: oauthCredential({ access: "access-a", refresh: "refresh-a" }),
+			makeActive: true,
+		});
+		await store.upsertAccount({
+			id: "acct-b",
+			credential: oauthCredential({ access: "access-b", refresh: "refresh-b" }),
+		});
+		expect(await store.listAccounts()).toHaveLength(2);
+
+		await store.delete("test-provider");
+		expect(await store.listAccounts()).toEqual([]);
+		await expect(readFile(path, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+	});
 });

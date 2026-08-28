@@ -297,8 +297,13 @@ export function currentPoolAccountOverride(): PoolOverride | undefined {
 	return poolOverrideStorage.getStore();
 }
 
+export type GetQuotaWindowsContext = {
+	readonly providerId: string;
+};
+
 export type GetQuotaWindows = (
 	accountId: string,
+	context?: GetQuotaWindowsContext,
 ) => readonly QuotaWindow[] | undefined | Promise<readonly QuotaWindow[] | undefined>;
 
 export interface AccountPoolControllerOptions {
@@ -356,7 +361,7 @@ export class AccountPoolController {
 		const snapshotsByAccountId = new Map<string, readonly QuotaWindow[] | undefined>();
 		await Promise.all(
 			accounts.map(async (accountId) => {
-				snapshotsByAccountId.set(accountId, await this.#getQuotaWindows(accountId));
+				snapshotsByAccountId.set(accountId, await this.#getQuotaWindows(accountId, { providerId }));
 			}),
 		);
 		return orderPoolAccounts({

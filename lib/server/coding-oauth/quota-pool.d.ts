@@ -81,7 +81,10 @@ export declare function runWithPoolAccount<T>(providerId: string, accountId: str
  */
 export declare function iterateWithPoolAccount<T>(providerId: string, accountId: string, source: AsyncIterable<T>): AsyncIterable<T>;
 export declare function currentPoolAccountOverride(): PoolOverride | undefined;
-export type GetQuotaWindows = (accountId: string) => readonly QuotaWindow[] | undefined | Promise<readonly QuotaWindow[] | undefined>;
+export type GetQuotaWindowsContext = {
+    readonly providerId: string;
+};
+export type GetQuotaWindows = (accountId: string, context?: GetQuotaWindowsContext) => readonly QuotaWindow[] | undefined | Promise<readonly QuotaWindow[] | undefined>;
 export interface AccountPoolControllerOptions {
     readonly mode: PoolMode;
     readonly switchMargin: number;

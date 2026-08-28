@@ -965,9 +965,31 @@ function parseStoredOAuthCredentialDocument(text: string): OAuthSourceCredential
 	} catch {
 		return undefined;
 	}
-	if (!isRecord(value) || value.version !== 1) return undefined;
-	if (Object.keys(value).some((key) => key !== "version" && key !== "credential")) return undefined;
-	const raw = value.credential;
+	if (!isRecord(value)) return undefined;
+	if (value.version === 1) {
+		if (Object.keys(value).some((key) => key !== "version" && key !== "credential")) return undefined;
+		return parseAllowlistedStoredCredential(value.credential);
+	}
+	if (value.version === 2) {
+		if (Object.keys(value).some((key) => key !== "version" && key !== "activeAccountId" && key !== "accounts")) {
+			return undefined;
+		}
+		const activeAccountId = nonEmptyString(value.activeAccountId);
+		if (activeAccountId === undefined || !Array.isArray(value.accounts)) return undefined;
+		for (const entry of value.accounts) {
+			if (!isRecord(entry)) return undefined;
+			const accountKeys = new Set(["id", "label", "credential", "createdAt"]);
+			if (Object.keys(entry).some((key) => !accountKeys.has(key))) return undefined;
+			if (entry.id !== activeAccountId) continue;
+			return parseAllowlistedStoredCredential(entry.credential);
+		}
+		return undefined;
+	}
+	return undefined;
+}
+
+/** Same credential allowlist for AuthDocument v1 and the active v2 account. */
+function parseAllowlistedStoredCredential(raw: unknown): OAuthSourceCredential | undefined {
 	if (!isRecord(raw)) return undefined;
 	const allowed = new Set(["type", "access", "refresh", "expires", "accountId"]);
 	if (Object.keys(raw).some((key) => !allowed.has(key))) return undefined;

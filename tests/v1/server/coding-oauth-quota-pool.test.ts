@@ -1,11 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { resolveQuotaWindowsForPoolAccount } from "../../../src/server/accounts/oauth-credential-bridge.js";
+import { CODEX_PI_PROVIDER } from "../../../src/server/coding-oauth/ids.js";
 import {
+	AccountPoolController,
 	orderPoolAccounts,
 	QUOTA_FULL_RATIO,
 	selectAccount,
 	urgencyFromSnapshots,
 } from "../../../src/server/coding-oauth/quota-pool.js";
+import { OAuthCredentialFileStore } from "../../../src/server/coding-oauth/store.js";
 import type { QuotaWindow } from "../../../src/shared/domain.js";
+
+const temporaryDirectories = new Set<string>();
+
+afterEach(async () => {
+	await Promise.all([...temporaryDirectories].map((directory) => rm(directory, { recursive: true, force: true })));
+	temporaryDirectories.clear();
+});
 
 function window(partial: Partial<QuotaWindow> & Pick<QuotaWindow, "id" | "usedRatio">): QuotaWindow {
 	return {
@@ -141,5 +155,54 @@ describe("selectAccount", () => {
 		});
 		expect(ordered[0]?.accountId).toBe("measured");
 		expect(ordered[1]?.accountId).toBe("unknown");
+	});
+});
+
+describe("AccountPoolController provider-scoped quota fallback", () => {
+	it("marks AuthDocument accounts quota_full_fallback via Usage Center codex row", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "hub-oauth-pool-quota-"));
+		temporaryDirectories.add(directory);
+		await mkdir(directory, { recursive: true, mode: 0o700 });
+		const path = join(directory, "openai-codex.json");
+		const store = new OAuthCredentialFileStore(CODEX_PI_PROVIDER, path, "codex-oauth");
+		await store.upsertAccount({
+			id: "acct-chatgpt-aaaa",
+			credential: {
+				type: "oauth",
+				access: "access-a",
+				refresh: "refresh-a",
+				expires: Date.now() + 3_600_000,
+			},
+			makeActive: true,
+		});
+		await store.upsertAccount({
+			id: "acct-chatgpt-bbbb",
+			credential: {
+				type: "oauth",
+				access: "access-b",
+				refresh: "refresh-b",
+				expires: Date.now() + 3_600_000,
+			},
+		});
+
+		const usageCenterAccounts = [
+			{
+				providerId: "codex",
+				profileId: "",
+				windows: [window({ id: "codex-weekly", usedRatio: 0.99 })],
+			},
+		];
+
+		const controller = new AccountPoolController({
+			mode: "quota_aware",
+			switchMargin: 2,
+			getQuotaWindows: (accountId, context) =>
+				resolveQuotaWindowsForPoolAccount(usageCenterAccounts, accountId, context),
+		});
+
+		const picks = await controller.candidates(store, CODEX_PI_PROVIDER, undefined);
+		expect(picks).toHaveLength(2);
+		expect(picks.map((pick) => pick.accountId).sort()).toEqual(["acct-chatgpt-aaaa", "acct-chatgpt-bbbb"]);
+		expect(picks.every((pick) => pick.reason === "quota_full_fallback")).toBe(true);
 	});
 });

@@ -5,6 +5,7 @@ import {
 	createOAuthQuotaCredentialBridge,
 	OAUTH_QUOTA_ACCOUNT_IDS,
 	oauthTokenSourceFromRuntime,
+	resolveQuotaWindowsForPoolAccount,
 } from "./accounts/oauth-credential-bridge.js";
 import { AccountAdapterRegistry } from "./accounts/registry.js";
 import { AccountSnapshotRepository } from "./accounts/repository.js";
@@ -235,12 +236,9 @@ export async function apply(
 			const unsubscribe = codingOAuthOwnership.holder.subscribe((runtime) => {
 				releaseRuntime();
 				if (runtime !== undefined) {
-					runtime.setQuotaWindowsSource(async (accountId: string) => {
+					runtime.setQuotaWindowsSource(async (accountId, context) => {
 						const accounts = await accountService.list();
-						const match =
-							accounts.find((account) => account.profileId === accountId) ??
-							accounts.find((account) => account.providerId === accountId);
-						return match?.windows;
+						return resolveQuotaWindowsForPoolAccount(accounts, accountId, context);
 					});
 				}
 				releaseRuntime = runtime?.onCredentialChange(refreshOAuthQuotas) ?? (() => undefined);
