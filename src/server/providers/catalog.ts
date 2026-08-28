@@ -229,7 +229,7 @@ function antigravityRecord(
 	};
 }
 
-const OAUTH_QUOTA_NATIVE_IDS = new Set(["openai-codex", "anthropic", "kimi-coding"]);
+const OAUTH_QUOTA_NATIVE_IDS = new Set(["openai-codex", "anthropic", "kimi-coding", "github-copilot"]);
 
 async function subscriptionRecord(
 	session: OAuthProviderSession,

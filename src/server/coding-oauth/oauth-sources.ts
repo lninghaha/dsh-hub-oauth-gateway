@@ -13,7 +13,6 @@ import { join, posix, resolve } from "node:path";
 import {
 	CLAUDE_PI_PROVIDER,
 	CODEX_PI_PROVIDER,
-	type CodingOAuthProviderSlug,
 	KIMI_PI_PROVIDER,
 	XAI_PI_PROVIDER,
 } from "./ids.js";
@@ -64,7 +63,8 @@ function isApprovedGrokIssuerValue(value: string): boolean {
 	}
 }
 
-export type OAuthSourceKind = CodingOAuthProviderSlug;
+/** CLI import kinds only — Copilot has no allowlisted CLI credential file. */
+export type OAuthSourceKind = "grok" | "codex" | "kimi" | "claude";
 
 export const OAUTH_SOURCE_KINDS = ["grok", "codex", "kimi", "claude"] as const satisfies readonly OAuthSourceKind[];
 

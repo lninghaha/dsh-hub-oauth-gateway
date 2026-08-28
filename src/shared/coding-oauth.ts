@@ -57,7 +57,7 @@ export const CODING_OAUTH_PATHS = Object.freeze({
 	imagineCredential: IMAGINE_CREDENTIAL_STATUS_PATH,
 });
 
-export const CodingOAuthProviderSlugSchema = z.enum(["grok", "codex", "kimi", "claude"]);
+export const CodingOAuthProviderSlugSchema = z.enum(["grok", "codex", "kimi", "claude", "copilot"]);
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
 
 export const LoginAccountModeSchema = z.enum(["add", "overwrite-active"]);
@@ -106,7 +106,7 @@ export const GrokBuildWebAuthStatusSchema = z.discriminatedUnion("status", [
 export type GrokBuildWebAuthStatus = z.infer<typeof GrokBuildWebAuthStatusSchema>;
 
 const SubscriptionStatusBase = z.object({
-	provider: z.enum(["codex", "kimi", "claude"]),
+	provider: z.enum(["codex", "kimi", "claude", "copilot"]),
 	route: z.string(),
 	displayName: z.string(),
 	loginMethods: z.array(SubscriptionLoginMethodSchema),
@@ -146,6 +146,8 @@ export const CodingOAuthWebStatusSchema = z.object({
 		codex: SubscriptionWebAuthStatusSchema,
 		kimi: SubscriptionWebAuthStatusSchema,
 		claude: SubscriptionWebAuthStatusSchema,
+		/** Present only when `oauthDevice.copilotClientId` opted the Hub into Copilot LLM OAuth. */
+		copilot: SubscriptionWebAuthStatusSchema.optional(),
 	}),
 	antigravity: z.object({
 		installed: z.boolean(),
@@ -162,8 +164,8 @@ export const LoginChallengeSchema = z.object({
 });
 export type LoginChallenge = z.infer<typeof LoginChallengeSchema>;
 
-export const OAuthSourceKindSchema = CodingOAuthProviderSlugSchema;
-export type OAuthSourceKind = CodingOAuthProviderSlug;
+export const OAuthSourceKindSchema = z.enum(["grok", "codex", "kimi", "claude"]);
+export type OAuthSourceKind = z.infer<typeof OAuthSourceKindSchema>;
 
 export const OAuthSourceUnavailableReasonSchema = z.enum(["missing", "unsafe", "invalid", "too_large"]);
 
@@ -173,6 +175,7 @@ export const OAuthSourceDiscoverySchema = z.object({
 	available: z.boolean(),
 	expiresAt: z.number().optional(),
 	reason: OAuthSourceUnavailableReasonSchema.optional(),
+	origin: z.enum(["file", "keychain"]).optional(),
 });
 export type OAuthSourceDiscovery = z.infer<typeof OAuthSourceDiscoverySchema>;
 

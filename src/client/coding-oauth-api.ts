@@ -85,7 +85,7 @@ export function useCodingOAuthStatusQuery(enabled = true) {
 			refetchInterval: (query) => {
 				const data = query.state.data;
 				if (data === undefined) return 5_000;
-				const signingIn = Object.values(data.providers).some((provider) => provider.status === "signing-in");
+				const signingIn = Object.values(data.providers).some((provider) => provider?.status === "signing-in");
 				return signingIn ? 2_000 : 30_000;
 			},
 			retry: 1,

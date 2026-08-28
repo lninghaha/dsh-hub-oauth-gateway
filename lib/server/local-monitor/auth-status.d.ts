@@ -4,6 +4,7 @@
  * closed, and only secret-free status (expiry, refresh-token presence, file
  * mtime) is ever returned. Credential material never leaves this module.
  */
+import type { CodingOAuthProviderSlug } from "../coding-oauth/ids.js";
 import { type OAuthSourceKind, type OAuthSourcePathOptions } from "../coding-oauth/oauth-sources.js";
 export interface LocalCliAuthStatus {
     kind: OAuthSourceKind;
@@ -14,7 +15,7 @@ export interface LocalCliAuthStatus {
     reason: "missing" | "unsafe" | "invalid" | "too_large" | null;
 }
 export interface LocalPluginSessionStatus {
-    provider: OAuthSourceKind;
+    provider: CodingOAuthProviderSlug;
     route: string;
     authenticated: boolean;
     expiresAt: number | null;

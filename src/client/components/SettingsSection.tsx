@@ -77,7 +77,7 @@ function GettingStarted({ t, onOpen }: { readonly t: Translate; readonly onOpen:
 		);
 	}
 	const subscriptionReady = Object.values(oauth.data?.providers ?? {}).some(
-		(provider) => provider.status === "signed-in",
+		(provider) => provider?.status === "signed-in",
 	);
 	const pricingReady =
 		pricing.data?.ok === true && (pricing.data.data.catalogUpdatedAt !== null || pricing.data.data.rules.length > 0);

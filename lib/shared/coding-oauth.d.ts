@@ -37,6 +37,7 @@ export declare const CodingOAuthProviderSlugSchema: z.ZodEnum<{
     codex: "codex";
     kimi: "kimi";
     claude: "claude";
+    copilot: "copilot";
 }>;
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
 export declare const LoginAccountModeSchema: z.ZodEnum<{
@@ -110,6 +111,7 @@ export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObj
         codex: "codex";
         kimi: "kimi";
         claude: "claude";
+        copilot: "copilot";
     }>;
     route: z.ZodString;
     displayName: z.ZodString;
@@ -231,6 +233,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
                 codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
+                copilot: "copilot";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -274,6 +277,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
                 codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
+                copilot: "copilot";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -317,6 +321,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
                 codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
+                copilot: "copilot";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -355,6 +360,50 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             status: z.ZodLiteral<"error">;
             message: z.ZodString;
         }, z.core.$strip>], "status">>;
+        copilot: z.ZodOptional<z.ZodIntersection<z.ZodObject<{
+            provider: z.ZodEnum<{
+                codex: "codex";
+                kimi: "kimi";
+                claude: "claude";
+                copilot: "copilot";
+            }>;
+            route: z.ZodString;
+            displayName: z.ZodString;
+            loginMethods: z.ZodArray<z.ZodEnum<{
+                browser: "browser";
+                device: "device";
+            }>>;
+            recommendedLoginMethod: z.ZodEnum<{
+                browser: "browser";
+                device: "device";
+            }>;
+            models: z.ZodArray<z.ZodString>;
+            available: z.ZodArray<z.ZodString>;
+            selected: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
+            status: z.ZodLiteral<"signed-out">;
+        }, z.core.$strip>, z.ZodObject<{
+            status: z.ZodLiteral<"signing-in">;
+            method: z.ZodEnum<{
+                browser: "browser";
+                device: "device";
+            }>;
+            url: z.ZodOptional<z.ZodString>;
+            userCode: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            status: z.ZodLiteral<"signed-in">;
+            expiresAt: z.ZodOptional<z.ZodNumber>;
+            accounts: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                label: z.ZodOptional<z.ZodString>;
+                expires: z.ZodNumber;
+                accountId: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            activeAccountId: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            status: z.ZodLiteral<"error">;
+            message: z.ZodString;
+        }, z.core.$strip>], "status">>>;
     }, z.core.$strip>;
     antigravity: z.ZodObject<{
         installed: z.ZodBoolean;
@@ -375,7 +424,7 @@ export declare const OAuthSourceKindSchema: z.ZodEnum<{
     kimi: "kimi";
     claude: "claude";
 }>;
-export type OAuthSourceKind = CodingOAuthProviderSlug;
+export type OAuthSourceKind = z.infer<typeof OAuthSourceKindSchema>;
 export declare const OAuthSourceUnavailableReasonSchema: z.ZodEnum<{
     missing: "missing";
     invalid: "invalid";
@@ -398,6 +447,10 @@ export declare const OAuthSourceDiscoverySchema: z.ZodObject<{
         too_large: "too_large";
         unsafe: "unsafe";
     }>>;
+    origin: z.ZodOptional<z.ZodEnum<{
+        file: "file";
+        keychain: "keychain";
+    }>>;
 }, z.core.$strip>;
 export type OAuthSourceDiscovery = z.infer<typeof OAuthSourceDiscoverySchema>;
 export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
@@ -416,6 +469,10 @@ export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
             invalid: "invalid";
             too_large: "too_large";
             unsafe: "unsafe";
+        }>>;
+        origin: z.ZodOptional<z.ZodEnum<{
+            file: "file";
+            keychain: "keychain";
         }>>;
     }, z.core.$strip>>;
 }, z.core.$strip>;

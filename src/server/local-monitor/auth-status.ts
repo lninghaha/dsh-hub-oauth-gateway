@@ -5,6 +5,7 @@
  * mtime) is ever returned. Credential material never leaves this module.
  */
 
+import type { CodingOAuthProviderSlug } from "../coding-oauth/ids.js";
 import {
 	OAUTH_SOURCE_KINDS,
 	OAuthSourceError,
@@ -26,7 +27,7 @@ export interface LocalCliAuthStatus {
 }
 
 export interface LocalPluginSessionStatus {
-	provider: OAuthSourceKind;
+	provider: CodingOAuthProviderSlug;
 	route: string;
 	authenticated: boolean;
 	expiresAt: number | null;

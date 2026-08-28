@@ -194,6 +194,8 @@ export interface CapabilityTimer {
 }
 
 export interface CodexFastBindingOptions {
+	/** Routes that must stay registered when Fast is withdrawn (includes Hub extras). */
+	readonly baseRoutes?: readonly string[];
 	readonly refreshIntervalMs?: number;
 	readonly timer?: CapabilityTimer;
 	readonly onError?: (error: unknown) => void;
@@ -218,6 +220,7 @@ export function bindCodexFastRoute(
 	};
 	const intervalMs = options.refreshIntervalMs ?? DEFAULT_FAST_REFRESH_INTERVAL_MS;
 	const reportError = options.onError ?? (() => undefined);
+	const baseRoutes = options.baseRoutes ?? [...CODING_OAUTH_ROUTES];
 	let interval: unknown;
 	let generation = 0;
 	let disposed = false;
@@ -225,7 +228,7 @@ export function bindCodexFastRoute(
 
 	const replace = (enabled: boolean): void => {
 		if (enabled === fastPublished) return;
-		registration.replace(enabled ? [...CODING_OAUTH_ROUTES, CODEX_OAUTH_FAST_ROUTE] : [...CODING_OAUTH_ROUTES]);
+		registration.replace(enabled ? [...baseRoutes, CODEX_OAUTH_FAST_ROUTE] : [...baseRoutes]);
 		fastPublished = enabled;
 	};
 	const stopTimer = (): void => {

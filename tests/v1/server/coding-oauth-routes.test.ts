@@ -5,10 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
-	CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
-} from "../../../src/shared/coding-oauth.js";
-import {
 	CODING_OAUTH_LOGIN_CODE_PATH,
 	CODING_OAUTH_LOGOUT_PATH,
 	CODING_OAUTH_STATUS_PATH,
@@ -30,10 +26,14 @@ import {
 	GATEWAY_SETTINGS_PATH,
 	registerGatewayRoutes,
 } from "../../../src/server/coding-oauth/gateway-routes.js";
-import { OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
+import { KIMI_PI_PROVIDER } from "../../../src/server/coding-oauth/ids.js";
+import { CORE_OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
 import { OAuthProviderSession } from "../../../src/server/coding-oauth/oauth-session.js";
 import { GrokBuildSession } from "../../../src/server/coding-oauth/session.js";
-import { KIMI_PI_PROVIDER } from "../../../src/server/coding-oauth/ids.js";
+import {
+	CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
+	CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
+} from "../../../src/shared/coding-oauth.js";
 
 class TestResponse {
 	status = 0;
@@ -140,7 +140,7 @@ describe("coding OAuth routes", () => {
 		home = await mkdtemp(join(tmpdir(), "coding-oauth-routes-"));
 		process.env.DSH_HOME = home;
 		grok = new GrokBuildSession();
-		subscriptions = OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
+		subscriptions = CORE_OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
 		const built = mockContext();
 		mock = built.mock;
 		registerCodingOAuthRoutes(built.ctx, grok, subscriptions);
@@ -262,7 +262,7 @@ describe("coding OAuth gateway routes", () => {
 		home = await mkdtemp(join(tmpdir(), "coding-oauth-gateway-"));
 		process.env.DSH_HOME = home;
 		const grok = new GrokBuildSession();
-		const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
+		const subscriptions = CORE_OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
 		const controller = createCodingOAuthGatewayController({
 			config: { port: 18_199 },
 			dshHome: home,

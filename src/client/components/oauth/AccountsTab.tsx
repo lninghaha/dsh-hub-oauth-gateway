@@ -513,6 +513,20 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 							/>
 						);
 					})}
+					{data.providers.copilot !== undefined ? (
+						<ProviderCard
+							provider="copilot"
+							title={data.providers.copilot.displayName}
+							note={t("oauth.note.copilot")}
+							status={data.providers.copilot}
+							methods={data.providers.copilot.loginMethods.map((method) => ({
+								id: method,
+								label: method === "device" ? t("oauth.loginDevice") : t("oauth.loginBrowser"),
+							}))}
+							source={null}
+							t={t}
+						/>
+					) : null}
 					<article className="dus-oauth-card" data-oauth-provider="antigravity">
 						<div className="dus-oauth-card-body">
 							<SettingsRow

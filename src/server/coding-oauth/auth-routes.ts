@@ -6,9 +6,9 @@ import type {} from "@deepseek-ai/dsh-host-webserver";
 import type {} from "@deepseek-ai/dsh-llm";
 import type { AuthEvent, AuthPrompt } from "@earendil-works/pi-ai";
 import {
+	type AccountSummary,
 	CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
 	CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
-	type AccountSummary,
 	type LoginAccountMode,
 } from "../../shared/coding-oauth.js";
 import { CODING_OAUTH_CORE_ABI, type DshCompatibility } from "../../shared/compatibility.js";
@@ -804,8 +804,16 @@ function recordBody(body: unknown): Record<string, unknown> {
 
 function providerSlug(body: unknown): CodingOAuthProviderSlug {
 	const provider = recordBody(body).provider;
-	if (provider === "grok" || provider === "codex" || provider === "kimi" || provider === "claude") return provider;
-	throw new Error("provider must be one of grok, codex, kimi, or claude");
+	if (
+		provider === "grok" ||
+		provider === "codex" ||
+		provider === "kimi" ||
+		provider === "claude" ||
+		provider === "copilot"
+	) {
+		return provider;
+	}
+	throw new Error("provider must be one of grok, codex, kimi, claude, or copilot");
 }
 
 /** Register the unified Coding OAuth API plus the compatibility Grok routes. */
@@ -846,6 +854,8 @@ export function registerCodingOAuthRoutes(
 			subscription("kimi").status(),
 			subscription("claude").status(),
 		]);
+		const copilotAuth = subscriptions.get("copilot");
+		const copilot = copilotAuth === undefined ? undefined : await copilotAuth.status();
 		let antigravityInstalled = false;
 		try {
 			const llm = ctx.get("llm") as { listProviders?(): readonly { id: string }[] } | undefined;
@@ -857,7 +867,13 @@ export function registerCodingOAuthRoutes(
 			accessMode,
 			compatibility: statusContext.compatibility(accessMode),
 			uiOwner: statusContext.uiOwner,
-			providers: { grok: grokStatus, codex, kimi, claude },
+			providers: {
+				grok: grokStatus,
+				codex,
+				kimi,
+				claude,
+				...(copilot === undefined ? {} : { copilot }),
+			},
 			antigravity: {
 				installed: antigravityInstalled,
 				route: ANTIGRAVITY_ROUTE,

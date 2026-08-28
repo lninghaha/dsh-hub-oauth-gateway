@@ -4,14 +4,14 @@
  * stay outside this module so the parent can wire them later.
  * @module dsh-coding-subscription-oauth/oauth-sources
  */
-import { type CodingOAuthProviderSlug } from "./ids.js";
 /** Hard ceiling for a CLI source or destination document. */
 export declare const OAUTH_SOURCE_MAX_BYTES: number;
 /** In-memory preview tickets are one-use and live five minutes. */
 export declare const OAUTH_IMPORT_PREVIEW_TTL_MS: number;
 /** Bound credential-bearing preview material retained by one process. */
 export declare const OAUTH_IMPORT_MAX_PREVIEW_TICKETS = 32;
-export type OAuthSourceKind = CodingOAuthProviderSlug;
+/** CLI import kinds only — Copilot has no allowlisted CLI credential file. */
+export type OAuthSourceKind = "grok" | "codex" | "kimi" | "claude";
 export declare const OAUTH_SOURCE_KINDS: readonly ["grok", "codex", "kimi", "claude"];
 export type OAuthImportConflict = "none" | "same_credential" | "same_account" | "different_account" | "unknown_account" | "unreadable_destination" | "unsafe_destination";
 export type OAuthImportPreviewAction = "import" | "reuse" | "overwrite" | "blocked";

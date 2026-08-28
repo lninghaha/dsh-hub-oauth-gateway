@@ -10,16 +10,11 @@ import { AliasLlmAdapter } from "./alias-adapter.js";
 import { preferredGrokBuildModelFrom } from "./catalog.js";
 import { withCodexFastRouting } from "./codex-model-capabilities.js";
 import {
-	CLAUDE_CODE_OAUTH_ROUTE,
-	CLAUDE_PI_PROVIDER,
 	CODEX_OAUTH_FAST_ROUTE,
-	CODEX_OAUTH_ROUTE,
 	CODEX_PI_PROVIDER,
 	DEFAULT_GROK_BUILD_MODEL,
 	GROK_BUILD_ROUTE,
 	GROK_BUILD_STREAM_IDLE_TIMEOUT_MS,
-	KIMI_CODE_OAUTH_ROUTE,
-	KIMI_PI_PROVIDER,
 	XAI_PI_PROVIDER,
 } from "./ids.js";
 import type { OAuthProviderSession } from "./oauth-session.js";
@@ -240,9 +235,7 @@ export function createCodingOAuthAdapter(
 	const codexSession = byNativeId.get(CODEX_PI_PROVIDER);
 	const aliases = new Map<string, string>([
 		[GROK_BUILD_ROUTE, GROK_BUILD_ROUTE],
-		[CODEX_OAUTH_ROUTE, CODEX_PI_PROVIDER],
-		[KIMI_CODE_OAUTH_ROUTE, KIMI_PI_PROVIDER],
-		[CLAUDE_CODE_OAUTH_ROUTE, CLAUDE_PI_PROVIDER],
+		...subscriptions.map((session) => [session.definition.route, session.definition.nativeProviderId] as const),
 	]);
 	if (codexFast !== undefined && codexSession !== undefined) {
 		aliases.set(CODEX_OAUTH_FAST_ROUTE, CODEX_OAUTH_FAST_ROUTE);

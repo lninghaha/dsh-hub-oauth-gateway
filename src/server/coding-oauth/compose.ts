@@ -73,21 +73,17 @@ import {
 	type OAuthImportDestinations,
 	registerOAuthImportRoutes,
 } from "./oauth-import-routes.js";
-import { OAUTH_PROVIDER_DEFINITIONS } from "./oauth-providers.js";
+import { enabledOAuthProviderDefinitions } from "./oauth-providers.js";
 import { OAuthProviderSession } from "./oauth-session.js";
 import type { OAuthSourceCredential } from "./oauth-sources.js";
 import { acquireCodingOAuthProxy } from "./proxy.js";
+import { AccountPoolController, type GetQuotaWindows, type PoolMode } from "./quota-pool.js";
 import { GrokBuildSession } from "./session.js";
 import { GrokBuildCredentialStore, OAuthCredentialFileStore, oauthCredentialPath } from "./store.js";
-import {
-	AccountPoolController,
-	type GetQuotaWindows,
-	type PoolMode,
-} from "./quota-pool.js";
 import { createOwnerRequestPolicy, type OwnerRequestPolicyConfig } from "./web-origin.js";
 
 export { createCodingOAuthAdapter, createGrokBuildAdapter, preferredGrokBuildModel } from "./adapter.js";
-export type { AliasLlmRoutePolicy, AliasLlmPoolHooks } from "./alias-adapter.js";
+export type { AliasLlmPoolHooks, AliasLlmRoutePolicy } from "./alias-adapter.js";
 export { AliasLlmAdapter } from "./alias-adapter.js";
 export type { GrokBuildAuthStatus } from "./auth.js";
 export {
@@ -151,10 +147,15 @@ export {
 	CODEX_PI_PROVIDER,
 	CODING_OAUTH_ROUTES,
 	DEFAULT_GROK_BUILD_MODEL,
+	GITHUB_COPILOT_OAUTH_AUTH_FILENAME,
+	GITHUB_COPILOT_OAUTH_MODELS_CACHE_FILENAME,
+	GITHUB_COPILOT_OAUTH_ROUTE,
+	GITHUB_COPILOT_PI_PROVIDER,
 	GROK_BUILD_AUTH_FILENAME,
 	GROK_BUILD_MODELS_CACHE_FILENAME,
 	GROK_BUILD_ROUTE,
 	GROK_BUILD_STREAM_IDLE_TIMEOUT_MS,
+	HUB_CODING_OAUTH_EXTRA_ROUTES,
 	KIMI_CODE_OAUTH_AUTH_FILENAME,
 	KIMI_CODE_OAUTH_MODELS_CACHE_FILENAME,
 	KIMI_CODE_OAUTH_ROUTE,
@@ -180,6 +181,9 @@ export type { OAuthProviderDefinition, SubscriptionLoginMethod, SubscriptionProv
 export {
 	CLAUDE_CODE_OAUTH_PROVIDER,
 	CODEX_OAUTH_PROVIDER,
+	COPILOT_OAUTH_PROVIDER,
+	CORE_OAUTH_PROVIDER_DEFINITIONS,
+	enabledOAuthProviderDefinitions,
 	KIMI_CODE_OAUTH_PROVIDER,
 	OAUTH_PROVIDER_DEFINITIONS,
 	oauthProviderDefinition,
@@ -203,17 +207,17 @@ export {
 	ensureGrokBuildProxy,
 	grokBuildProxyInEffect,
 } from "./proxy.js";
-export { redactProxyUrl, safeMessage } from "./redact.js";
+export type { GetQuotaWindows, PoolMode, PoolPick } from "./quota-pool.js";
 export {
 	AccountPoolController,
+	orderPoolAccounts,
 	PoolCredentialProxy,
 	QUOTA_FULL_RATIO,
 	StickyAccountMap,
-	orderPoolAccounts,
 	selectAccount,
 	urgencyFromSnapshots,
 } from "./quota-pool.js";
-export type { GetQuotaWindows, PoolMode, PoolPick } from "./quota-pool.js";
+export { redactProxyUrl, safeMessage } from "./redact.js";
 export { GrokBuildSession } from "./session.js";
 export {
 	GrokBuildCredentialStore,
@@ -265,6 +269,12 @@ export interface Config {
 		mode?: "off" | "priority" | "quota_aware";
 		switchMargin?: number;
 	};
+	/**
+	 * Operator OAuth device client id for GitHub Copilot. When set, Hub registers
+	 * the `github-copilot-oauth` LLM route and AccountsTab device login. Absent =
+	 * fail closed (no Copilot coding-oauth session). Mirrors `oauthDevice.copilotClientId`.
+	 */
+	copilotClientId?: string;
 }
 
 export const Config: z<Config> = z.object({
@@ -286,6 +296,7 @@ export const Config: z<Config> = z.object({
 		mode: z.union([z.const("off"), z.const("priority"), z.const("quota_aware")]).default("off"),
 		switchMargin: z.number().default(2),
 	}),
+	copilotClientId: z.string(),
 });
 
 const CODEX_TOOL_NAMES = new Set<string>([CODEX_IMAGE_GENERATE_TOOL, CODEX_IMAGE_EDIT_TOOL]);
@@ -453,7 +464,9 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 	});
 	const grokProxy = accountPool.wrap(grokStore);
 	const grok = new GrokBuildSession(grokStore, notifyCatalogChange, emitCredentialChange, grokProxy);
-	const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map((definition) => {
+	const subscriptions = enabledOAuthProviderDefinitions({
+		...(config.copilotClientId === undefined ? {} : { copilotClientId: config.copilotClientId }),
+	}).map((definition) => {
 		const store = new OAuthCredentialFileStore(
 			definition.nativeProviderId,
 			oauthCredentialPath(definition.authFilename),
@@ -472,6 +485,12 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			proxy,
 		);
 	});
+	const registeredRoutes = [
+		...CODING_OAUTH_ROUTES,
+		...subscriptions
+			.map((session) => session.definition.route)
+			.filter((route) => !(CODING_OAUTH_ROUTES as readonly string[]).includes(route)),
+	];
 	const codex = requireSubscription(subscriptions, CODEX_PI_PROVIDER);
 	const codexAuth = codexAuthFromSession(codex);
 	const usage = createCodexUsageReader({ auth: codexAuth });
@@ -491,7 +510,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		const llm = new DshHostAdapter(llmCtx as never).llm();
 		if (llm === undefined) throw new Error("DSH LLM adapter registry is incompatible");
 		const adapterRegistration = llm.registerAdapter(
-			[...CODING_OAUTH_ROUTES],
+			[...registeredRoutes],
 			createCodingOAuthAdapter(grok, subscriptions, () => llmCtx.get("attachments"), config.retryPolicy, {
 				codexFast: {
 					isEligible: (modelId) => runtime.current().codexFast && codexModels.isPriorityEligible(modelId),
@@ -502,6 +521,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		llmCtx.effect(
 			() =>
 				bindCodexFastRoute(runtime, codexModels, adapterRegistration, {
+					baseRoutes: registeredRoutes,
 					onError: () => logger.warn("Codex Fast eligibility refresh failed closed"),
 				}),
 			"dsh-coding-subscription-oauth: Codex Fast route",

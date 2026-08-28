@@ -100,6 +100,9 @@ export async function apply(
 					mode: config.codingOAuth.pool.mode,
 					switchMargin: config.codingOAuth.pool.switchMargin,
 				},
+				...(config.oauthDevice.copilotClientId === undefined
+					? {}
+					: { copilotClientId: config.oauthDevice.copilotClientId }),
 			})
 		: undefined;
 	const codingOAuthRuntime = () => codingOAuthOwnership?.holder.current();
