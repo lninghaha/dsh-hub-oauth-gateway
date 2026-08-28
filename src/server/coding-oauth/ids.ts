@@ -1,10 +1,13 @@
-/** Compatibility facade for stable identifiers owned by dsh-coding-oauth-core. */
+/** Compatibility facade for stable identifiers owned by dsh-coding-oauth-core,
+ * plus Hub-only subscription routes (not in core CODING_OAUTH_ROUTES). */
 
-export type {
-	CodingOAuthOptionalRoute,
-	CodingOAuthProviderSlug,
-	CodingOAuthRoute,
-} from "dsh-coding-oauth-core";
+export type { CodingOAuthOptionalRoute, CodingOAuthRoute } from "dsh-coding-oauth-core";
+
+import type { CodingOAuthProviderSlug as CoreCodingOAuthProviderSlug } from "dsh-coding-oauth-core";
+
+/** Core slugs plus Hub-local GitHub Copilot subscription OAuth. */
+export type CodingOAuthProviderSlug = CoreCodingOAuthProviderSlug | "copilot";
+
 export {
 	ANTIGRAVITY_ROUTE,
 	CAPABILITY_SETTINGS_NAMESPACE,
@@ -57,3 +60,14 @@ export {
 	OAUTH_IMPORT_SOURCES_PATH,
 	XAI_PI_PROVIDER,
 } from "dsh-coding-oauth-core";
+
+/** pi-ai native provider id for GitHub Copilot. */
+export const GITHUB_COPILOT_PI_PROVIDER = "github-copilot";
+/** Hub-local LLM route alias (not listed in core CODING_OAUTH_ROUTES). */
+export const GITHUB_COPILOT_OAUTH_ROUTE = "github-copilot-oauth";
+export const GITHUB_COPILOT_OAUTH_AUTH_FILENAME = ".github-copilot-oauth-auth.json";
+export const GITHUB_COPILOT_OAUTH_MODELS_CACHE_FILENAME = ".github-copilot-oauth-models.json";
+
+/** Hub-owned routes registered beside the core CODING_OAUTH_ROUTES set. */
+export const HUB_CODING_OAUTH_EXTRA_ROUTES = [GITHUB_COPILOT_OAUTH_ROUTE] as const;
+export type HubCodingOAuthExtraRoute = (typeof HUB_CODING_OAUTH_EXTRA_ROUTES)[number];

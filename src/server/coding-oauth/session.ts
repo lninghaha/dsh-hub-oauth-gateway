@@ -7,7 +7,7 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { writeFileAtomic } from "@deepseek-ai/dsh-atomic-write";
 import { resolveDshHome } from "@deepseek-ai/dsh-home-paths";
-import type { Api, Model, MutableModels, Provider } from "@earendil-works/pi-ai";
+import type { Api, CredentialStore, Model, MutableModels, Provider } from "@earendil-works/pi-ai";
 import { createModels } from "@earendil-works/pi-ai";
 import { xaiProvider } from "@earendil-works/pi-ai/providers/xai";
 import {
@@ -19,6 +19,7 @@ import {
 } from "./catalog.js";
 import { GROK_BUILD_MODELS_CACHE_FILENAME, GROK_BUILD_ROUTE, XAI_PI_PROVIDER } from "./ids.js";
 import { grokBuildBaselineModels, grokBuildProvider } from "./provider.js";
+import { currentPoolAccountOverride } from "./quota-pool.js";
 import { safeMessage } from "./redact.js";
 import { GrokBuildCredentialStore } from "./store.js";
 
@@ -92,13 +93,15 @@ export class GrokBuildSession {
 		store: GrokBuildCredentialStore = new GrokBuildCredentialStore(),
 		onCatalogChange?: () => void,
 		onCredentialChange?: () => void,
+		/** Optional CredentialStore overlay (pool proxy); defaults to `store`. */
+		credentials?: CredentialStore,
 	) {
 		this.store = store;
 		this.cacheFile = modelsCachePath();
 		this.baselineCatalog = grokBuildBaselineModels();
 		// The built-in xai provider owns login/refresh (device flow today); the
 		// credential lives in this plugin's own file via the store above.
-		this.models = createModels({ credentials: store });
+		this.models = createModels({ credentials: credentials ?? store });
 		this.models.setProvider(xaiProvider());
 		this.onCatalogChange = onCatalogChange;
 		this.onCredentialChange = onCredentialChange;
@@ -193,6 +196,14 @@ export class GrokBuildSession {
 	 * Called after an upstream 401 rejected a locally-valid token.
 	 */
 	async invalidateAccessToken(): Promise<void> {
+		const override = currentPoolAccountOverride();
+		if (override?.providerId === XAI_PI_PROVIDER) {
+			await this.store.modifyAccount(override.accountId, async (current) => {
+				if (current?.type !== "oauth") return undefined;
+				return { ...current, expires: Date.now() - 1000 };
+			});
+			return;
+		}
 		await this.store.invalidate(XAI_PI_PROVIDER);
 	}
 

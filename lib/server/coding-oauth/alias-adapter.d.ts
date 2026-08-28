@@ -4,6 +4,7 @@
  */
 import type { GenerateOptions, LlmModelInfo, LlmProviderInfo, LlmResolvedModelInfo, ResolvedRetryPolicy, StreamChunk } from "@deepseek-ai/dsh-llm";
 import { LlmAdapter } from "@deepseek-ai/dsh-llm";
+import { type PoolPick } from "./quota-pool.js";
 export interface AliasLlmRoutePolicy {
     /** User-facing provider name shown above models in the model selector. */
     displayName?: string;
@@ -24,6 +25,16 @@ export interface AliasLlmRoutePolicy {
      */
     onAuthFailure?: () => Promise<void>;
 }
+/**
+ * Optional multi-account pool hooks. When candidates are returned (≥2), the
+ * adapter tries each account until the first stream chunk, then sticks.
+ */
+export interface AliasLlmPoolHooks {
+    /** Native provider id used by CredentialStore / sticky keys. */
+    nativeProviderId(route: string): string | undefined;
+    candidates(nativeProviderId: string, sessionId: string | undefined): Promise<PoolPick[]>;
+    remember(nativeProviderId: string, sessionId: string | undefined, accountId: string): void;
+}
 export declare function normalizeReplayForRoute(message: GenerateOptions["messages"][number], route: string, nativeReplayProvider: string): GenerateOptions["messages"][number];
 /**
  * Keeps pi-ai model.provider identities native while exposing collision-free
@@ -34,12 +45,14 @@ export declare class AliasLlmAdapter extends LlmAdapter {
     private readonly aliases;
     private readonly policies;
     private readonly replayProviders;
-    constructor(inner: LlmAdapter, aliases: ReadonlyMap<string, string>, policies?: ReadonlyMap<string, AliasLlmRoutePolicy>, replayProviders?: ReadonlyMap<string, string>);
+    private readonly pool;
+    constructor(inner: LlmAdapter, aliases: ReadonlyMap<string, string>, policies?: ReadonlyMap<string, AliasLlmRoutePolicy>, replayProviders?: ReadonlyMap<string, string>, pool?: AliasLlmPoolHooks | undefined);
     private nativeProvider;
     providerInfo(provider: string): LlmProviderInfo;
     providerRetryPolicy(provider: string): ResolvedRetryPolicy | undefined;
     listModels(provider: string): Promise<readonly LlmModelInfo[]>;
     resolveModel(provider: string, model: string, signal?: AbortSignal): Promise<LlmResolvedModelInfo>;
     stream(options: GenerateOptions): AsyncIterable<StreamChunk>;
+    private streamOne;
 }
 //# sourceMappingURL=alias-adapter.d.ts.map

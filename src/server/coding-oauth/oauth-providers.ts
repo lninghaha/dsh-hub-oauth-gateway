@@ -5,6 +5,7 @@
 
 import type { Api, ApiKeyAuth, Provider } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { githubCopilotProvider } from "@earendil-works/pi-ai/providers/github-copilot";
 import { kimiCodingProvider } from "@earendil-works/pi-ai/providers/kimi-coding";
 import { openaiCodexProvider } from "@earendil-works/pi-ai/providers/openai-codex";
 import {
@@ -17,6 +18,10 @@ import {
 	CODEX_OAUTH_ROUTE,
 	CODEX_PI_PROVIDER,
 	type CodingOAuthProviderSlug,
+	GITHUB_COPILOT_OAUTH_AUTH_FILENAME,
+	GITHUB_COPILOT_OAUTH_MODELS_CACHE_FILENAME,
+	GITHUB_COPILOT_OAUTH_ROUTE,
+	GITHUB_COPILOT_PI_PROVIDER,
 	KIMI_CODE_OAUTH_AUTH_FILENAME,
 	KIMI_CODE_OAUTH_MODELS_CACHE_FILENAME,
 	KIMI_CODE_OAUTH_ROUTE,
@@ -97,6 +102,7 @@ function asProvider(factory: () => Provider): () => Provider<Api> {
 const createCodexProvider = asProvider(openaiCodexProvider);
 const createKimiProvider = asProvider(kimiCodingProvider);
 const createClaudeProvider = asProvider(anthropicProvider);
+const createCopilotProvider = asProvider(githubCopilotProvider);
 
 export const CODEX_OAUTH_PROVIDER: OAuthProviderDefinition = {
 	slug: "codex",
@@ -141,11 +147,46 @@ export const CLAUDE_CODE_OAUTH_PROVIDER: OAuthProviderDefinition = {
 	requestProvider: (selectedIds) => selectedProvider(createClaudeProvider(), selectedIds, undefined),
 };
 
-export const OAUTH_PROVIDER_DEFINITIONS = [
+/**
+ * GitHub Copilot subscription via pi-ai `githubCopilotProvider` + device OAuth.
+ * LLM registration stays gated on operator `oauthDevice.copilotClientId` (fail closed).
+ * pi-ai hardcodes the public VS Code Copilot client id for the device grant; Hub still
+ * requires the operator clientId so enablement is an explicit opt-in (Usage Center device
+ * adapter and coding-oauth LLM route share that gate).
+ */
+export const COPILOT_OAUTH_PROVIDER: OAuthProviderDefinition = {
+	slug: "copilot",
+	route: GITHUB_COPILOT_OAUTH_ROUTE,
+	nativeProviderId: GITHUB_COPILOT_PI_PROVIDER,
+	displayName: "GitHub Copilot (subscription)",
+	authFilename: GITHUB_COPILOT_OAUTH_AUTH_FILENAME,
+	modelsCacheFilename: GITHUB_COPILOT_OAUTH_MODELS_CACHE_FILENAME,
+	loginMethods: ["device"],
+	recommendedLoginMethod: "device",
+	providerFactory: createCopilotProvider,
+	requestProvider: (selectedIds) =>
+		selectedProvider(createCopilotProvider(), selectedIds, requestTokenAuth("GitHub Copilot OAuth token", false)),
+};
+
+/** Always-on core subscription providers (Codex / Kimi / Claude). */
+export const CORE_OAUTH_PROVIDER_DEFINITIONS = [
 	CODEX_OAUTH_PROVIDER,
 	KIMI_CODE_OAUTH_PROVIDER,
 	CLAUDE_CODE_OAUTH_PROVIDER,
 ] as const;
+
+/** Full Hub definition table including the opt-in Copilot route. */
+export const OAUTH_PROVIDER_DEFINITIONS = [...CORE_OAUTH_PROVIDER_DEFINITIONS, COPILOT_OAUTH_PROVIDER] as const;
+
+/** Definitions enabled for the current Hub config (Copilot requires copilotClientId). */
+export function enabledOAuthProviderDefinitions(
+	options: { copilotClientId?: string | undefined } = {},
+): readonly OAuthProviderDefinition[] {
+	if (options.copilotClientId === undefined || options.copilotClientId.trim().length === 0) {
+		return CORE_OAUTH_PROVIDER_DEFINITIONS;
+	}
+	return OAUTH_PROVIDER_DEFINITIONS;
+}
 
 export function oauthProviderDefinition(slug: string): OAuthProviderDefinition | undefined {
 	return OAUTH_PROVIDER_DEFINITIONS.find((provider) => provider.slug === slug);

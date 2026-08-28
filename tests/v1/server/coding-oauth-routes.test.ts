@@ -26,9 +26,14 @@ import {
 	GATEWAY_SETTINGS_PATH,
 	registerGatewayRoutes,
 } from "../../../src/server/coding-oauth/gateway-routes.js";
-import { OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
+import { KIMI_PI_PROVIDER } from "../../../src/server/coding-oauth/ids.js";
+import { CORE_OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
 import { OAuthProviderSession } from "../../../src/server/coding-oauth/oauth-session.js";
 import { GrokBuildSession } from "../../../src/server/coding-oauth/session.js";
+import {
+	CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
+	CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
+} from "../../../src/shared/coding-oauth.js";
 
 class TestResponse {
 	status = 0;
@@ -135,7 +140,7 @@ describe("coding OAuth routes", () => {
 		home = await mkdtemp(join(tmpdir(), "coding-oauth-routes-"));
 		process.env.DSH_HOME = home;
 		grok = new GrokBuildSession();
-		subscriptions = OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
+		subscriptions = CORE_OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
 		const built = mockContext();
 		mock = built.mock;
 		registerCodingOAuthRoutes(built.ctx, grok, subscriptions);
@@ -191,6 +196,62 @@ describe("coding OAuth routes", () => {
 			status: "signed-out",
 		});
 	});
+
+	it("lists secret-free accounts on signed-in status and supports set-active / remove", async () => {
+		const kimi = subscriptions.find((session) => session.definition.slug === "kimi");
+		expect(kimi).toBeDefined();
+		await kimi!.store.upsertAccount({
+			id: "acct-a",
+			label: "Alpha",
+			credential: {
+				type: "oauth",
+				access: "access-a",
+				refresh: "refresh-a",
+				expires: Date.now() + 3_600_000,
+			},
+			makeActive: true,
+		});
+		await kimi!.store.upsertAccount({
+			id: "acct-b",
+			label: "Beta",
+			credential: {
+				type: "oauth",
+				access: "access-b",
+				refresh: "refresh-b",
+				expires: Date.now() + 3_600_000,
+			},
+		});
+
+		const listed = await callRoute(mock, CODING_OAUTH_STATUS_PATH, "GET");
+		expect(listed.status).toBe(200);
+		const kimiStatus = (listed.payload as { providers: { kimi: Record<string, unknown> } }).providers.kimi;
+		expect(kimiStatus.status).toBe("signed-in");
+		expect(kimiStatus.activeAccountId).toBe("acct-a");
+		expect(kimiStatus.accounts).toEqual([
+			expect.objectContaining({ id: "acct-a", label: "Alpha" }),
+			expect.objectContaining({ id: "acct-b", label: "Beta" }),
+		]);
+		expect(JSON.stringify(kimiStatus)).not.toMatch(/access-a|refresh-a|access-b|refresh-b/u);
+
+		const activated = await callRoute(mock, CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH, "POST", {
+			provider: "kimi",
+			accountId: "acct-b",
+		});
+		expect(activated.status).toBe(200);
+		expect(
+			(activated.payload as { providers: { kimi: { activeAccountId: string } } }).providers.kimi.activeAccountId,
+		).toBe("acct-b");
+		expect(await kimi!.store.read(KIMI_PI_PROVIDER)).toMatchObject({ access: "access-b" });
+
+		const removed = await callRoute(mock, CODING_OAUTH_ACCOUNTS_REMOVE_PATH, "POST", {
+			provider: "kimi",
+			accountId: "acct-b",
+		});
+		expect(removed.status).toBe(200);
+		const afterRemove = (removed.payload as { providers: { kimi: Record<string, unknown> } }).providers.kimi;
+		expect(afterRemove.activeAccountId).toBe("acct-a");
+		expect(afterRemove.accounts).toEqual([expect.objectContaining({ id: "acct-a" })]);
+	});
 });
 
 describe("coding OAuth gateway routes", () => {
@@ -201,7 +262,7 @@ describe("coding OAuth gateway routes", () => {
 		home = await mkdtemp(join(tmpdir(), "coding-oauth-gateway-"));
 		process.env.DSH_HOME = home;
 		const grok = new GrokBuildSession();
-		const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
+		const subscriptions = CORE_OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
 		const controller = createCodingOAuthGatewayController({
 			config: { port: 18_199 },
 			dshHome: home,

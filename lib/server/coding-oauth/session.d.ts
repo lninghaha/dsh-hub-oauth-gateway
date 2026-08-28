@@ -2,7 +2,7 @@
  * Shared OAuth store + live catalog for the host plugin and CLI.
  * @module dsh-coding-subscription-oauth/session
  */
-import type { Api, Model, MutableModels, Provider } from "@earendil-works/pi-ai";
+import type { Api, CredentialStore, Model, MutableModels, Provider } from "@earendil-works/pi-ai";
 import { type CatalogSource } from "./catalog.js";
 import { GrokBuildCredentialStore } from "./store.js";
 /** One process-local owner of the credential and the account model list. */
@@ -18,7 +18,9 @@ export declare class GrokBuildSession {
     private readonly cacheFile;
     private onCatalogChange;
     private onCredentialChange;
-    constructor(store?: GrokBuildCredentialStore, onCatalogChange?: () => void, onCredentialChange?: () => void);
+    constructor(store?: GrokBuildCredentialStore, onCatalogChange?: () => void, onCredentialChange?: () => void, 
+    /** Optional CredentialStore overlay (pool proxy); defaults to `store`. */
+    credentials?: CredentialStore);
     /** Secret-free listing diagnostic from the last refresh. */
     get catalogError(): string | undefined;
     get catalogSource(): CatalogSource;

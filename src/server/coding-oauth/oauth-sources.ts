@@ -5,18 +5,14 @@
  * @module dsh-coding-subscription-oauth/oauth-sources
  */
 
+import { execFile as execFileCallback } from "node:child_process";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { constants, type Stats } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, posix, resolve } from "node:path";
-import {
-	CLAUDE_PI_PROVIDER,
-	CODEX_PI_PROVIDER,
-	type CodingOAuthProviderSlug,
-	KIMI_PI_PROVIDER,
-	XAI_PI_PROVIDER,
-} from "./ids.js";
+import { promisify } from "node:util";
+import { CLAUDE_PI_PROVIDER, CODEX_PI_PROVIDER, KIMI_PI_PROVIDER, XAI_PI_PROVIDER } from "./ids.js";
 
 /** Hard ceiling for a CLI source or destination document. */
 export const OAUTH_SOURCE_MAX_BYTES = 64 * 1024;
@@ -35,6 +31,25 @@ const OPENAI_AUTH_CLAIM = "https://api.openai.com/auth";
 /** Approved Grok OIDC issuer host. Only documents scoped to this exact host are accepted. */
 const APPROVED_GROK_ISSUER_HOST = "auth.x.ai";
 const APPROVED_GROK_ISSUER_ORIGIN = `https://${APPROVED_GROK_ISSUER_HOST}`;
+
+/** macOS Keychain service name used by the official Claude Code CLI (MIT peer shape). */
+export const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
+
+/** Sentinel path for Claude Code credentials stored in the macOS Keychain. */
+export const CLAUDE_CODE_KEYCHAIN_SOURCE_PATH = `keychain:${CLAUDE_CODE_KEYCHAIN_SERVICE}`;
+
+const CLAUDE_KEYCHAIN_READ_TIMEOUT_MS = 3_000;
+
+export type OAuthSourceOrigin = "file" | "keychain";
+
+/** Injectable Keychain reader for tests. Never logs stdout. */
+export type OAuthSourceExecFile = (
+	file: string,
+	args: readonly string[],
+	options: { timeout: number; encoding: "utf8"; maxBuffer: number },
+) => Promise<{ stdout: string }>;
+
+const defaultExecFile = promisify(execFileCallback) as OAuthSourceExecFile;
 
 /** True when `value` is a host or origin that exactly names the approved Grok issuer. */
 function isApprovedGrokIssuerValue(value: string): boolean {
@@ -64,7 +79,8 @@ function isApprovedGrokIssuerValue(value: string): boolean {
 	}
 }
 
-export type OAuthSourceKind = CodingOAuthProviderSlug;
+/** CLI import kinds only — Copilot has no allowlisted CLI credential file. */
+export type OAuthSourceKind = "grok" | "codex" | "kimi" | "claude";
 
 export const OAUTH_SOURCE_KINDS = ["grok", "codex", "kimi", "claude"] as const satisfies readonly OAuthSourceKind[];
 
@@ -115,6 +131,10 @@ export interface OAuthSourceSpec {
 export interface OAuthSourcePathOptions {
 	env?: NodeJS.Dict<string>;
 	home?: string;
+	/** Defaults to `process.platform`. Inject `darwin` in tests to exercise Keychain preference. */
+	platform?: NodeJS.Platform;
+	/** Defaults to `child_process/promises.execFile`. Injected for Keychain unit tests. */
+	execFile?: OAuthSourceExecFile;
 }
 
 export interface OAuthSourceFileIdentity {
@@ -137,6 +157,8 @@ export interface OAuthSourceDiscovery {
 	available: boolean;
 	expiresAt?: number;
 	reason?: OAuthSourceUnavailableReason;
+	/** Where the discovered credential was read from. Omitted when unavailable. */
+	origin?: OAuthSourceOrigin;
 }
 
 export interface OAuthSourceProbe {
@@ -145,6 +167,13 @@ export interface OAuthSourceProbe {
 	displayPath: string;
 	expiresAt?: number;
 	reason?: OAuthSourceUnavailableReason;
+	origin?: OAuthSourceOrigin;
+}
+
+/** Hardened source material plus secret-free origin metadata. */
+export interface OAuthSourceMaterial extends HardenedOAuthSourceRead {
+	origin: OAuthSourceOrigin;
+	displayPath: string;
 }
 
 export interface OAuthImportDestinationView {
@@ -473,20 +502,21 @@ export function parseKimiCliAuthDocument(text: string): OAuthSourceCredential {
 	return credentialOf(access, refresh, expiresAt * 1000, accountId);
 }
 
-/** Claude Code CLI document. `claudeAiOauth` camelCase `accessToken` / `refreshToken` / `expiresAt` ms. */
+/**
+ * Claude Code CLI / Keychain document. Prefers nested `claudeAiOauth`, then a
+ * flat blob with the same camelCase fields (`accessToken` / `refreshToken` /
+ * `expiresAt` ms). Matches the official Claude Code credential shape.
+ */
 export function parseClaudeCliAuthDocument(text: string): OAuthSourceCredential {
 	const value = parseJsonObject(text, "claude CLI auth document");
-	const nested = value.claudeAiOauth;
-	if (!isRecord(nested)) {
-		throw new OAuthSourceError("invalid_document", "claude CLI auth document does not contain claudeAiOauth");
-	}
+	const nested = isRecord(value.claudeAiOauth) ? value.claudeAiOauth : value;
 	const access = nonEmptyString(nested.accessToken);
 	const refresh = nonEmptyString(nested.refreshToken);
 	const expiresAt = nested.expiresAt;
 	if (access === undefined || refresh === undefined) {
 		throw new OAuthSourceError(
 			"invalid_document",
-			"claude CLI auth document claudeAiOauth must contain accessToken and refreshToken",
+			"claude CLI auth document must contain accessToken and refreshToken (claudeAiOauth or flat)",
 		);
 	}
 	if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt) || expiresAt <= 0) {
@@ -499,18 +529,97 @@ export function parseClaudeCliAuthDocument(text: string): OAuthSourceCredential 
 	return credentialOf(access, refresh, expiresAt, accountId);
 }
 
+/**
+ * Read one allowlisted OAuth source. Claude on darwin prefers the macOS
+ * Keychain service {@link CLAUDE_CODE_KEYCHAIN_SERVICE}, then falls back to the
+ * hardened credentials file. Other kinds always use the hardened file reader.
+ */
+export async function readOAuthSourceMaterial(
+	kind: OAuthSourceKind,
+	options: OAuthSourcePathOptions = {},
+): Promise<OAuthSourceMaterial> {
+	if (kind === "claude") {
+		return readClaudeSourceMaterial(options);
+	}
+	const path = resolveOAuthSourcePath(kind, options);
+	const read = await readHardenedOAuthSourceFile(path);
+	return { ...read, origin: "file", displayPath: oauthSourceDisplayPath(kind, options) };
+}
+
+async function readClaudeSourceMaterial(options: OAuthSourcePathOptions): Promise<OAuthSourceMaterial> {
+	const platform = options.platform ?? process.platform;
+	if (platform === "darwin") {
+		const raw = await readClaudeKeychainRaw(options);
+		if (raw !== undefined) {
+			return {
+				path: CLAUDE_CODE_KEYCHAIN_SOURCE_PATH,
+				text: raw,
+				identity: keychainIdentity(raw),
+				origin: "keychain",
+				displayPath: `macOS Keychain (${CLAUDE_CODE_KEYCHAIN_SERVICE})`,
+			};
+		}
+	}
+	const path = resolveOAuthSourcePath("claude", options);
+	const read = await readHardenedOAuthSourceFile(path);
+	return { ...read, origin: "file", displayPath: oauthSourceDisplayPath("claude", options) };
+}
+
+/** Read Claude Code credentials from the macOS Keychain. Never logs the secret. */
+export async function readClaudeKeychainRaw(options: OAuthSourcePathOptions = {}): Promise<string | undefined> {
+	const platform = options.platform ?? process.platform;
+	if (platform !== "darwin") return undefined;
+	const execFile = options.execFile ?? defaultExecFile;
+	try {
+		const { stdout } = await execFile(
+			"/usr/bin/security",
+			["find-generic-password", "-s", CLAUDE_CODE_KEYCHAIN_SERVICE, "-w"],
+			{
+				timeout: CLAUDE_KEYCHAIN_READ_TIMEOUT_MS,
+				encoding: "utf8",
+				maxBuffer: OAUTH_SOURCE_MAX_BYTES,
+			},
+		);
+		const raw = typeof stdout === "string" ? stdout.trim() : "";
+		if (raw.length === 0) return undefined;
+		if (Buffer.byteLength(raw, "utf8") > OAUTH_SOURCE_MAX_BYTES) {
+			throw new OAuthSourceError("too_large", "oauth source: keychain payload exceeds the 64KiB limit");
+		}
+		return raw;
+	} catch (error) {
+		if (error instanceof OAuthSourceError) throw error;
+		return undefined;
+	}
+}
+
+function keychainIdentity(text: string): OAuthSourceFileIdentity {
+	const digest = createHash("sha256").update(text).digest();
+	return {
+		dev: 0,
+		ino: digest.readUInt32BE(0),
+		size: Buffer.byteLength(text, "utf8"),
+		uid: currentUid() ?? 0,
+		mode: 0o600,
+	};
+}
+
 export async function probeOAuthSource(
 	kind: OAuthSourceKind,
 	options: OAuthSourcePathOptions = {},
 ): Promise<OAuthSourceProbe> {
-	const displayPath = oauthSourceDisplayPath(kind, options);
-	const path = resolveOAuthSourcePath(kind, options);
+	const fileDisplayPath = oauthSourceDisplayPath(kind, options);
 	try {
-		const read = await readHardenedOAuthSourceFile(path);
-		const credential = parseOAuthSourceDocument(kind, read.text);
-		return { kind, available: true, displayPath, expiresAt: credential.expires };
+		const material = await readOAuthSourceMaterial(kind, options);
+		const credential = parseOAuthSourceDocument(kind, material.text);
+		return {
+			kind,
+			available: true,
+			displayPath: material.displayPath,
+			expiresAt: credential.expires,
+			origin: material.origin,
+		};
 	} catch (error) {
-		return { kind, available: false, displayPath, reason: unavailableReason(error) };
+		return { kind, available: false, displayPath: fileDisplayPath, reason: unavailableReason(error) };
 	}
 }
 
@@ -558,10 +667,8 @@ export class OAuthImportSession {
 		}
 		const now = this.#now();
 		this.#purge(now);
-		const sourcePath = resolveOAuthSourcePath(input.kind, input);
-		const displayPath = oauthSourceDisplayPath(input.kind, input);
-		const read = await readHardenedOAuthSourceFile(sourcePath);
-		const credential = parseOAuthSourceDocument(input.kind, read.text);
+		const material = await readOAuthSourceMaterial(input.kind, input);
+		const credential = parseOAuthSourceDocument(input.kind, material.text);
 		const destination = await this.#resolveDestination(input.destination);
 		const conflict = classifyOAuthImportConflict(credential, destination);
 		const previewId = this.#newPreviewId();
@@ -569,9 +676,9 @@ export class OAuthImportSession {
 		const ticket: Ticket = {
 			previewId,
 			kind: input.kind,
-			sourcePath,
-			displayPath,
-			sourceIdentity: read.identity,
+			sourcePath: material.path,
+			displayPath: material.displayPath,
+			sourceIdentity: material.identity,
 			destinationRevision: this.#destinationRevision(destination),
 			destinationFingerprint: this.#destinationFingerprint(destination),
 			credential: cloneCredential(credential),
@@ -603,15 +710,14 @@ export class OAuthImportSession {
 		}
 		const ticket = this.#takeTicket(input.previewId, now);
 
-		const expectedPath = resolveOAuthSourcePath(ticket.kind, input);
-		if (expectedPath !== ticket.sourcePath) {
+		const material = await readOAuthSourceMaterial(ticket.kind, input);
+		if (material.path !== ticket.sourcePath) {
 			throw new OAuthSourceError("source_changed", "oauth import: source path no longer matches the allowlist");
 		}
-		const read = await readHardenedOAuthSourceFile(ticket.sourcePath);
-		if (!sameIdentity(ticket.sourceIdentity, read.identity)) {
+		if (!sameIdentity(ticket.sourceIdentity, material.identity)) {
 			throw new OAuthSourceError("source_changed", "oauth import: source file identity changed");
 		}
-		const fresh = parseOAuthSourceDocument(ticket.kind, read.text);
+		const fresh = parseOAuthSourceDocument(ticket.kind, material.text);
 		if (fresh.access !== ticket.credential.access || fresh.refresh !== ticket.credential.refresh) {
 			throw new OAuthSourceError("source_changed", "oauth import: source credential changed");
 		}
@@ -859,9 +965,31 @@ function parseStoredOAuthCredentialDocument(text: string): OAuthSourceCredential
 	} catch {
 		return undefined;
 	}
-	if (!isRecord(value) || value.version !== 1) return undefined;
-	if (Object.keys(value).some((key) => key !== "version" && key !== "credential")) return undefined;
-	const raw = value.credential;
+	if (!isRecord(value)) return undefined;
+	if (value.version === 1) {
+		if (Object.keys(value).some((key) => key !== "version" && key !== "credential")) return undefined;
+		return parseAllowlistedStoredCredential(value.credential);
+	}
+	if (value.version === 2) {
+		if (Object.keys(value).some((key) => key !== "version" && key !== "activeAccountId" && key !== "accounts")) {
+			return undefined;
+		}
+		const activeAccountId = nonEmptyString(value.activeAccountId);
+		if (activeAccountId === undefined || !Array.isArray(value.accounts)) return undefined;
+		for (const entry of value.accounts) {
+			if (!isRecord(entry)) return undefined;
+			const accountKeys = new Set(["id", "label", "credential", "createdAt"]);
+			if (Object.keys(entry).some((key) => !accountKeys.has(key))) return undefined;
+			if (entry.id !== activeAccountId) continue;
+			return parseAllowlistedStoredCredential(entry.credential);
+		}
+		return undefined;
+	}
+	return undefined;
+}
+
+/** Same credential allowlist for AuthDocument v1 and the active v2 account. */
+function parseAllowlistedStoredCredential(raw: unknown): OAuthSourceCredential | undefined {
 	if (!isRecord(raw)) return undefined;
 	const allowed = new Set(["type", "access", "refresh", "expires", "accountId"]);
 	if (Object.keys(raw).some((key) => !allowed.has(key))) return undefined;

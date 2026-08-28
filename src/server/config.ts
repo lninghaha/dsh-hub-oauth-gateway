@@ -22,6 +22,10 @@ const DEFAULT_PRICING = Object.freeze({ baseCurrency: "USD" });
 const DEFAULT_CODING_OAUTH = Object.freeze({
 	enabled: true,
 	proxyKimi: false,
+	pool: Object.freeze({
+		mode: "off" as const,
+		switchMargin: 2,
+	}),
 });
 
 const DEFAULT_LOCAL_MONITOR = Object.freeze({
@@ -109,6 +113,13 @@ const OwnerRequestPolicySchema = z
 	})
 	.strict();
 
+const CodingOAuthPoolSchema = z
+	.object({
+		mode: z.enum(["off", "priority", "quota_aware"]).default(DEFAULT_CODING_OAUTH.pool.mode),
+		switchMargin: z.number().min(1).max(10).default(DEFAULT_CODING_OAUTH.pool.switchMargin),
+	})
+	.strict();
+
 const CodingOAuthConfigSchema = z
 	.object({
 		enabled: z.boolean().default(DEFAULT_CODING_OAUTH.enabled),
@@ -118,6 +129,8 @@ const CodingOAuthConfigSchema = z
 		capabilities: CodingOAuthCapabilityPatchSchema.optional(),
 		gateway: CodingOAuthGatewaySchema.optional(),
 		ownerRequest: OwnerRequestPolicySchema.optional(),
+		/** Optional multi-account sticky pool for coding-oauth routes (≥2 AuthDocument v2 accounts). */
+		pool: CodingOAuthPoolSchema.default(DEFAULT_CODING_OAUTH.pool),
 	})
 	.strict();
 

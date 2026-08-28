@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-28T15:00:00.000Z",
+  "revision": "1.11.0",
+  "items": [
+    {
+      "id": "dsh-hub-oauth-gateway",
+      "name": "dsh-hub-oauth-gateway",
+      "displayName": "DSH Hub OAuth Gateway",
+      "summary": "Local-first usage, cost, quota, account analytics, and coding-subscription OAuth for DeepSeek Harness Web.",
+      "description": "Usage Center plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), optional loopback API gateway, and opt-in local auth/usage monitoring. Catalog identity matches the npm package `dsh-hub-oauth-gateway` for Desktop Market Path A install.",
+      "homepage": "https://github.com/lninghaha/dsh-hub-oauth-gateway",
+      "latestVersion": "1.11.0",
+      "license": "MIT AND Apache-2.0",
+      "categories": ["development", "analytics", "auth"],
+      "keywords": [
+        "deepseek",
+        "deepseek-harness",
+        "dsh",
+        "token-usage",
+        "oauth",
+        "quota-dashboard",
+        "api-gateway"
+      ],
+      "repository": {
+        "url": "https://github.com/lninghaha/dsh-hub-oauth-gateway"
+      },
+      "package": {
+        "registry": "npm",
+        "name": "dsh-hub-oauth-gateway"
+      },
+      "publisher": {
+        "name": "lninghaha",
+        "url": "https://github.com/lninghaha"
+      },
+      "compatibility": {
+        "hosts": ["dsh"]
+      },
+      "updatedAt": "2026-08-28T15:00:00.000Z"
+    }
+  ],
+  "page": {}
+}

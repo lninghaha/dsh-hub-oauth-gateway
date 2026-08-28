@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { OAuthCredential } from "@earendil-works/pi-ai";
 import { XAI_PI_PROVIDER } from "./ids.js";
-import type { GrokBuildCredentialStore } from "./store.js";
+import type { GrokBuildCredentialStore, LoginPersistOptions } from "./store.js";
 
 const DEFAULT_TOKEN_LIFETIME_MS = 60 * 60 * 1000;
 
@@ -134,6 +134,7 @@ export async function probeGrokAuth(filename: string = grokAuthPath()): Promise<
 export async function importGrokAuth(
 	store: GrokBuildCredentialStore,
 	filename: string = grokAuthPath(),
+	persist: LoginPersistOptions = { mode: "add" },
 ): Promise<OAuthCredential> {
 	let text: string;
 	try {
@@ -143,7 +144,8 @@ export async function importGrokAuth(
 		throw error;
 	}
 	const credential = parseGrokAuthDocument(text, filename);
-	const written = await store.modify(XAI_PI_PROVIDER, async () => credential);
+	await store.persistLoginCredential(credential, persist);
+	const written = await store.read(XAI_PI_PROVIDER);
 	if (written === undefined || written.type !== "oauth") {
 		throw new Error("grok-build: failed to persist the imported Grok credential");
 	}

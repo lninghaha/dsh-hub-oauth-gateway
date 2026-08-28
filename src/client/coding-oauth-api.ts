@@ -85,7 +85,7 @@ export function useCodingOAuthStatusQuery(enabled = true) {
 			refetchInterval: (query) => {
 				const data = query.state.data;
 				if (data === undefined) return 5_000;
-				const signingIn = Object.values(data.providers).some((provider) => provider.status === "signing-in");
+				const signingIn = Object.values(data.providers).some((provider) => provider?.status === "signing-in");
 				return signingIn ? 2_000 : 30_000;
 			},
 			retry: 1,
@@ -97,8 +97,27 @@ export function useCodingOAuthStatusQuery(enabled = true) {
 export function useCodingOAuthLoginMutation() {
 	return useMutation(
 		{
-			mutationFn: ({ provider, method }: { provider: CodingOAuthProviderSlug; method?: string }) =>
-				postCodingOAuth(CODING_OAUTH_PATHS.login, { provider, method }, LoginChallengeSchema),
+			mutationFn: ({
+				provider,
+				method,
+				accountMode,
+				confirmOverwrite,
+			}: {
+				provider: CodingOAuthProviderSlug;
+				method?: string;
+				accountMode?: "add" | "overwrite-active";
+				confirmOverwrite?: boolean;
+			}) =>
+				postCodingOAuth(
+					CODING_OAUTH_PATHS.login,
+					{
+						provider,
+						...(method === undefined ? {} : { method }),
+						...(accountMode === undefined ? {} : { accountMode }),
+						...(confirmOverwrite === undefined ? {} : { confirmOverwrite }),
+					},
+					LoginChallengeSchema,
+				),
 			onSuccess: invalidateCodingOAuthQueries,
 		},
 		usageQueryClient,
@@ -148,6 +167,28 @@ export function useCodingOAuthModelsMutation() {
 		{
 			mutationFn: ({ provider, selected }: { provider: CodingOAuthProviderSlug; selected: readonly string[] }) =>
 				postCodingOAuth(CODING_OAUTH_PATHS.models, { provider, selected }, CodingOAuthWebStatusSchema),
+			onSuccess: invalidateCodingOAuthQueries,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useCodingOAuthSetActiveAccountMutation() {
+	return useMutation(
+		{
+			mutationFn: ({ provider, accountId }: { provider: CodingOAuthProviderSlug; accountId: string }) =>
+				postCodingOAuth(CODING_OAUTH_PATHS.accountsSetActive, { provider, accountId }, CodingOAuthWebStatusSchema),
+			onSuccess: invalidateCodingOAuthQueries,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useCodingOAuthRemoveAccountMutation() {
+	return useMutation(
+		{
+			mutationFn: ({ provider, accountId }: { provider: CodingOAuthProviderSlug; accountId: string }) =>
+				postCodingOAuth(CODING_OAUTH_PATHS.accountsRemove, { provider, accountId }, CodingOAuthWebStatusSchema),
 			onSuccess: invalidateCodingOAuthQueries,
 		},
 		usageQueryClient,

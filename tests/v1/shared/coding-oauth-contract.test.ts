@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CodingOAuthWebStatusSchema, GatewayPublicStatusSchema } from "../../../src/shared/coding-oauth.js";
+import {
+	AccountSummarySchema,
+	CodingOAuthWebStatusSchema,
+	GatewayPublicStatusSchema,
+	OAUTH_MAX_ACCOUNTS,
+} from "../../../src/shared/coding-oauth.js";
 
 const subscriptionStatus = {
 	accessMode: "ssh-tunnel",
@@ -60,6 +65,33 @@ const subscriptionStatus = {
 describe("cross-owner coding OAuth wire contracts", () => {
 	it("lets the Hub client parse a standalone status response", () => {
 		expect(CodingOAuthWebStatusSchema.parse(subscriptionStatus).uiOwner).toBe("standalone");
+	});
+
+	it("parses signed-in account summaries without tokens and keeps the hard cap constant", () => {
+		expect(OAUTH_MAX_ACCOUNTS).toBe(8);
+		const summary = AccountSummarySchema.parse({
+			id: "acct-1",
+			label: "Work",
+			expires: Date.now() + 1_000,
+			accountId: "provider-user",
+		});
+		expect(summary).not.toHaveProperty("access");
+		expect(summary).not.toHaveProperty("refresh");
+		expect(
+			CodingOAuthWebStatusSchema.parse({
+				...subscriptionStatus,
+				providers: {
+					...subscriptionStatus.providers,
+					codex: {
+						...subscriptionStatus.providers.codex,
+						status: "signed-in",
+						expiresAt: Date.now() + 1_000,
+						accounts: [summary],
+						activeAccountId: summary.id,
+					},
+				},
+			}).providers.codex,
+		).toMatchObject({ status: "signed-in", activeAccountId: "acct-1" });
 	});
 
 	it("keeps both gateway field names during the shared-core transition", () => {

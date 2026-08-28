@@ -7,6 +7,29 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.11.0
+
+### Added
+
+- AuthDocument v2 multi-account credential store (up to 8 accounts per provider file). Locked v1→v2 migration persists when a mutating or listing path loads the document under lock.
+- Settings multi-account API and AccountsTab controls to add, set default, and remove OAuth accounts.
+- Optional `codingOAuth.pool` mode (`off` | `priority` | `quota_aware`) for sticky multi-account routing when two or more AuthDocument v2 accounts exist. Quota windows fall back to the provider’s Usage Center OAuth row when per-account snapshots are unavailable.
+- GitHub Copilot LLM route `github-copilot-oauth`, gated on `oauthDevice.copilotClientId` (fail closed when unset).
+- Claude Code one-click import: discover macOS Keychain `Claude Code-credentials` on darwin (file fallback), with an Accounts “Import Claude Code” control that runs preview→commit (`accountMode: add` when possible) and still requires explicit overwrite confirm.
+- OAuth signed-in cards show Usage Center cached quota bars (GET-only; hidden when no snapshot).
+- Codex Fast Speed UX: Standard/Fast hint under the existing `codexFast` capability, documenting that the session picker uses `codex-oauth-fast`.
+- Desktop Market Path A catalog at `catalog/catalog-source.json` and `catalog/v1/plugins.json` for `dsh-hub-oauth-gateway@1.11.0`.
+
+### Fixed
+
+- CLI Pull destination inspect understands AuthDocument v2 so conflict classification is not stuck on `unreadable` after migration.
+- `quota_aware` pool scoring maps AuthDocument account ids through the provider’s Usage Center OAuth quota row when `profileId` / direct id lookups miss.
+
+### Changed
+
+- Coding-subscription OAuth credential files and Accounts UI now treat multi-account as the default shape; single-account v1 documents upgrade in place under lock without operator migration steps.
+
+
 ## 1.10.0
 
 ### Fixed

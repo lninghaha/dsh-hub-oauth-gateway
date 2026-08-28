@@ -7,18 +7,23 @@
 
 import { useEffect, useState } from "react";
 import type {
+	AccountSummary,
 	CodingOAuthProviderSlug,
 	GrokBuildWebAuthStatus,
 	OAuthImportPreview,
 	OAuthSourceDiscovery,
 	SubscriptionWebAuthStatus,
 } from "../../../shared/coding-oauth.js";
+import { OAUTH_MAX_ACCOUNTS } from "../../../shared/coding-oauth.js";
+import type { AccountSnapshot } from "../../../shared/domain.js";
 import {
 	useCodingOAuthCancelMutation,
 	useCodingOAuthCodeMutation,
 	useCodingOAuthLoginMutation,
 	useCodingOAuthLogoutMutation,
 	useCodingOAuthModelsMutation,
+	useCodingOAuthRemoveAccountMutation,
+	useCodingOAuthSetActiveAccountMutation,
 	useCodingOAuthStatusQuery,
 	useOAuthSourceCancelMutation,
 	useOAuthSourceCommitMutation,
@@ -26,7 +31,18 @@ import {
 	useOAuthSourcesQuery,
 } from "../../coding-oauth-api.js";
 import type { Translate } from "../../locales.js";
+import { useAccountsQuery } from "../../queries.js";
+import { QuotaBars } from "../AccountGrid.js";
 import { SettingsRow } from "../controls.js";
+
+/** Usage Center account provider ids that back each OAuth card (GET snapshots only). */
+const OAUTH_QUOTA_PROVIDER_ID: Record<CodingOAuthProviderSlug, string> = {
+	grok: "grok",
+	codex: "codex",
+	kimi: "kimi-coding",
+	claude: "claude",
+	copilot: "copilot",
+};
 
 type ProviderStatus = GrokBuildWebAuthStatus | SubscriptionWebAuthStatus;
 
@@ -174,6 +190,109 @@ function SigningInPanel({
 	);
 }
 
+function AccountList({
+	provider,
+	accounts,
+	activeAccountId,
+	methods,
+	t,
+}: {
+	readonly provider: CodingOAuthProviderSlug;
+	readonly accounts: readonly AccountSummary[];
+	readonly activeAccountId: string;
+	readonly methods: readonly { id: string; label: string }[];
+	readonly t: Translate;
+}) {
+	const setActive = useCodingOAuthSetActiveAccountMutation();
+	const remove = useCodingOAuthRemoveAccountMutation();
+	const login = useCodingOAuthLoginMutation();
+	const atCap = accounts.length >= OAUTH_MAX_ACCOUNTS;
+	const mutationError = [setActive.error, remove.error, login.error].find(
+		(value): value is Error => value instanceof Error,
+	);
+	return (
+		<div className="dus-oauth-accounts">
+			<div className="dus-row-hint">{t("oauth.accountsListHint")}</div>
+			<ul className="dus-oauth-account-list">
+				{accounts.map((account) => {
+					const isActive = account.id === activeAccountId;
+					const title = account.label ?? account.accountId ?? account.id;
+					return (
+						<li className="dus-oauth-account-row" key={account.id} data-account-id={account.id}>
+							<span className="dus-oauth-account-label">
+								{title}
+								{isActive ? <span className="dus-row-hint"> · {t("oauth.accountActive")}</span> : null}
+							</span>
+							<div className="dus-inline-actions">
+								{isActive ? null : (
+									<button
+										type="button"
+										className="dus-button"
+										disabled={setActive.isPending}
+										onClick={() => setActive.mutate({ provider, accountId: account.id })}
+									>
+										{t("oauth.accountSetDefault")}
+									</button>
+								)}
+								<button
+									type="button"
+									className="dus-button is-danger"
+									disabled={remove.isPending}
+									onClick={() => remove.mutate({ provider, accountId: account.id })}
+								>
+									{t("oauth.accountRemove")}
+								</button>
+							</div>
+						</li>
+					);
+				})}
+			</ul>
+			{atCap ? (
+				<div className="dus-row-hint">{t("oauth.accountsAtCap", { max: OAUTH_MAX_ACCOUNTS })}</div>
+			) : (
+				<div className="dus-inline-actions">
+					{methods.map((method) => (
+						<button
+							key={method.id}
+							type="button"
+							className="dus-button"
+							disabled={login.isPending}
+							onClick={() => login.mutate({ provider, method: method.id, accountMode: "add" })}
+						>
+							{t("oauth.accountAdd")} · {method.label}
+						</button>
+					))}
+				</div>
+			)}
+			{mutationError === undefined ? null : (
+				<p className="dus-error-inline" role="alert">
+					{mutationError.message}
+				</p>
+			)}
+		</div>
+	);
+}
+
+function OAuthCardUsageBars({
+	provider,
+	snapshots,
+	t,
+}: {
+	readonly provider: CodingOAuthProviderSlug;
+	readonly snapshots: readonly AccountSnapshot[];
+	readonly t: Translate;
+}) {
+	const providerId = OAUTH_QUOTA_PROVIDER_ID[provider];
+	const match = snapshots.find((account) => account.providerId === providerId && account.windows.length > 0);
+	if (match === undefined) return null;
+	return (
+		<div className="dus-oauth-card-usage" data-oauth-usage={provider}>
+			<div className="dus-row-hint">{t("oauth.usageCachedHint")}</div>
+			<QuotaBars windows={match.windows} limit={3} />
+		</div>
+	);
+}
+
 function ProviderCard({
 	provider,
 	title,
@@ -181,6 +300,7 @@ function ProviderCard({
 	status,
 	methods,
 	source,
+	snapshots,
 	t,
 }: {
 	readonly provider: CodingOAuthProviderSlug;
@@ -189,6 +309,7 @@ function ProviderCard({
 	readonly status: ProviderStatus;
 	readonly methods: readonly { id: string; label: string }[];
 	readonly source: OAuthSourceDiscovery | null;
+	readonly snapshots: readonly AccountSnapshot[];
 	readonly t: Translate;
 }) {
 	const login = useCodingOAuthLoginMutation();
@@ -233,7 +354,7 @@ function ProviderCard({
 									type="button"
 									className="dus-button is-primary"
 									disabled={login.isPending}
-									onClick={() => login.mutate({ provider, method: method.id })}
+									onClick={() => login.mutate({ provider, method: method.id, accountMode: "add" })}
 								>
 									{method.label}
 								</button>
@@ -244,6 +365,14 @@ function ProviderCard({
 					{status.status === "signed-in" ? (
 						<>
 							{expiryLabel === null ? null : <span className="dus-row-hint">{expiryLabel}</span>}
+							<OAuthCardUsageBars provider={provider} snapshots={snapshots} t={t} />
+							<AccountList
+								provider={provider}
+								accounts={status.accounts}
+								activeAccountId={status.activeAccountId}
+								methods={methods}
+								t={t}
+							/>
 							<ModelPicker provider={provider} available={status.available} selected={status.selected} t={t} />
 							<div className="dus-inline-actions">
 								<button
@@ -260,7 +389,7 @@ function ProviderCard({
 					{source === null ? null : (
 						<div className="dus-oauth-card-pull">
 							<div className="dus-row-hint">{t("oauth.importInlineHint")}</div>
-							<CliPullRow source={source} t={t} />
+							<CliPullRow source={source} oneClick={provider === "claude"} t={t} />
 						</div>
 					)}
 				</div>
@@ -273,7 +402,20 @@ function conflictLabel(t: Translate, preview: OAuthImportPreview): string {
 	return t(`oauth.importConflict.${preview.conflict}` as const);
 }
 
-function CliPullRow({ source, t }: { readonly source: OAuthSourceDiscovery; readonly t: Translate }) {
+function pullButtonLabel(source: OAuthSourceDiscovery, t: Translate): string {
+	if (source.kind === "claude") return t("oauth.importClaudeCode");
+	return t("oauth.importPull");
+}
+
+function CliPullRow({
+	source,
+	oneClick = false,
+	t,
+}: {
+	readonly source: OAuthSourceDiscovery;
+	readonly oneClick?: boolean;
+	readonly t: Translate;
+}) {
 	const preview = useOAuthSourcePreviewMutation();
 	const commit = useOAuthSourceCommitMutation();
 	const cancel = useOAuthSourceCancelMutation();
@@ -288,15 +430,26 @@ function CliPullRow({ source, t }: { readonly source: OAuthSourceDiscovery; read
 	const startPreview = (): void => {
 		setConfirmOverwrite(false);
 		commit.reset();
-		preview.mutate(source.kind);
+		preview.mutate(source.kind, {
+			onSuccess: (data) => {
+				if (!oneClick) return;
+				if (data.action === "blocked" || data.confirmOverwriteRequired) return;
+				commit.mutate({ kind: data.kind, previewId: data.previewId });
+			},
+		});
 	};
 	return (
-		<div className="dus-oauth-source" data-oauth-source={source.kind}>
+		<div className="dus-oauth-source" data-oauth-source={source.kind} data-oauth-origin={source.origin ?? "file"}>
 			<div className="dus-oauth-source-head">
 				<code>{source.displayPath}</code>
 				{source.available ? (
-					<button type="button" className="dus-button" disabled={preview.isPending} onClick={startPreview}>
-						{t("oauth.importPull")}
+					<button
+						type="button"
+						className="dus-button"
+						disabled={preview.isPending || commit.isPending}
+						onClick={startPreview}
+					>
+						{pullButtonLabel(source, t)}
 					</button>
 				) : (
 					<span className="dus-row-hint">{t(`oauth.importUnavailable.${source.reason ?? "missing"}` as const)}</span>
@@ -333,29 +486,33 @@ function CliPullRow({ source, t }: { readonly source: OAuthSourceDiscovery; read
 						</p>
 					) : null}
 					{commit.data === undefined ? (
-						<div className="dus-inline-actions">
-							<button
-								type="button"
-								className="dus-button is-primary"
-								disabled={
-									commit.isPending ||
-									current.action === "blocked" ||
-									(current.confirmOverwriteRequired && !confirmOverwrite)
-								}
-								onClick={() =>
-									commit.mutate({
-										kind: current.kind,
-										previewId: current.previewId,
-										...(current.confirmOverwriteRequired ? { confirmOverwrite } : {}),
-									})
-								}
-							>
-								{t("oauth.importCommit")}
-							</button>
-							<button type="button" className="dus-button" onClick={reset}>
-								{t("oauth.importCancel")}
-							</button>
-						</div>
+						current.confirmOverwriteRequired || !oneClick || current.action === "blocked" ? (
+							<div className="dus-inline-actions">
+								<button
+									type="button"
+									className="dus-button is-primary"
+									disabled={
+										commit.isPending ||
+										current.action === "blocked" ||
+										(current.confirmOverwriteRequired && !confirmOverwrite)
+									}
+									onClick={() =>
+										commit.mutate({
+											kind: current.kind,
+											previewId: current.previewId,
+											...(current.confirmOverwriteRequired ? { confirmOverwrite } : {}),
+										})
+									}
+								>
+									{t("oauth.importCommit")}
+								</button>
+								<button type="button" className="dus-button" onClick={reset}>
+									{t("oauth.importCancel")}
+								</button>
+							</div>
+						) : commit.isPending ? (
+							<div className="dus-row-hint">{t("dashboard.loading")}</div>
+						) : null
 					) : (
 						<div className="dus-inline-actions">
 							<span className="dus-save-state">{t(`oauth.importDone.${commit.data.action}` as const)}</span>
@@ -373,8 +530,10 @@ function CliPullRow({ source, t }: { readonly source: OAuthSourceDiscovery; read
 export function AccountsTab({ t }: { readonly t: Translate }) {
 	const status = useCodingOAuthStatusQuery();
 	const sources = useOAuthSourcesQuery();
+	const accounts = useAccountsQuery(true);
 	const data = status.data ?? null;
 	const sourceByKind = new Map((sources.data?.sources ?? []).map((source) => [source.kind, source]));
+	const snapshots = accounts.data?.ok === true ? accounts.data.data.accounts : [];
 	return (
 		<div className="dus-settings-stack" data-settings-tab="accounts">
 			<p className="dus-settings-hint">{t("oauth.accountsIntro")}</p>
@@ -397,6 +556,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 							{ id: "device", label: t("oauth.loginDevice") },
 						]}
 						source={sourceByKind.get("grok") ?? null}
+						snapshots={snapshots}
 						t={t}
 					/>
 					{(["codex", "kimi", "claude"] as const).map((slug) => {
@@ -413,10 +573,26 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 									label: method === "device" ? t("oauth.loginDevice") : t("oauth.loginBrowser"),
 								}))}
 								source={sourceByKind.get(slug) ?? null}
+								snapshots={snapshots}
 								t={t}
 							/>
 						);
 					})}
+					{data.providers.copilot !== undefined ? (
+						<ProviderCard
+							provider="copilot"
+							title={data.providers.copilot.displayName}
+							note={t("oauth.note.copilot")}
+							status={data.providers.copilot}
+							methods={data.providers.copilot.loginMethods.map((method) => ({
+								id: method,
+								label: method === "device" ? t("oauth.loginDevice") : t("oauth.loginBrowser"),
+							}))}
+							source={null}
+							snapshots={snapshots}
+							t={t}
+						/>
+					) : null}
 					<article className="dus-oauth-card" data-oauth-provider="antigravity">
 						<div className="dus-oauth-card-body">
 							<SettingsRow

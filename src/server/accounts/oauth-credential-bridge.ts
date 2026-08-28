@@ -2,29 +2,88 @@
  * Bridge coding-oauth session tokens into AccountService credential refs.
  *
  * OAuth login writes plugin auth files; quota adapters resolve
- * GROK_ACCESS_TOKEN / CODEX_ACCESS_TOKEN / CLAUDE_OAUTH_TOKEN / KIMI_API_KEY
- * via the Harness credentials seam. When those refs are empty, fall back to
- * the signed-in coding-oauth session access token (in memory only — never
- * logged or stored).
+ * GROK_ACCESS_TOKEN / CODEX_ACCESS_TOKEN / CLAUDE_OAUTH_TOKEN / KIMI_API_KEY /
+ * GITHUB_COPILOT_TOKEN via the Harness credentials seam. When those refs are empty,
+ * fall back to the signed-in coding-oauth session access token (in memory only —
+ * never logged or stored).
  */
 
+import type { QuotaWindow } from "../../shared/domain.js";
 import type { CodingOAuthRuntime } from "../coding-oauth/compose.js";
-import { CLAUDE_PI_PROVIDER, CODEX_PI_PROVIDER, KIMI_PI_PROVIDER, XAI_PI_PROVIDER } from "../coding-oauth/ids.js";
+import {
+	CLAUDE_PI_PROVIDER,
+	CODEX_PI_PROVIDER,
+	GITHUB_COPILOT_PI_PROVIDER,
+	KIMI_PI_PROVIDER,
+	XAI_PI_PROVIDER,
+} from "../coding-oauth/ids.js";
 import type { CredentialResolver } from "./types.js";
 
 export const GROK_ACCESS_TOKEN_REF = "GROK_ACCESS_TOKEN";
 export const CODEX_ACCESS_TOKEN_REF = "CODEX_ACCESS_TOKEN";
 export const CLAUDE_OAUTH_TOKEN_REF = "CLAUDE_OAUTH_TOKEN";
 export const KIMI_API_KEY_REF = "KIMI_API_KEY";
+export const GITHUB_COPILOT_TOKEN_REF = "GITHUB_COPILOT_TOKEN";
 
 /** AccountProvider ids refreshed after OAuth login / CLI pull. */
-export const OAUTH_QUOTA_ACCOUNT_IDS = Object.freeze(["grok", "codex", "claude", "kimi-coding"] as const);
+export const OAUTH_QUOTA_ACCOUNT_IDS = Object.freeze(["grok", "codex", "claude", "kimi-coding", "copilot"] as const);
+
+export type OAuthQuotaAccountId = (typeof OAUTH_QUOTA_ACCOUNT_IDS)[number];
+
+/**
+ * Map coding-oauth / pi-ai store provider ids (and Hub route aliases) onto Usage
+ * Center OAuth quota account ids. Pool scoring uses AuthDocument account ids
+ * (`acct-*`, ChatGPT uuids) that never equal these rows, so candidates fall
+ * back through this map when per-account snapshots are unavailable.
+ */
+export const STORE_PROVIDER_TO_OAUTH_QUOTA_ACCOUNT: Readonly<Record<string, OAuthQuotaAccountId>> = Object.freeze({
+	xai: "grok",
+	"grok-build": "grok",
+	"openai-codex": "codex",
+	"kimi-coding": "kimi-coding",
+	anthropic: "claude",
+	"github-copilot": "copilot",
+});
+
+export function oauthQuotaAccountIdForStoreProvider(providerId: string): OAuthQuotaAccountId | undefined {
+	return STORE_PROVIDER_TO_OAUTH_QUOTA_ACCOUNT[providerId];
+}
+
+/** Account row shape used when wiring pool windows from AccountService.list(). */
+export interface OAuthQuotaAccountRow {
+	readonly providerId: string;
+	readonly profileId: string;
+	readonly windows: readonly QuotaWindow[];
+	/** Present only on some host/account shapes; AuthDocument ids never appear here. */
+	readonly id?: string;
+}
+
+/**
+ * Resolve quota windows for one pool member. Prefer a direct profile/row/provider
+ * id match; otherwise use the Usage Center OAuth row for the store provider.
+ */
+export function resolveQuotaWindowsForPoolAccount(
+	accounts: readonly OAuthQuotaAccountRow[],
+	accountId: string,
+	context?: { providerId: string },
+): readonly QuotaWindow[] | undefined {
+	const direct =
+		accounts.find((account) => account.profileId === accountId) ??
+		accounts.find((account) => account.id === accountId) ??
+		accounts.find((account) => account.providerId === accountId);
+	if (direct !== undefined) return direct.windows;
+	const quotaAccountId =
+		context?.providerId === undefined ? undefined : oauthQuotaAccountIdForStoreProvider(context.providerId);
+	if (quotaAccountId === undefined) return undefined;
+	return accounts.find((account) => account.providerId === quotaAccountId)?.windows;
+}
 
 export interface OAuthTokenSource {
 	resolveGrokAccessToken(): Promise<string | undefined>;
 	resolveCodexAccessToken(): Promise<string | undefined>;
 	resolveClaudeAccessToken(): Promise<string | undefined>;
 	resolveKimiAccessToken(): Promise<string | undefined>;
+	resolveCopilotAccessToken(): Promise<string | undefined>;
 }
 
 function nonEmpty(value: string | undefined): string | undefined {
@@ -81,6 +140,15 @@ export function oauthTokenSourceFromRuntime(
 				return undefined;
 			}
 		},
+		async resolveCopilotAccessToken() {
+			const copilot = subscription(GITHUB_COPILOT_PI_PROVIDER);
+			if (copilot === undefined) return undefined;
+			try {
+				return nonEmpty(await copilot.resolveAccessToken());
+			} catch {
+				return undefined;
+			}
+		},
 	};
 }
 
@@ -110,6 +178,7 @@ export function createOAuthQuotaCredentialBridge(
 			else if (ref === CODEX_ACCESS_TOKEN_REF) fromSession = await tokens.resolveCodexAccessToken();
 			else if (ref === CLAUDE_OAUTH_TOKEN_REF) fromSession = await tokens.resolveClaudeAccessToken();
 			else if (ref === KIMI_API_KEY_REF) fromSession = await tokens.resolveKimiAccessToken();
+			else if (ref === GITHUB_COPILOT_TOKEN_REF) fromSession = await tokens.resolveCopilotAccessToken();
 			return fromSession === undefined ? undefined : { value: fromSession };
 		},
 		async set(ref: string, value: string) {

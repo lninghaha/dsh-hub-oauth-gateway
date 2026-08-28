@@ -43,6 +43,8 @@ export interface CapabilityTimer {
     clearInterval(handle: unknown): void;
 }
 export interface CodexFastBindingOptions {
+    /** Routes that must stay registered when Fast is withdrawn (includes Hub extras). */
+    readonly baseRoutes?: readonly string[];
     readonly refreshIntervalMs?: number;
     readonly timer?: CapabilityTimer;
     readonly onError?: (error: unknown) => void;

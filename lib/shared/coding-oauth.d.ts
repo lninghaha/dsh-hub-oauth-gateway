@@ -7,6 +7,11 @@
  */
 import { z } from "zod";
 export declare const CODING_OAUTH_API_BASE = "/plugins/dsh-grok-build";
+/** Hub-local multi-account mutations (peer core contracts do not list these yet). */
+export declare const CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH: "/plugins/dsh-grok-build/oauth/accounts/set-active";
+export declare const CODING_OAUTH_ACCOUNTS_REMOVE_PATH: "/plugins/dsh-grok-build/oauth/accounts/remove";
+/** Operator-owned account hard cap mirrored for Settings copy and client guards. */
+export declare const OAUTH_MAX_ACCOUNTS = 8;
 export declare const CODING_OAUTH_PATHS: Readonly<{
     status: "/plugins/dsh-grok-build/oauth/status";
     login: "/plugins/dsh-grok-build/oauth/login";
@@ -14,6 +19,8 @@ export declare const CODING_OAUTH_PATHS: Readonly<{
     cancel: "/plugins/dsh-grok-build/oauth/cancel";
     logout: "/plugins/dsh-grok-build/oauth/logout";
     models: "/plugins/dsh-grok-build/oauth/models";
+    accountsSetActive: "/plugins/dsh-grok-build/oauth/accounts/set-active";
+    accountsRemove: "/plugins/dsh-grok-build/oauth/accounts/remove";
     sources: "/plugins/dsh-grok-build/oauth/sources";
     sourcePreview: "/plugins/dsh-grok-build/oauth/sources/preview";
     sourceCommit: "/plugins/dsh-grok-build/oauth/sources/commit";
@@ -30,8 +37,22 @@ export declare const CodingOAuthProviderSlugSchema: z.ZodEnum<{
     codex: "codex";
     kimi: "kimi";
     claude: "claude";
+    copilot: "copilot";
 }>;
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
+export declare const LoginAccountModeSchema: z.ZodEnum<{
+    add: "add";
+    "overwrite-active": "overwrite-active";
+}>;
+export type LoginAccountMode = z.infer<typeof LoginAccountModeSchema>;
+/** Secret-free row for Settings account lists. Never includes tokens. */
+export declare const AccountSummarySchema: z.ZodObject<{
+    id: z.ZodString;
+    label: z.ZodOptional<z.ZodString>;
+    expires: z.ZodNumber;
+    accountId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type AccountSummary = z.infer<typeof AccountSummarySchema>;
 export declare const GrokBuildLoginMethodSchema: z.ZodEnum<{
     device: "device";
     pkce: "pkce";
@@ -72,6 +93,13 @@ export declare const GrokBuildWebAuthStatusSchema: z.ZodDiscriminatedUnion<[z.Zo
     }>;
     catalogError: z.ZodOptional<z.ZodString>;
     grokImportAvailable: z.ZodBoolean;
+    accounts: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodOptional<z.ZodString>;
+        expires: z.ZodNumber;
+        accountId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>>;
+    activeAccountId: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
     status: z.ZodLiteral<"error">;
     message: z.ZodString;
@@ -83,6 +111,7 @@ export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObj
         codex: "codex";
         kimi: "kimi";
         claude: "claude";
+        copilot: "copilot";
     }>;
     route: z.ZodString;
     displayName: z.ZodString;
@@ -110,6 +139,13 @@ export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObj
 }, z.core.$strip>, z.ZodObject<{
     status: z.ZodLiteral<"signed-in">;
     expiresAt: z.ZodOptional<z.ZodNumber>;
+    accounts: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodOptional<z.ZodString>;
+        expires: z.ZodNumber;
+        accountId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>>;
+    activeAccountId: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
     status: z.ZodLiteral<"error">;
     message: z.ZodString;
@@ -180,6 +216,13 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             }>;
             catalogError: z.ZodOptional<z.ZodString>;
             grokImportAvailable: z.ZodBoolean;
+            accounts: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                label: z.ZodOptional<z.ZodString>;
+                expires: z.ZodNumber;
+                accountId: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            activeAccountId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"error">;
             message: z.ZodString;
@@ -190,6 +233,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
                 codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
+                copilot: "copilot";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -217,6 +261,13 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"signed-in">;
             expiresAt: z.ZodOptional<z.ZodNumber>;
+            accounts: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                label: z.ZodOptional<z.ZodString>;
+                expires: z.ZodNumber;
+                accountId: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            activeAccountId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"error">;
             message: z.ZodString;
@@ -226,6 +277,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
                 codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
+                copilot: "copilot";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -253,6 +305,13 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"signed-in">;
             expiresAt: z.ZodOptional<z.ZodNumber>;
+            accounts: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                label: z.ZodOptional<z.ZodString>;
+                expires: z.ZodNumber;
+                accountId: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            activeAccountId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"error">;
             message: z.ZodString;
@@ -262,6 +321,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
                 codex: "codex";
                 kimi: "kimi";
                 claude: "claude";
+                copilot: "copilot";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -289,10 +349,61 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"signed-in">;
             expiresAt: z.ZodOptional<z.ZodNumber>;
+            accounts: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                label: z.ZodOptional<z.ZodString>;
+                expires: z.ZodNumber;
+                accountId: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            activeAccountId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             status: z.ZodLiteral<"error">;
             message: z.ZodString;
         }, z.core.$strip>], "status">>;
+        copilot: z.ZodOptional<z.ZodIntersection<z.ZodObject<{
+            provider: z.ZodEnum<{
+                codex: "codex";
+                kimi: "kimi";
+                claude: "claude";
+                copilot: "copilot";
+            }>;
+            route: z.ZodString;
+            displayName: z.ZodString;
+            loginMethods: z.ZodArray<z.ZodEnum<{
+                browser: "browser";
+                device: "device";
+            }>>;
+            recommendedLoginMethod: z.ZodEnum<{
+                browser: "browser";
+                device: "device";
+            }>;
+            models: z.ZodArray<z.ZodString>;
+            available: z.ZodArray<z.ZodString>;
+            selected: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
+            status: z.ZodLiteral<"signed-out">;
+        }, z.core.$strip>, z.ZodObject<{
+            status: z.ZodLiteral<"signing-in">;
+            method: z.ZodEnum<{
+                browser: "browser";
+                device: "device";
+            }>;
+            url: z.ZodOptional<z.ZodString>;
+            userCode: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            status: z.ZodLiteral<"signed-in">;
+            expiresAt: z.ZodOptional<z.ZodNumber>;
+            accounts: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                label: z.ZodOptional<z.ZodString>;
+                expires: z.ZodNumber;
+                accountId: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>>;
+            activeAccountId: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            status: z.ZodLiteral<"error">;
+            message: z.ZodString;
+        }, z.core.$strip>], "status">>>;
     }, z.core.$strip>;
     antigravity: z.ZodObject<{
         installed: z.ZodBoolean;
@@ -313,7 +424,7 @@ export declare const OAuthSourceKindSchema: z.ZodEnum<{
     kimi: "kimi";
     claude: "claude";
 }>;
-export type OAuthSourceKind = CodingOAuthProviderSlug;
+export type OAuthSourceKind = z.infer<typeof OAuthSourceKindSchema>;
 export declare const OAuthSourceUnavailableReasonSchema: z.ZodEnum<{
     missing: "missing";
     invalid: "invalid";
@@ -336,6 +447,10 @@ export declare const OAuthSourceDiscoverySchema: z.ZodObject<{
         too_large: "too_large";
         unsafe: "unsafe";
     }>>;
+    origin: z.ZodOptional<z.ZodEnum<{
+        file: "file";
+        keychain: "keychain";
+    }>>;
 }, z.core.$strip>;
 export type OAuthSourceDiscovery = z.infer<typeof OAuthSourceDiscoverySchema>;
 export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
@@ -354,6 +469,10 @@ export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
             invalid: "invalid";
             too_large: "too_large";
             unsafe: "unsafe";
+        }>>;
+        origin: z.ZodOptional<z.ZodEnum<{
+            file: "file";
+            keychain: "keychain";
         }>>;
     }, z.core.$strip>>;
 }, z.core.$strip>;

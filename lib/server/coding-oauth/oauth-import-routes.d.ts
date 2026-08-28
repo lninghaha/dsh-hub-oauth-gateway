@@ -22,6 +22,10 @@ export interface OAuthImportRouteContext {
 export interface OAuthImportDestinationStore {
     readonly filename: string;
     modify(providerId: string, fn: (current: OAuthSourceCredential | undefined) => Promise<OAuthSourceCredential | undefined>): Promise<OAuthSourceCredential | undefined>;
+    persistLoginCredential(credential: OAuthSourceCredential, options: {
+        mode: "add" | "overwrite-active";
+        confirmOverwrite?: boolean;
+    }): Promise<void>;
 }
 export interface OAuthImportDestination {
     providerId: string;

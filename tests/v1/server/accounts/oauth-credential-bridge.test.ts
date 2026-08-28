@@ -3,6 +3,7 @@ import {
 	CLAUDE_OAUTH_TOKEN_REF,
 	CODEX_ACCESS_TOKEN_REF,
 	createOAuthQuotaCredentialBridge,
+	GITHUB_COPILOT_TOKEN_REF,
 	GROK_ACCESS_TOKEN_REF,
 	KIMI_API_KEY_REF,
 	type OAuthTokenSource,
@@ -15,6 +16,7 @@ function tokenSource(overrides: Partial<OAuthTokenSource> = {}): OAuthTokenSourc
 		resolveCodexAccessToken: async () => undefined,
 		resolveClaudeAccessToken: async () => undefined,
 		resolveKimiAccessToken: async () => undefined,
+		resolveCopilotAccessToken: async () => undefined,
 		...overrides,
 	};
 }
@@ -31,12 +33,14 @@ describe("oauth quota credential bridge", () => {
 				resolveCodexAccessToken: async () => "codex-session-token",
 				resolveClaudeAccessToken: async () => "claude-session-token",
 				resolveKimiAccessToken: async () => "kimi-session-token",
+				resolveCopilotAccessToken: async () => "copilot-session-token",
 			}),
 		);
 		expect(await bridge.resolve(GROK_ACCESS_TOKEN_REF)).toEqual({ value: "grok-session-token" });
 		expect(await bridge.resolve(CODEX_ACCESS_TOKEN_REF)).toEqual({ value: "codex-session-token" });
 		expect(await bridge.resolve(CLAUDE_OAUTH_TOKEN_REF)).toEqual({ value: "claude-session-token" });
 		expect(await bridge.resolve(KIMI_API_KEY_REF)).toEqual({ value: "kimi-session-token" });
+		expect(await bridge.resolve(GITHUB_COPILOT_TOKEN_REF)).toEqual({ value: "copilot-session-token" });
 	});
 
 	it("prefers explicit Harness credential values over OAuth sessions", async () => {

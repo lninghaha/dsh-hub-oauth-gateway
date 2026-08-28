@@ -76,6 +76,24 @@ function QuotaBar({ window }: { readonly window: QuotaWindow }) {
 	);
 }
 
+/** Read-only quota windows for Usage Center / OAuth card surfaces. Hides when empty. */
+export function QuotaBars({
+	windows,
+	limit = 3,
+}: {
+	readonly windows: readonly QuotaWindow[];
+	readonly limit?: number;
+}) {
+	if (windows.length === 0) return null;
+	return (
+		<div className="dus-oauth-quota-bars">
+			{windows.slice(0, limit).map((window) => (
+				<QuotaBar key={`${window.kind}:${window.label}`} window={window} />
+			))}
+		</div>
+	);
+}
+
 function balanceLabel(account: AccountSnapshot): string | null {
 	const balance = account.balance;
 	if (balance === null) return null;

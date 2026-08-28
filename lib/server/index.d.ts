@@ -64,6 +64,14 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
                 csrfToken: import("zod").ZodString;
             }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>>;
+        pool: import("zod").ZodDefault<import("zod").ZodObject<{
+            mode: import("zod").ZodDefault<import("zod").ZodEnum<{
+                off: "off";
+                priority: "priority";
+                quota_aware: "quota_aware";
+            }>>;
+            switchMargin: import("zod").ZodDefault<import("zod").ZodNumber>;
+        }, import("zod/v4/core").$strict>>;
     }, import("zod/v4/core").$strict>>;
     localMonitor: import("zod").ZodDefault<import("zod").ZodObject<{
         enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
@@ -101,6 +109,10 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
     codingOAuth: {
         enabled: boolean;
         proxyKimi: boolean;
+        pool: {
+            mode: "off" | "priority" | "quota_aware";
+            switchMargin: number;
+        };
         proxy?: string | undefined;
         retryPolicy?: Record<string, unknown> | undefined;
         capabilities?: {
@@ -167,6 +179,10 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
     codingOAuth: {
         enabled: boolean;
         proxyKimi: boolean;
+        pool: {
+            mode: "off" | "priority" | "quota_aware";
+            switchMargin: number;
+        };
         proxy?: string | undefined;
         retryPolicy?: Record<string, unknown> | undefined;
         capabilities?: {

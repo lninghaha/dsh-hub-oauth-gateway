@@ -10,10 +10,10 @@ export declare const EMPTY_USAGE_BUCKETS: Readonly<UsageBuckets>;
 export declare function totalTokens(buckets: UsageBuckets): number;
 export declare const AccountStatusSchema: z.ZodEnum<{
     error: "error";
+    unsupported: "unsupported";
     ok: "ok";
     pending: "pending";
     "not-configured": "not-configured";
-    unsupported: "unsupported";
     "auth-error": "auth-error";
     "rate-limited": "rate-limited";
     unavailable: "unavailable";
@@ -65,10 +65,10 @@ export declare const AccountSnapshotSchema: z.ZodObject<{
     }>>;
     status: z.ZodEnum<{
         error: "error";
+        unsupported: "unsupported";
         ok: "ok";
         pending: "pending";
         "not-configured": "not-configured";
-        unsupported: "unsupported";
         "auth-error": "auth-error";
         "rate-limited": "rate-limited";
         unavailable: "unavailable";
@@ -125,9 +125,9 @@ export declare const PriceRuleSchema: z.ZodObject<{
     cacheReadPerMillion: z.ZodNullable<z.ZodNumber>;
     cacheWritePerMillion: z.ZodNullable<z.ZodNumber>;
     source: z.ZodEnum<{
+        imported: "imported";
         builtin: "builtin";
         user: "user";
-        imported: "imported";
     }>;
     updatedAt: z.ZodNumber;
 }, z.core.$strict>;
@@ -140,8 +140,8 @@ export declare const UsageMetricSchema: z.ZodEnum<{
 }>;
 export type UsageMetric = z.infer<typeof UsageMetricSchema>;
 export declare const UsageGroupBySchema: z.ZodEnum<{
-    session: "session";
     none: "none";
+    session: "session";
     provider: "provider";
     model: "model";
 }>;
@@ -170,8 +170,8 @@ export declare const UsageQuerySchema: z.ZodObject<{
         cacheHitRate: "cacheHitRate";
     }>;
     groupBy: z.ZodEnum<{
-        session: "session";
         none: "none";
+        session: "session";
         provider: "provider";
         model: "model";
     }>;

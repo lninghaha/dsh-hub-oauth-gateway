@@ -12,7 +12,7 @@ import {
 	KIMI_CODE_OAUTH_ROUTE,
 	XAI_PI_PROVIDER,
 } from "../../../src/server/coding-oauth/ids.js";
-import { OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
+import { CORE_OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
 import { OAuthProviderSession } from "../../../src/server/coding-oauth/oauth-session.js";
 import { GrokBuildSession } from "../../../src/server/coding-oauth/session.js";
 import { GrokBuildCredentialStore, OAuthCredentialFileStore } from "../../../src/server/coding-oauth/store.js";
@@ -31,7 +31,7 @@ async function createSessions(): Promise<{
 	const directory = await mkdtemp(join(tmpdir(), "hub-coding-oauth-adapter-"));
 	temporaryDirectories.add(directory);
 	const grok = new GrokBuildSession(new GrokBuildCredentialStore(join(directory, "grok.json")));
-	const subscriptions = OAUTH_PROVIDER_DEFINITIONS.map(
+	const subscriptions = CORE_OAUTH_PROVIDER_DEFINITIONS.map(
 		(definition) =>
 			new OAuthProviderSession(
 				definition,
