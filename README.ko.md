@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.0` and Subscription `0.6.2` share the verified DSH `0.1.1-rc.2` contract. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -47,7 +47,7 @@
 - **추세와 예측** — 시간/일/주/월 버킷; 유계 선형 외삽을 별도 시리즈로.
 - **계정 및 할당량 어댑터** — 잔액, 윈도우, 리셋 시각, stale/last-success, 소프트 알림(하드 차단 없음, 외부 알림 없음).
 - **CSV / JSON 내보내기** — 필터, 일별 또는 bundle 레이아웃; 선택적 세션 마스킹; 스프레드시트 인젝션 방어.
-- **코딩 구독 OAuth** — Grok Build, Codex, Kimi Code, Claude Code(device code / 브라우저 / PKCE 붙여넣기); 모델은 `(OAuth)` 표시; 일방향 CLI凭据 Pull.
+- **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **선택적 루프백 API 게이트웨이** — 기본 off OpenAI/Anthropic 호환 서버, 자신의 도구용.
 - **선택적 기능** — Codex search / images / usage / Fast와 Grok Imagine 기본 off; live 적용.
 - **옵트인 로컬 모니터** — 읽기 전용 CLI 인증 스냅샷과 크로스툴 token 스캔(대화 내용은 읽지 않음).
@@ -200,6 +200,9 @@ allowlist 내 공식 CLI OAuth 파일은 읽기 전용으로 발견. 동기화�
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
         codingOAuth:
           enabled: true
+          pool:
+            mode: off
+            # switchMargin: 2
         localMonitor:
           enabled: false
         localUsage:

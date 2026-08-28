@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.0` and Subscription `0.6.2` share the verified DSH `0.1.1-rc.2` contract. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -47,7 +47,7 @@ Historique des releases dans [`CHANGELOG.md`](CHANGELOG.md).
 - **Tendances et prévisions** — buckets heure/jour/semaine/mois ; extrapolation linéaire bornée comme série distincte.
 - **Adaptateurs compte et quota** — soldes, fenêtres, heures de reset, stale/last-success, alertes douces (pas de blocage dur, pas de notification sortante).
 - **Export CSV / JSON** — mises en page filtrées, quotidiennes ou bundle ; rédaction de session optionnelle ; défense contre injection tableur.
-- **OAuth abonnements coding** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / collage PKCE ; modèles affichés `(OAuth)` ; Pull unidirectionnel de credentials CLI.
+- **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Passerelle API loopback optionnelle** — serveur compatible OpenAI/Anthropic désactivé par défaut pour vos propres outils.
 - **Capacités optionnelles** — Codex search / images / usage / Fast et Grok Imagine désactivés par défaut ; application live.
 - **Moniteur local opt-in** — snapshots read-only auth CLI et scans cross-tool de tokens (jamais le contenu des conversations).
@@ -200,6 +200,9 @@ Fusionnez `config` sous l’entry Cordis existante — n’ajoutez pas de second
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
         codingOAuth:
           enabled: true
+          pool:
+            mode: off
+            # switchMargin: 2
         localMonitor:
           enabled: false
         localUsage:

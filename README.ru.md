@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Install into the existing `web` profile, keep profile/config/credential files, and restart one existing DSH Web process after all packages are updated. When Hub and Subscription are both used, `dsh-coding-oauth-core@0.1.0` is their shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.0` and Subscription `0.6.2` share the verified DSH `0.1.1-rc.2` contract. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. `dsh-coding-oauth-core@0.1.0` remains their shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -47,7 +47,7 @@
 - **Тренды и прогнозы** — агрегация по hour/day/week/month; ограниченная линейная экстраполяция как отдельный ряд.
 - **Адаптеры аккаунтов и квот** — балансы, окна, время сброса, stale/last-success, мягкие оповещения (без жёсткой блокировки и исходящих уведомлений).
 - **Экспорт CSV / JSON** — фильтрованный, дневной или bundle-формат; опциональное редактирование session; защита от injection в электронные таблицы.
-- **OAuth coding-подписок** — Grok Build, Codex, Kimi Code, Claude Code через device code / browser / PKCE paste; модели отображаются как `(OAuth)`; односторонний Pull учётных данных CLI.
+- **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Опциональный loopback API-шлюз** — по умолчанию выключен OpenAI/Anthropic-совместимый сервер для ваших инструментов.
 - **Опциональные возможности** — Codex search / images / usage / Fast и Grok Imagine по умолчанию выключены; применяются сразу.
 - **Опциональный локальный монитор** — снимки auth CLI только для чтения и сканирование токенов между инструментами (никогда не содержимое разговоров).
@@ -200,6 +200,9 @@ Allowlisted официальные CLI OAuth-файлы обнаруживают
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
         codingOAuth:
           enabled: true
+          pool:
+            mode: off
+            # switchMargin: 2
         localMonitor:
           enabled: false
         localUsage:

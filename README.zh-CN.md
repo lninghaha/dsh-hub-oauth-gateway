@@ -47,7 +47,7 @@
 - **趋势与预测** —— 小时/日/周/月桶；有界线性外推为独立序列。
 - **账户与配额适配器** —— 余额、窗口、重置时间、陈旧/上次成功、软提醒（无硬阻断、不外发通知）。
 - **CSV / JSON 导出** —— 过滤、日序列或打包；可选会话脱敏；电子表格公式注入防护。
-- **编码订阅 OAuth** —— Grok Build、Codex、Kimi Code、Claude Code（设备码 / 浏览器 / PKCE 粘贴）；配置 `oauthDevice.copilotClientId` 后可选 GitHub Copilot LLM 路由；多账号存储（最多 8）与可选 `codingOAuth.pool`（`off` | `priority` | `quota_aware`）；Claude Code Keychain/文件一键导入；模型标注 `(OAuth)`；单向 CLI 凭据拉取。
+- **编码订阅 OAuth** —— Grok Build、Codex、Kimi Code、Claude Code（设备码 / 浏览器 / PKCE 粘贴）；配置 `oauthDevice.copilotClientId` 后可选 GitHub Copilot LLM 路由；多账号存储（最多 8）与可选 `codingOAuth.pool`（`off` | `priority` | `quota_aware`）；Claude Code 导入走 **Import Claude Code**（macOS Keychain `Claude Code-credentials` 或文件回退；preview → commit；覆盖仍需确认）；模型标注 `(OAuth)`；单向 CLI 凭据拉取。
 - **可选回环 API 网关** —— 默认关闭的 OpenAI/Anthropic 兼容服务，仅供本机工具。
 - **可选能力** —— Codex 搜索 / 图像 / 用量 / Fast 与 Grok Imagine 默认关闭，打开后立即生效。
 - **可选本机监控** —— 只读 CLI 认证快照与跨工具 Token 扫描（从不读取对话内容）。
@@ -163,6 +163,14 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
 
 在 **订阅账号** 登录 Grok Build、Codex、Kimi Code 或 Claude Code（远程/无头优先设备码；浏览器/PKCE 可粘贴授权码或完整回调 URL）。已认证模型以 `(OAuth)` 出现在选择器。
 
+每个 provider 凭据文件可存多个 AuthDocument v2 账号（最多 8）。用订阅账号页的控件可添加、设默认或删除账号。已登录卡片可显示 Usage Center 缓存配额条（仅 GET；无快照时隐藏）。
+
+**Import Claude Code** 走 preview → commit（可能时用 `accountMode: add`）。macOS 优先 Keychain `Claude Code-credentials`，其它平台用白名单文件路径。覆盖写入仍需显式确认。
+
+可选粘性路由：同一 provider 有两个及以上账号时，可将 `codingOAuth.pool.mode` 设为 `priority` 或 `quota_aware`。默认 `off`。细节见 [`docs/03-configuration.md`](docs/03-configuration.md)。
+
+GitHub Copilot LLM 路由（`github-copilot-oauth`）在配置 `oauthDevice.copilotClientId` 之前保持失败关闭。
+
 白名单内官方 CLI OAuth 文件只读发现。同步是显式单向 **拉取**（发现 → 预览 → 确认），不是自动导入，也不写官方 CLI 文件。
 
 ## 本地 API 网关
@@ -171,7 +179,7 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
 
 ## 可选能力
 
-七项开关默认**关闭**，打开后**立即生效**：`codexSearch`、`codexImages`、`codexImageEdits`、`codexUsage`、`codexFast`、`grokImagineImage`、`grokImagineVideo`。Codex Fast / 私有端点与 Grok Imagine 在打开前保持失败关闭。见 [`docs/01-install.md`](docs/01-install.md) 与 [`docs/03-configuration.md`](docs/03-configuration.md)。
+七项开关默认**关闭**，打开后**立即生效**：`codexSearch`、`codexImages`、`codexImageEdits`、`codexUsage`、`codexFast`、`grokImagineImage`、`grokImagineVideo`。Codex Fast / 私有端点与 Grok Imagine 在打开前保持失败关闭。打开 `codexFast` 后，会话选择器使用已有的 `codex-oauth-fast` 路由（能力页有 Standard/Fast 提示）。该路由仅在 live catalog 列出 `priority` 资格模型后出现，不是第二套 Fast 栈。见 [`docs/01-install.md`](docs/01-install.md) 与 [`docs/03-configuration.md`](docs/03-configuration.md)。
 
 ## 运行配置
 
@@ -200,6 +208,9 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
           copilotClientId: YOUR_PUBLIC_OAUTH_CLIENT_ID
         codingOAuth:
           enabled: true
+          pool:
+            mode: off
+            # switchMargin: 2
         localMonitor:
           enabled: false
         localUsage:
@@ -214,7 +225,7 @@ CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-b
 - 经 DSH credential seam 存储；浏览器只收到 `configured` / `source` / `writable` 元数据，永不收到值。
 - 本地 CLI 导入（Claude、Codex、Gemini、Grok、Amp）不在日志暴露绝对路径。
 - Copilot 设备流把 device code 留在服务端；浏览器只持有随机 flow ID。启用前须配置自己的公共 OAuth client ID。
-- 编码 OAuth 文件：`$DSH_HOME/.grok-build-auth.json` 及其他 `*-oauth-auth.json`（`0600`、原子写）。**任何 HTTP 状态、日志或 UI 都不得返回 token。**
+- 编码 OAuth 文件：`$DSH_HOME/.grok-build-auth.json`、`.codex-oauth-auth.json`、`.kimi-code-oauth-auth.json`、`.claude-code-oauth-auth.json`，以及配置 Copilot 时的 `.github-copilot-oauth-auth.json`（`0600`、原子写）。**任何 HTTP 状态、日志或 UI 都不得返回 token。**
 
 ## 数据与迁移
 
@@ -247,7 +258,7 @@ flowchart LR
     OAuthUI --> CodingOAuth[coding-oauth 路由]
     CodingOAuth --> Creds["$DSH_HOME/*-oauth-auth.json"]
     CodingOAuth --> LLM[LLM OAuth 路由]
-    LLM --> Providers[Grok / Codex / Kimi / Claude]
+    LLM --> Providers[Grok / Codex / Kimi / Claude / Copilot]
 ```
 
 细节：[`docs/02-architecture.md`](docs/02-architecture.md) · [中文](docs/02-architecture.zh-CN.md)。OAuth 归因：[`docs/oauth-provenance.md`](docs/oauth-provenance.md)。
@@ -262,6 +273,7 @@ flowchart LR
 | [`docs/02-architecture.md`](docs/02-architecture.md) | 内部架构 · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | 运行配置参考 |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 数据迁移 |
+| [`catalog/`](catalog/) | Desktop Market Path A 目录源（`catalog-source.json`、`v1/plugins.json`）；不在 npm 包 `files` 白名单内 |
 | [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | 贡献指南 |
 | [`.github/SECURITY.md`](.github/SECURITY.md) | 安全策略 |
 
