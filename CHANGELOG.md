@@ -7,6 +7,10 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.11.1
+
+- Pin the Hub, vendored core, and shared proxy runtime to `undici@7.29.0` and `dsh-coding-oauth-core@0.1.1` so co-installed participants do not split dispatcher majors.
+
 ### Documentation
 
 - Align README / install / configuration docs with Hub `1.11.0` operator surfaces: AuthDocument v2 multi-account and `codingOAuth.pool`, Copilot credential filenames, Claude import preview→commit wording, Codex Fast session-picker note, and Desktop Market Path A `catalog/` pointer (not in the npm `files` whitelist).

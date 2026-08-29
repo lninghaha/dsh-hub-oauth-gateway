@@ -6,8 +6,10 @@ import { pathToFileURL } from "node:url";
 const root = resolve(".");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
-assert.equal(manifest.version, "1.11.0");
+assert.equal(manifest.version, "1.11.1");
 assert.notEqual(manifest.private, true, "release package must not be private");
+assert.equal(manifest.dependencies?.["dsh-coding-oauth-core"], "0.1.1");
+assert.equal(manifest.dependencies?.undici, "7.29.0");
 
 for (const path of [
 	"lib/index.js",
@@ -49,6 +51,7 @@ for (const stale of ["usage.js", "accounts.js", "balance.js", "subscriptions.js"
 }
 
 const serverSource = await readFile(resolve(root, "lib/index.js"), "utf8");
+assert.doesNotMatch(serverSource, /undici@(?:7\.24\.8|8\.)/u, "server bundle must not retain a split Undici runtime");
 assert.match(
 	serverSource.slice(0, 200),
 	new RegExp(`dsh-hub-oauth-gateway ${manifest.version.replaceAll(".", "\\.")}`),

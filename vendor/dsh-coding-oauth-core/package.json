@@ -1,6 +1,6 @@
 {
   "name": "dsh-coding-oauth-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vendored build input for the DSH-neutral coding OAuth runtime coordinator.",
   "type": "module",
   "private": true,
@@ -20,6 +20,6 @@
     }
   },
   "dependencies": {
-    "undici": "7.24.8"
+    "undici": "7.29.0"
   }
 }

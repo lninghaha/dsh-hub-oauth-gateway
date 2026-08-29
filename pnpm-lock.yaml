@@ -16,7 +16,7 @@ importers:
         specifier: file:vendor/dsh-coding-oauth-core
         version: file:vendor/dsh-coding-oauth-core
       undici:
-        specifier: ^7.24.8
+        specifier: 7.29.0
         version: 7.29.0
       zod:
         specifier: ^4.4.3
@@ -4189,7 +4189,7 @@ snapshots:
 
   dsh-coding-oauth-core@file:vendor/dsh-coding-oauth-core:
     dependencies:
-      undici: 7.24.8
+      undici: 7.29.0
 
   ecdsa-sig-formatter@1.0.11:
     dependencies:

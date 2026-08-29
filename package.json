@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web, with coding-subscription OAuth sign-in (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring",
-	"version": "1.11.0",
+	"version": "1.11.1",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -197,8 +197,8 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "dsh-coding-oauth-core": "0.1.0",
-    "undici": "^7.24.8",
+    "dsh-coding-oauth-core": "0.1.1",
+    "undici": "7.29.0",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
