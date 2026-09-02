@@ -27,7 +27,7 @@ npm login --registry https://registry.npmjs.org/
 pnpm run release:publish
 ```
 
-Then verify with `npm view dsh-coding-oauth-core version` → `0.1.2`. See [`vendor/dsh-coding-oauth-core/README.md`](vendor/dsh-coding-oauth-core/README.md) for pack/export details.
+Then verify with `npm view dsh-coding-oauth-core version` → `0.1.2`. See the [vendor core README](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/vendor/dsh-coding-oauth-core/README.md) for pack/export details.
 
 ---
 
