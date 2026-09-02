@@ -17,7 +17,7 @@
 
 ---
 
-> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.2` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。仓库内 vendored 的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）已按 `vendor/dsh-coding-oauth-core` 准备好 npm 发布；打包/发布步骤见该包 README。
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.2` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
 
 ---
 

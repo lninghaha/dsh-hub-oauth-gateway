@@ -28,7 +28,7 @@ This is an npm dependency, not a DSH plugin. Operators install Hub and/or Subscr
 
 ## Development (vendored in Hub)
 
-Source lives at `vendor/dsh-coding-oauth-core` inside [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway). Hub currently overrides the registry pin with `file:vendor/dsh-coding-oauth-core` until consumers switch to the published `0.1.2`.
+Source lives at `vendor/dsh-coding-oauth-core` inside [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway). Hub and Subscription consume the published npm package; `vendor/dsh-coding-oauth-core` remains the editable source for future core releases.
 
 ```bash
 # from this directory (or via Hub root: pnpm exec tsc -p vendor/dsh-coding-oauth-core)
@@ -39,7 +39,7 @@ pnpm run release:inspect   # npm pack --dry-run
 
 `src/` is the only editable source. Rebuild and commit `lib/` before packing or publishing.
 
-## Publish `0.1.2` (operators only)
+## Publish next core version (operators only)
 
 Agents must **not** run `npm login` or `npm publish`. After prep (build, check, dry-run review) is green on the release branch, the operator publishes with:
 
@@ -58,7 +58,7 @@ npm view dsh-coding-oauth-core version
 npm view dsh-coding-oauth-core exports
 ```
 
-Then Hub / Subscription can depend on registry `dsh-coding-oauth-core@0.1.2` and drop the local `file:` override in a follow-up change.
+Hub / Subscription now depend on registry `dsh-coding-oauth-core@0.1.2`. Keep this vendor tree as the editable source for the next core release.
 
 ## License
 
