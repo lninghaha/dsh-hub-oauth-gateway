@@ -53,7 +53,7 @@
 - **可选本机监控** —— 只读 CLI 认证快照与跨工具 Token 扫描（从不读取对话内容）。
 - **中英文界面** —— 复用 DSH locale 服务。
 
-产品调研：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。架构：[`docs/02-architecture.md`](docs/02-architecture.md)。
+产品调研：[`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md)。架构：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
 ## 产品截图
 

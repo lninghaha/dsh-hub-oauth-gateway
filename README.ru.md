@@ -53,7 +53,7 @@
 - **Опциональный локальный монитор** — снимки auth CLI только для чтения и сканирование токенов между инструментами (никогда не содержимое разговоров).
 - **Двуязычный UI** — китайский и английский через сервисы locale DSH.
 
-Исследование продукта: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Архитектура: [`docs/02-architecture.md`](docs/02-architecture.md).
+Исследование продукта: [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). Архитектура: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## Скриншоты
 

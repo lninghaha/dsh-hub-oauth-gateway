@@ -53,7 +53,7 @@
 - **オプトインのローカルモニター** — 読み取り専用 CLI 認証スナップショットとクロスツール token スキャン（会話内容は読み取りません）。
 - **二言語 UI** — DSH locale サービス経由の中国語と英語。
 
-製品調査：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。アーキテクチャ：[`docs/02-architecture.md`](docs/02-architecture.md)。
+製品調査：[`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md)。アーキテクチャ：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
 ## スクリーンショット
 

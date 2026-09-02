@@ -53,7 +53,7 @@
 - **옵트인 로컬 모니터** — 읽기 전용 CLI 인증 스냅샷과 크로스툴 token 스캔(대화 내용은 읽지 않음).
 - **이중 언어 UI** — DSH locale 서비스를 통한 중국어와 영어.
 
-제품 조사: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). 아키텍처: [`docs/02-architecture.md`](docs/02-architecture.md).
+제품 조사: [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). 아키텍처: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## 스크린샷
 

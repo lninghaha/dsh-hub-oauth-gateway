@@ -7,11 +7,7 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
-### Changed
-
-- Extract shared pure helpers (`http-json`, `grok-errors`, `kimi-errors`, `gateway-protocol`) into vendored `dsh-coding-oauth-core@0.1.2` (local vendor metadata only; npm core remains `0.1.1` until the next published core release). Hub coding-oauth modules re-export from the core package.
-
-## 1.11.2 — 2026-09-02
+## 1.11.2
 
 ### Fixed
 
@@ -21,6 +17,7 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ### Changed
 
+- Extract shared pure helpers (`http-json`, `grok-errors`, `kimi-errors`, `gateway-protocol`) into vendored `dsh-coding-oauth-core@0.1.2` (local vendor metadata only; npm core remains `0.1.1` until the next published core release). Hub coding-oauth modules re-export from the core package.
 - Rename Hub CLI bins to avoid colliding with Subscription: `dsh-coding-oauth` → `dsh-hub-oauth`, `dsh-grok-build` → `dsh-hub-grok-build`. Keep `dsh-hub-oauth-gateway-install`. Subscription-owned `dsh-coding-oauth` / `dsh-grok-build` are not this package.
 - Stop shipping `docs/research/*` in the npm `files` allowlist. The research notes remain in git.
 

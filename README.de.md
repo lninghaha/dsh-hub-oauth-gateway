@@ -53,7 +53,7 @@ Release-Historie in [`CHANGELOG.md`](CHANGELOG.md).
 - **Opt-in lokaler Monitor** — read-only CLI-Auth-Snapshots und Cross-Tool-Token-Scans (nie Gesprächsinhalt).
 - **Zweisprachige UI** — Chinesisch und Englisch über DSH-Locale-Services.
 
-Produktrecherche: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Architektur: [`docs/02-architecture.md`](docs/02-architecture.md).
+Produktrecherche: [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). Architektur: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## Screenshots
 
