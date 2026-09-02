@@ -74,6 +74,8 @@ The database deliberately excludes credential values, prompts, responses, workin
 
 Provider descriptors come from DSH settings and a compatibility catalog. `resolveAccountSpecs()` combines each descriptor with the validated monitor config and selects one of 21 adapters.
 
+Antigravity quota stays an **opt-in Hub read-only** probe (`antigravity-quota`); Google OAuth remains with `dsh-agy`. See [`docs/research/adr-antigravity-quota-probe.md`](research/adr-antigravity-quota-probe.md).
+
 Every adapter returns the same normalized snapshot:
 
 - provider/display/adapter identifiers;

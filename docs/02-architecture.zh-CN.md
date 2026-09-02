@@ -74,6 +74,8 @@ DSH Web slots ──> classic client bundle ──> TanStack Query ──> Quick
 
 Provider 描述符来自 DSH 设置与兼容性目录。`resolveAccountSpecs()` 将每个描述符与经校验的 monitor 配置组合，并选择 21 个 adapter 之一。
 
+Antigravity 额度保持 Hub **只读、显式配置** 的 `antigravity-quota`；Google OAuth 仍由 `dsh-agy` 负责。见 [`docs/research/adr-antigravity-quota-probe.md`](research/adr-antigravity-quota-probe.md)。
+
 每个 adapter 返回相同结构的规范化快照：
 
 - provider/display/adapter 标识符；
