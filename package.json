@@ -149,7 +149,7 @@
     "release:build": "pnpm run assert:node && pnpm run build:next && pnpm run release:promote && pnpm run release:verify",
     "release:inspect": "pnpm run assert:node && node scripts/release.mjs --dry-run",
     "release:pack": "pnpm run assert:node && node scripts/release.mjs --pack",
-    "smoke:dsh-alpha": "node scripts/smoke-dsh-alpha.mjs"
+    "smoke:dsh-alpha": "node scripts/smoke-dsh-alpha.mjs",
     "release:publish": "node scripts/release-publish.mjs",
     "check": "pnpm run assert:node && pnpm run lint:next && pnpm run release:build && pnpm run test:next",
     "prepack": "pnpm run release:build"
