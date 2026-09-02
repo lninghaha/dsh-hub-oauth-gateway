@@ -39,6 +39,7 @@
   - 门禁脚本会先跑 `pnpm run assert:node`，版本不合规直接失败。
 - `tsc` / `vitest` / `biome`、`scripts/*.mjs`、`build/*.mjs`、`npm pack --dry-run`；
 - 安装 `@deepseek-ai/dsh`、向隔离 profile 安装本插件、启动 `dsh web` 做 UI/API 冒烟。
+- 云环境 `.cursor/environment.json` 的 `install` 会全局安装钉死的 `@deepseek-ai/dsh@0.1.1-rc.2`，并创建隔离目录 `$HOME/.dsh-cloud`。冒烟时优先 `export DSH_HOME=$HOME/.dsh-cloud`（可另用 `/tmp/dsh-verify-*`），不要写入操作者真实本机 profile。
 
 推荐顺序：
 
@@ -46,7 +47,7 @@
 2. 快速门禁 `pnpm run check:next`；
 3. 交付门禁 `pnpm run check`（含重建/校验 `lib/` 时按 `package.json` scripts）；
 4. 发布前 `npm pack --dry-run --json --ignore-scripts` 审阅清单；
-5. **DSH 冒烟**：隔离 `DSH_HOME`（例如 `/tmp/dsh-verify-*` 或云工作区下的独立目录）安装 DSH → `dsh plugin --profile web add <本仓库路径>` → 启动 `dsh web` → 检查 `http://127.0.0.1:3080` 与 Usage Center 是否加载。面向最终用户的安装优先使用 npm 包名 `dsh-hub-oauth-gateway`（见 [`README.md`](README.md)）。
+5. **DSH 冒烟**：隔离 `DSH_HOME`（云环境默认 `$HOME/.dsh-cloud`，或 `/tmp/dsh-verify-*`）→ 若 `dsh` 不在 PATH 则按 BOM 安装 `@deepseek-ai/dsh@0.1.1-rc.2` → `dsh plugin --profile web add <本仓库路径>` → 启动 `dsh web` → 检查 `http://127.0.0.1:3080` 与 Usage Center 是否加载。面向最终用户的安装优先使用 npm 包名 `dsh-hub-oauth-gateway`（见 [`README.md`](README.md)）。
 
 ### 3.2 隔离与隐私（仍强制）
 
