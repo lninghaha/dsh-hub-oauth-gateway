@@ -140,6 +140,7 @@
     "build": "pnpm run release:build",
     "test:next": "vitest run",
     "test:next:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test": "pnpm run build:next && pnpm run test:next",
     "lint:next": "biome check",
     "check:next": "pnpm run assert:node && pnpm run lint:next && pnpm run build:next && pnpm run test:next",
