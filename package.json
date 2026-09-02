@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web, with coding-subscription OAuth sign-in (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring",
-  "version": "1.11.2",
+	"version": "1.11.2",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -149,10 +149,10 @@
     "release:build": "pnpm run assert:node && pnpm run build:next && pnpm run release:promote && pnpm run release:verify",
     "release:inspect": "pnpm run assert:node && node scripts/release.mjs --dry-run",
     "release:pack": "pnpm run assert:node && node scripts/release.mjs --pack",
+    "smoke:dsh-alpha": "node scripts/smoke-dsh-alpha.mjs"
     "release:publish": "node scripts/release-publish.mjs",
     "check": "pnpm run assert:node && pnpm run lint:next && pnpm run release:build && pnpm run test:next",
-    "prepack": "pnpm run release:build",
-    "smoke:dsh-alpha": "node scripts/smoke-dsh-alpha.mjs"
+    "prepack": "pnpm run release:build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
