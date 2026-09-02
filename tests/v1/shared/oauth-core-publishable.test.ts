@@ -9,9 +9,7 @@ const require = createRequire(import.meta.url);
 
 describe("vendored dsh-coding-oauth-core publish prep", () => {
 	it("is publishable 0.1.2 with lib subpath exports", async () => {
-		const manifest = JSON.parse(
-			await readFile(join(root, "vendor/dsh-coding-oauth-core/package.json"), "utf8"),
-		);
+		const manifest = JSON.parse(await readFile(join(root, "vendor/dsh-coding-oauth-core/package.json"), "utf8"));
 		expect(manifest.name).toBe("dsh-coding-oauth-core");
 		expect(manifest.version).toBe("0.1.2");
 		expect(manifest.private).not.toBe(true);
