@@ -195,7 +195,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "dsh-coding-oauth-core": "0.1.1",
+    "dsh-coding-oauth-core": "0.1.2",
     "undici": "7.29.0",
     "zod": "^4.4.3"
   },

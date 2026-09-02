@@ -8,7 +8,7 @@ const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
 assert.equal(manifest.version, "1.11.2");
 assert.notEqual(manifest.private, true, "release package must not be private");
-assert.equal(manifest.dependencies?.["dsh-coding-oauth-core"], "0.1.1");
+assert.equal(manifest.dependencies?.["dsh-coding-oauth-core"], "0.1.2");
 assert.equal(manifest.dependencies?.undici, "7.29.0");
 
 for (const path of [

@@ -55,15 +55,7 @@ dsh plugin --profile web add "$PWD"
 ## Upgrade notes
 
 - This release is verified against the exact DSH BOM `@deepseek-ai/dsh 0.1.1-rc.2`; do not replace it with `*` or an unverified broad range.
-- When upgrading the combined installation, make sure `dsh-coding-oauth-core@0.1.1` is available from the npm registry first. Core is a shared npm dependency, not a separate DSH plugin, so operators do **not** run `dsh plugin add` for it. Vendored `0.1.2` (with `http-json` / `grok-errors` / `kimi-errors` / `gateway-protocol`) is publish-ready under `vendor/dsh-coding-oauth-core`. **Operator publish only** (agents must not run these):
-
-  ```bash
-  cd vendor/dsh-coding-oauth-core
-  npm login --registry https://registry.npmjs.org/
-  pnpm run release:publish
-  ```
-
-  After publish, Hub/Subscription can pin registry `0.1.2` and drop the local `file:` override.
+- When upgrading the combined installation, make sure `dsh-coding-oauth-core@0.1.2` is available from the npm registry first. Core is a shared npm dependency, not a separate DSH plugin, so operators do **not** run `dsh plugin add` for it. Hub and Subscription pin registry `0.1.2` (helpers: `http-json` / `grok-errors` / `kimi-errors` / `gateway-protocol`). Keep `vendor/dsh-coding-oauth-core` as the editable source for the next core release.
 - Upgrade Hub to `1.11.2` and Subscription to `0.6.4` before restarting. This pair aligns request authentication, image limits, opaque replay, retry handling, optional-service lifecycles, and the shared `undici@7.29.0` dispatcher runtime with DSH `0.1.1-rc.2`. AuthDocument v1 credential files migrate in place to v2 under lock; no database, Gateway, route, adapter, or model ID migration is required.
 - Install Hub `1.11.2` and Subscription `0.6.4` into the same **web profile**, then restart the existing DSH Web process once. Hub owns the full UI; Subscription becomes the compact status entry.
 - The Cordis id `usage-stats`, the `usage-stats-v1.sqlite` history, OAuth credential files, and Gateway configuration are preserved. Do not remove the old storage or credentials as part of an upgrade. The old `dsh-usage-stats` entry must be removed only when replacing it with this package, never in addition to it.
