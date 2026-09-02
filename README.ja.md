@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · 旧称 `dsh-usage-stats`
+**v1.11.2** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@
 | GitHub / 開発 | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | Cordis プラグイン id | `usage-stats` | 変更なし |
 | SQLite データベース | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | 変更なし |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build`（エイリアス） |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build`（エイリアス）。Subscription 所有の `dsh-coding-oauth` / `dsh-grok-build` は本パッケージではありません |
 
 リリース履歴は [`CHANGELOG.md`](CHANGELOG.md)。
 
@@ -153,7 +153,7 @@ dsh plugin --profile web remove dsh-hub-oauth-gateway
 4. **Settings → Usage Center** で Display / Accounts / Gateway / Capabilities / Providers / Fees を設定。
 5. コストは常に推定 — カバレッジ率に注意；未価格 token は無料ではありません。
 
-CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-build` はエイリアス）。
+CLI：`dsh-hub-oauth login [--pkce] | import | status | logout`（`dsh-hub-grok-build` はエイリアス）。
 
 ## 設定
 

@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · 이전 이름 `dsh-usage-stats`
+**v1.11.2** · 이전 이름 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web용 로컬 우선 사용량 센터.** Token, 추정 비용, 계정 잔액, 구독 할당량, 추세, 예측, 알림, 내보내기 — 코딩 구독 OAuth(Grok Build, Codex, Kimi Code, Claude Code), 선택적 루프백 API 게이트웨이, 옵트인 로컬 인증/사용량 모니터링 포함. **채팅에 token을 붙여넣지 마세요.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@
 | GitHub / 개발 | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | Cordis 플러그인 id | `usage-stats` | 변경 없음 |
 | SQLite 데이터베이스 | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | 변경 없음 |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build`(별칭) |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build`(별칭). Subscription 소유의 `dsh-coding-oauth` / `dsh-grok-build`는 이 패키지가 아님 |
 
 릴리스 기록은 [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -153,7 +153,7 @@ dsh plugin --profile web remove dsh-hub-oauth-gateway
 4. **Settings → Usage Center** 에서 Display / Accounts / Gateway / Capabilities / Providers / Fees 구성.
 5. 비용은 항상 추정 — 커버리지 비율 확인; 미가격 token은 무료가 아님.
 
-CLI: `dsh-coding-oauth login [--pkce] | import | status | logout`(`dsh-grok-build`는 별칭).
+CLI: `dsh-hub-oauth login [--pkce] | import | status | logout`(`dsh-hub-grok-build`는 별칭).
 
 ## 설정
 

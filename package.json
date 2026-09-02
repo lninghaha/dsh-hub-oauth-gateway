@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web, with coding-subscription OAuth sign-in (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring",
-	"version": "1.11.1",
+	"version": "1.11.2",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -30,8 +30,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "bin": {
-    "dsh-coding-oauth": "lib/bin.js",
-    "dsh-grok-build": "lib/bin.js",
+    "dsh-hub-oauth": "lib/bin.js",
+    "dsh-hub-grok-build": "lib/bin.js",
     "dsh-hub-oauth-gateway-install": "scripts/install.mjs"
   },
   "files": [

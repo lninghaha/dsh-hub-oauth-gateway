@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.11.2 — 2026-09-02
+
 ### Fixed
 
 - Register Hub invariants under `dsh-hub-oauth-gateway` instead of the standalone subscription package name.
@@ -15,11 +17,14 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ### Changed
 
+- Rename Hub CLI bins to avoid colliding with Subscription: `dsh-coding-oauth` → `dsh-hub-oauth`, `dsh-grok-build` → `dsh-hub-grok-build`. Keep `dsh-hub-oauth-gateway-install`. Subscription-owned `dsh-coding-oauth` / `dsh-grok-build` are not this package.
 - Stop shipping `docs/research/*` in the npm `files` allowlist. The research notes remain in git.
 
 ### Documentation
 
+- Document the new Hub CLI bin names in README / community translations; leave HTTP paths `/plugins/dsh-grok-build/*` unchanged.
 - Translate the leftover Chinese 「凭据」 heading in `README.ja.md` and `README.ko.md`.
+- Refresh the token-monitor supplement research note status for Wave 1–3 and 1.9–1.11 baselines.
 
 ## 1.11.1
 

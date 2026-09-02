@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · anteriormente `dsh-usage-stats`
+**v1.11.2** · anteriormente `dsh-usage-stats`
 
 **Centro de uso local-first para [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, custo estimado, saldos de conta, cotas de assinatura, tendências, previsões, alertas e exportações — além de OAuth de assinaturas de coding (Grok Build, Codex, Kimi Code, Claude Code), um gateway de API loopback opcional e monitoramento local opt-in de auth/uso. **Não cole tokens no chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@ Publicado inicialmente como **`dsh-usage-stats`**. O pacote e o repositório ago
 | GitHub / desenvolvimento | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | id do plugin Cordis | `usage-stats` | inalterado |
 | banco SQLite | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | inalterado |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build` (alias) |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build` (alias). Os bins `dsh-coding-oauth` / `dsh-grok-build` do Subscription não são deste pacote |
 
 Histórico de releases em [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -153,7 +153,7 @@ Instalador compatível quando o gerenciador de plugins falta: `npx --yes dsh-hub
 4. Configure Display / Accounts / Gateway / Capabilities / Providers / Fees em **Settings → Usage Center**.
 5. Custos são sempre estimativas — observe a porcentagem de cobertura; tokens sem preço não são grátis.
 
-CLI: `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-build` é alias).
+CLI: `dsh-hub-oauth login [--pkce] | import | status | logout` (`dsh-hub-grok-build` é alias).
 
 ## Configurações
 

@@ -92,8 +92,8 @@ async function answerPrompt(
 function printHelp(): void {
 	process.stdout.write(
 		[
-			"Usage: dsh-coding-oauth <login|logout|status|import> [provider] [options]",
-			"(legacy command name: dsh-grok-build)",
+			"Usage: dsh-hub-oauth <login|logout|status|import> [provider] [options]",
+			"(also: dsh-hub-grok-build; Subscription-owned dsh-coding-oauth / dsh-grok-build are not this package)",
 			"",
 			"Providers: grok (default), codex, kimi, claude, copilot; status also accepts all.",
 			"",
@@ -194,7 +194,7 @@ async function grokStatus(): Promise<boolean> {
 			.join(", ")}\n`,
 	);
 	if (session.catalogError !== undefined) {
-		process.stderr.write(`dsh-coding-oauth: live models-v2 failed: ${session.catalogError}\n`);
+		process.stderr.write(`dsh-hub-oauth: live models-v2 failed: ${session.catalogError}\n`);
 	}
 	return true;
 }
@@ -275,7 +275,7 @@ export async function run(argv: readonly string[]): Promise<number> {
 	const rawAction = argv[0];
 	if (rawAction !== "login" && rawAction !== "logout" && rawAction !== "status" && rawAction !== "import") {
 		process.stderr.write(
-			`dsh-coding-oauth: expected login, logout, status, or import; got ${JSON.stringify(rawAction)}\n`,
+			`dsh-hub-oauth: expected login, logout, status, or import; got ${JSON.stringify(rawAction)}\n`,
 		);
 		return 1;
 	}
@@ -342,7 +342,7 @@ export async function run(argv: readonly string[]): Promise<number> {
 		else await loginSubscription(provider, flags);
 		return 0;
 	} catch (error: unknown) {
-		process.stderr.write(`dsh-coding-oauth: ${action} failed: ${safeMessage(error)}\n`);
+		process.stderr.write(`dsh-hub-oauth: ${action} failed: ${safeMessage(error)}\n`);
 		return 1;
 	}
 }

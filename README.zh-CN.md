@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · 原名 `dsh-usage-stats`
+**v1.11.2** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.1` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.2` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。
 
 ---
 
@@ -31,7 +31,7 @@
 | GitHub / 开发 | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | Cordis 插件 id | `usage-stats` | 不变 |
 | SQLite 数据库 | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | 不变 |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build`（别名） |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build`（别名）。Subscription 拥有的 `dsh-coding-oauth` / `dsh-grok-build` 不属于本包 |
 
 版本历史见 [`CHANGELOG.md`](CHANGELOG.md)。
 
@@ -153,7 +153,7 @@ dsh plugin --profile web remove dsh-hub-oauth-gateway
 4. 在 **设置 → 用量中心** 调整显示、订阅账号、网关、能力、供应商与费用。
 5. 成本始终是估算——关注 coverage；未定价 Token 不是免费。
 
-CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-build` 为别名）。
+CLI：`dsh-hub-oauth login [--pkce] | import | status | logout`（`dsh-hub-grok-build` 为别名）。
 
 ## 设置页
 

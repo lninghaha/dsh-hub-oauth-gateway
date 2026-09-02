@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · formerly `dsh-usage-stats`
+**v1.11.2** · formerly `dsh-usage-stats`
 
 **Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin.
 
 ---
 
@@ -31,7 +31,7 @@ First published as **`dsh-usage-stats`**. The package and repository are now **`
 | GitHub / development | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | Cordis plugin id | `usage-stats` | unchanged |
 | SQLite database | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | unchanged |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build` (alias) |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build` (alias). Subscription-owned `dsh-coding-oauth` / `dsh-grok-build` are not this package |
 
 Release history lives in [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -153,7 +153,7 @@ Compatible installer when the plugin manager is missing: `npx --yes dsh-hub-oaut
 4. Configure Display / Accounts / Gateway / Capabilities / Providers / Fees under **Settings → Usage Center**.
 5. Costs are always estimates — watch the coverage percentage; unpriced tokens are not free.
 
-CLI: `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-build` is an alias).
+CLI: `dsh-hub-oauth login [--pkce] | import | status | logout` (`dsh-hub-grok-build` is an alias).
 
 ## Settings
 

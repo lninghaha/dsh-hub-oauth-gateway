@@ -1,9 +1,10 @@
 # Token Monitor 参照补充建议书
 
-> 文档性质：产品与实现建议（非已实现能力）  
+> 文档性质：历史基线建议书（2026-08-18 起草；对照当时 `1.1.0` 现状）  
+> **状态刷新（2026-09-02 / Hub `1.11.2`）**：Wave 1–3 主能力已在 `1.2.0`–`1.4.0` 落地；`1.9`–`1.11` 另交付 DSH BOM/core 共装、Providers 凭据维护、AuthDocument v2 多账号与 `codingOAuth.pool` 等（见下方能力表与 CHANGELOG）。未勾选的决策清单与「明确不进路线图」项仍为开放建议，勿当作未实现清单的全量现状。  
 > 研究时间：2026-08-18  
 > 对照基线：[Javis603/token-monitor](https://github.com/Javis603/token-monitor) `v0.45.0` @ `36f6d2e`  
-> 本仓库基线：`dsh-hub-oauth-gateway` 1.1.0（21 个内置 account adapter + 声明式 monitor）  
+> 本仓库基线（起草时）：`dsh-hub-oauth-gateway` 1.1.0（21 个内置 account adapter + 声明式 monitor）  
 > 相关调研：[`token-monitor.md`](./token-monitor.md)、[`ccswitch-provider-usage.md`](./ccswitch-provider-usage.md)、[`usage-analytics-landscape.md`](./usage-analytics-landscape.md)
 
 ## 1. 目标与边界
@@ -38,22 +39,25 @@
 
 ## 2. 能力对照总表
 
-| 能力 | Token Monitor | 本仓库现状 | 建议 |
+| 能力 | Token Monitor | 起草时现状（1.1.0） | 建议 / 落地状态（至 1.11.x） |
 | --- | --- | --- | --- |
 | 跨工具日志解析 | tokscale 30+ client | DSH usage 投影 | 不照搬 |
 | 多设备 Hub / SSE | 有 | 刻意不做 | 不照搬 |
 | 日/周/月趋势 + 预测 | 有（含 K 线） | 有趋势 + 有界线性预测 | 保留现实现 |
-| 年度热力图 + streak | 有 | 无 | **补（P0）** |
-| 首页模块编排 | 可开关排序 | 四档预设 | **补（P0）** |
-| 订阅费用账本 + 回本 | 有 | 无 | **补（P0）** |
-| 导出 CSV/JSON | 有 + 自动写目录 | 有过滤导出 | **增强（P0/P1）** |
-| Cache 四桶 + 命中率 | 有，可展开 | 有指标与列 | **UI 加深（P1）** |
-| 额度自适应刷新 | burn-rate adaptive | 固定 interval | **补（P1）** |
-| 失败保留 lastGood | LimitsRuntime | `withStaleData` 已有 | **审计加固（P1）** |
-| 同供应商多账号 | 广泛支持 | 基本一 provider 一 monitor | **补模型（P1）** |
-| Status 页探测 | 可选 | 无 | 可选（P2） |
+| 年度热力图 + streak | 有 | 无 | **已落地（1.2.0）** |
+| 首页模块编排 | 可开关排序 | 四档预设 | **已落地（1.2.0）** |
+| 订阅费用账本 + 回本 | 有 | 无 | **已落地（1.2.0）** |
+| 导出 CSV/JSON | 有 + 自动写目录 | 有过滤导出 | **日序列/bundle 已落地（1.2.0）；自动写盘已落地（1.4.0，opt-in）** |
+| Cache 四桶 + 命中率 | 有，可展开 | 有指标与列 | **展开列已落地（1.4.0）** |
+| 额度自适应刷新 | burn-rate adaptive | 固定 interval | **已落地（1.4.0，`adaptive` 可选）** |
+| 失败保留 lastGood | LimitsRuntime | `withStaleData` 已有 | **已加固（1.4.0）** |
+| 同供应商多账号 | 广泛支持 | 基本一 provider 一 monitor | **monitor profiles 已落地（1.4.0）；OAuth AuthDocument v2 多账号已落地（1.11.0）** |
+| Status 页探测 | 可选 | 无 | 可选（P2，未做） |
 | Discord / 托盘作曲家 | 有 | 不适用 | 不照搬 |
 | Session 逐 prompt | 读本地 transcript | 刻意排除 | 不照搬 |
+| Hub/Subscription 共装与 BOM | — | 无共享 core 选举 | **已落地（1.9.0–1.10.0）**：`dsh-coding-oauth-core` 所有权、DSH BOM/client 门禁 |
+| Providers 凭据维护 | — | OAuth 与 Providers 易漂移 | **已落地（1.8.0）** |
+| Copilot / Claude import / pool | — | 无 | **已落地（1.11.0）**：Copilot 路由、Claude Code import、`codingOAuth.pool` |
 
 ---
 
