@@ -7,6 +7,10 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Extract shared pure helpers (`http-json`, `grok-errors`, `kimi-errors`, `gateway-protocol`) into vendored `dsh-coding-oauth-core@0.1.2` (local vendor metadata only; npm core remains `0.1.1` until the next published core release). Hub coding-oauth modules re-export from the core package.
+
 ## 1.11.2 — 2026-09-02
 
 ### Fixed

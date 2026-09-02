@@ -12,6 +12,10 @@ export * from "./proxy.js";
 export * from "./route-registration.js";
 export * from "./ids.js";
 export * from "./state-contract.js";
+export * from "./http-json.js";
+export * from "./grok-errors.js";
+export * from "./kimi-errors.js";
+export * from "./gateway-protocol.js";
 
 export type CodingOAuthRole = "hub" | "standalone";
 
