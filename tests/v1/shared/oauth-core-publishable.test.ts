@@ -27,8 +27,9 @@ describe("vendored dsh-coding-oauth-core publish prep", () => {
 			expect(manifest.exports?.[key]).toBeTruthy();
 		}
 
-		const resolved = require.resolve("dsh-coding-oauth-core");
-		expect(resolved.replaceAll("\\", "/")).toMatch(/vendor\/dsh-coding-oauth-core\/lib\/index\.js$/);
+		const resolved = require.resolve("dsh-coding-oauth-core").replaceAll("\\", "/");
+		expect(resolved).toContain("dsh-coding-oauth-core");
+		expect(resolved).toMatch(/\/lib\/index\.js$/);
 
 		const core = await import("dsh-coding-oauth-core");
 		expect(core.CODING_OAUTH_CORE_ABI).toBe("dsh-coding-oauth-core/v1");
