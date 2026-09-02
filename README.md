@@ -17,7 +17,17 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin. Vendored `dsh-coding-oauth-core@0.1.2` (helpers + subpath exports) is prepared for npm publish from `vendor/dsh-coding-oauth-core`; see that package README for operator pack/publish steps.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin. Vendored `dsh-coding-oauth-core@0.1.2` (helpers + subpath exports) is prepared for npm publish from `vendor/dsh-coding-oauth-core`.
+
+### Operator publish for `dsh-coding-oauth-core@0.1.2` (agents must not run these)
+
+```bash
+cd vendor/dsh-coding-oauth-core
+npm login --registry https://registry.npmjs.org/
+pnpm run release:publish
+```
+
+Then verify with `npm view dsh-coding-oauth-core version` → `0.1.2`. See [`vendor/dsh-coding-oauth-core/README.md`](vendor/dsh-coding-oauth-core/README.md) for pack/export details.
 
 ---
 
