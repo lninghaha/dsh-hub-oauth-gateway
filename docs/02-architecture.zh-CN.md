@@ -138,7 +138,7 @@ Provider 描述符来自 DSH 设置与兼容性目录。`resolveAccountSpecs()` 
 
 Hub 与独立包都精确依赖 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。核心统一拥有 root-scoped owner 选举、引用计数代理策略、原子注册、provider/route/credential 标识、能力设置命名空间、Gateway 状态文件名，以及全部新旧管理路径。Hub 优先成为 owner；Hub 卸载后独立包自动接管。相同状态契约也通过 browser-safe 入口供客户端使用，避免客户端路径与服务端静默漂移。Grok Imagine 保留显式 pinned dispatcher，不使用共享 proxy lease。
 
-设置 UI（Settings → Usage Center → 订阅账号/网关/能力 tabs）与插件自有的同源路由 `/plugins/dsh-grok-build/*` 通信：`oauth/status|login|code|cancel|logout|models` 用于登录状态机，`oauth/sources(+preview|commit|cancel)` 用于两阶段 allowlisted CLI 凭据拉取，`gateway(+reveal|rotate)` 用于 opt-in loopback API gateway（在独立的 `node:http` listener 上提供 `/v1/chat/completions`、`/v1/responses`、`/v1/messages`，默认关闭），`capabilities` 用于七个默认关闭的可选 capability 开关及基于 revision 的 compare-and-swap 写入。这些路由均要求受信任的 loopback 同源请求；变更类请求还要求 JSON body。
+设置 UI（Settings → Usage Center → 订阅账号/网关/能力 tabs）与插件自有的同源路由 `/plugins/dsh-grok-build/*` 通信：`oauth/status|login|code|cancel|logout|models` 用于登录状态机，`oauth/sources(+preview|commit|cancel)` 用于两阶段 allowlisted CLI 凭据拉取，`gateway(+reveal|rotate)` 用于 opt-in loopback API gateway（在独立的 `node:http` listener 上提供 `/v1/chat/completions`、`/v1/responses`、`/v1/messages`，默认关闭），`capabilities` 用于七个默认关闭的可选 capability 开关及基于 revision 的 compare-and-swap 写入。这些路由均要求受信任的 owner 请求；变更类请求还要求 JSON body 与 Hub CSRF 头 `x-dsh-hub-oauth-gateway: 1`（受信任 HTTPS 反代的变更请求改用独立的 owner CSRF proof）。网关密钥 reveal/rotate 仍仅限回环。
 
 ## 本地 monitor 子系统
 

@@ -121,7 +121,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 - [로컬 API 게이트웨이](#로컬-api-게이트웨이)
 - [선택적 기능](#선택적-기능)
 - [런타임 설정](#런타임-설정)
-- [凭据](#凭据)
+- [자격 증명](#자격-증명)
 - [데이터와 마이그레이션](#데이터와-마이그레이션)
 - [개인정보와 보안](#개인정보와-보안)
 - [아키텍처](#아키텍처)
@@ -212,7 +212,7 @@ allowlist 내 공식 CLI OAuth 파일은 읽기 전용으로 발견. 동기화�
 
 전체 필드 참조, monitors, proxy, pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) 및 [`docs/01-install.md`](docs/01-install.md). 레거시 root `config.monitors`는 `config.accounts.monitors`로 매핑(둘 다 설정하지 말 것).
 
-## 凭据
+## 자격 증명
 
 - DSH credential seam을 통해 저장; 브라우저는 `configured` / `source` / `writable` 메타데이터만 수신 — 값은 수신하지 않음.
 - 로컬 CLI import(Claude, Codex, Gemini, Grok, Amp)는 절대 경로를 로그하지 않음.
@@ -230,9 +230,9 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 ## 개인정보와 보안
 
 - 루프백 peer + 루프백 Host; JSON 쓰기 본문; 리버스 프록시용 same-origin / forwarded-host 규칙(`x-dsh-hub-oauth-gateway: 1`).
-- 일반 GET은 로컬 전용;凭据 포함 새로고침은 명시 POST 또는 스케줄.
-- Monitors: 기본 HTTPS, URL 내장凭据 없음, 수동 redirect, 크기 제한, 연결 전 DNS pinning.
-- SQLite는凭据, prompt, response, cwd, 원시 프로바이더 페이로드 제외.
+- 일반 GET은 로컬 전용; 자격 증명 포함 새로고침은 명시 POST 또는 스케줄.
+- Monitors: 기본 HTTPS, URL 내장 자격 증명 없음, 수동 redirect, 크기 제한, 연결 전 DNS pinning.
+- SQLite는 자격 증명, prompt, response, cwd, 원시 프로바이더 페이로드 제외.
 - 분석과 추정은 청구서가 아님. 소유하거나 권한 있는 계정과 endpoint만 쿼리.
 
 위협 모델 및 보고: [`.github/SECURITY.md`](.github/SECURITY.md).

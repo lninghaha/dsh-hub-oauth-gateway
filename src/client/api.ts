@@ -1,24 +1,7 @@
 import type { ZodType } from "zod";
 import type { ApiResponse } from "../shared/contracts.js";
 import { ApiMetaSchema } from "../shared/contracts.js";
-
-function apiHeaders(url: string, write: boolean, initial: HeadersInit | undefined): Headers {
-	const headers = new Headers(initial);
-	headers.set("x-dsh-hub-oauth-gateway", "1");
-	let authority = "";
-	if (typeof window !== "undefined") {
-		try {
-			const target = new URL(url, window.location.href);
-			if (target.origin === window.location.origin) authority = target.host;
-		} catch {
-			// Leave the corroboration header absent if the target cannot be resolved safely.
-		}
-	}
-	if (authority === "") headers.delete("x-dsh-hub-oauth-gateway-authority");
-	else headers.set("x-dsh-hub-oauth-gateway-authority", authority);
-	if (write) headers.set("content-type", "application/json");
-	return headers;
-}
+import { hubApiHeaders } from "./hub-headers.js";
 
 export class UsageStatsApiError extends Error {
 	readonly code: string;
@@ -53,7 +36,7 @@ export async function fetchApi<T>(
 	signal?: AbortSignal,
 ): Promise<ApiResponse<T>> {
 	const write = init.method !== undefined && init.method !== "GET";
-	const requestInit: RequestInit = { ...init, headers: apiHeaders(url, write, init.headers) };
+	const requestInit: RequestInit = { ...init, headers: hubApiHeaders(url, write, init.headers) };
 	if (signal !== undefined) requestInit.signal = signal;
 	const response = await fetch(url, requestInit);
 	const payload: unknown = await response.json();

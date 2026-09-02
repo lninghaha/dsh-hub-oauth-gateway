@@ -7,6 +7,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { authorizeCodingOAuthRequest } from "./authorize-request.js";
 import { readJsonRequest, requestErrorStatus } from "./http-json.js";
 import {
 	OAUTH_IMPORT_CANCEL_PATH,
@@ -113,7 +114,8 @@ export function registerOAuthImportRoutes(
 				path: OAUTH_IMPORT_SOURCES_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "GET") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						json(res, 200, await discoverSources(importer, pathOptions));
 					} catch (error: unknown) {
@@ -126,7 +128,8 @@ export function registerOAuthImportRoutes(
 				path: OAUTH_IMPORT_PREVIEW_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const kind = readExactKind(await readJsonRequest(req));
 						if (kind === undefined) {
@@ -143,7 +146,8 @@ export function registerOAuthImportRoutes(
 				path: OAUTH_IMPORT_COMMIT_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const parsed = readCommitBody(await readJsonRequest(req));
 						if (parsed.error !== undefined) {
@@ -174,7 +178,8 @@ export function registerOAuthImportRoutes(
 				path: OAUTH_IMPORT_CANCEL_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const previewId = readPreviewId(await readJsonRequest(req));
 						if (previewId === undefined) {

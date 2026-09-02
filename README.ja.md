@@ -121,7 +121,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 - [ローカル API ゲートウェイ](#ローカル-api-ゲートウェイ)
 - [オプション機能](#オプション機能)
 - [ランタイム設定](#ランタイム設定)
-- [凭据](#凭据)
+- [認証情報](#認証情報)
 - [データと移行](#データと移行)
 - [プライバシーとセキュリティ](#プライバシーとセキュリティ)
 - [アーキテクチャ](#アーキテクチャ)
@@ -212,7 +212,7 @@ allowlist 内の公式 CLI OAuth ファイルは読み取り専用で発見。�
 
 完全なフィールド参照、monitors、proxy、pricing import：[`docs/03-configuration.md`](docs/03-configuration.md) と [`docs/01-install.md`](docs/01-install.md)。レガシー root `config.monitors` は `config.accounts.monitors` にマップ（両方設定しない）。
 
-## 凭据
+## 認証情報
 
 - DSH credential seam 経由で保存；ブラウザは `configured` / `source` / `writable` メタデータのみ受信 — 値は受信しません。
 - ローカル CLI インポート（Claude、Codex、Gemini、Grok、Amp）は絶対パスをログしません。
@@ -230,9 +230,9 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 ## プライバシーとセキュリティ
 
 - ループバック peer + ループバック Host；JSON 書き込みボディ；リバースプロキシ向け same-origin / forwarded-host ルール（`x-dsh-hub-oauth-gateway: 1`）。
-- 通常 GET はローカルのみ；凭据付き更新は明示 POST またはスケジュール。
-- Monitors：デフォルト HTTPS、URL 埋め込み凭据なし、手動 redirect、サイズ制限、接続前 DNS pinning。
-- SQLite は凭据、prompt、response、cwd、生プロバイダーペイロードを除外。
+- 通常 GET はローカルのみ；認証情報付き更新は明示 POST またはスケジュール。
+- Monitors：デフォルト HTTPS、URL 埋め込み認証情報なし、手動 redirect、サイズ制限、接続前 DNS pinning。
+- SQLite は認証情報、prompt、response、cwd、生プロバイダーペイロードを除外。
 - 分析と推定は請求書ではありません。所有または認可された口座と endpoint のみクエリ。
 
 脅威モデルと報告：[`.github/SECURITY.md`](.github/SECURITY.md)。

@@ -7,6 +7,20 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Fixed
+
+- Register Hub invariants under `dsh-hub-oauth-gateway` instead of the standalone subscription package name.
+- Require `x-dsh-hub-oauth-gateway: 1` on mutating `/plugins/dsh-grok-build/*` settings routes, matching the Usage API CSRF guard. Trusted HTTPS proxy mutations still use the independent owner CSRF proof.
+- Restrict gateway key reveal/rotate to `accessMode === "loopback"`.
+
+### Changed
+
+- Stop shipping `docs/research/*` in the npm `files` allowlist. The research notes remain in git.
+
+### Documentation
+
+- Translate the leftover Chinese 「凭据」 heading in `README.ja.md` and `README.ko.md`.
+
 ## 1.11.1
 
 - Pin the Hub, vendored core, and shared proxy runtime to `undici@7.29.0` and `dsh-coding-oauth-core@0.1.1` so co-installed participants do not split dispatcher majors.
