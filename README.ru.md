@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · ранее `dsh-usage-stats`
+**v1.11.2** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@
 | GitHub / разработка | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | id плагина Cordis | `usage-stats` | без изменений |
 | база SQLite | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | без изменений |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build` (алиас) |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build` (алиас). Bin'ы Subscription `dsh-coding-oauth` / `dsh-grok-build` — не этот пакет |
 
 История релизов — в [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -53,7 +53,7 @@
 - **Опциональный локальный монитор** — снимки auth CLI только для чтения и сканирование токенов между инструментами (никогда не содержимое разговоров).
 - **Двуязычный UI** — китайский и английский через сервисы locale DSH.
 
-Исследование продукта: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Архитектура: [`docs/02-architecture.md`](docs/02-architecture.md).
+Исследование продукта: [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). Архитектура: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## Скриншоты
 
@@ -153,7 +153,7 @@ dsh plugin --profile web remove dsh-hub-oauth-gateway
 4. Настройте Display / Accounts / Gateway / Capabilities / Providers / Fees в **Settings → Usage Center**.
 5. Стоимость всегда является оценкой — следите за процентом покрытия; неоценённые токены не бесплатны.
 
-CLI: `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-build` — алиас).
+CLI: `dsh-hub-oauth login [--pkce] | import | status | logout` (`dsh-hub-grok-build` — алиас).
 
 ## Настройки
 

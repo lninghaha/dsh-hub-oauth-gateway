@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web, with coding-subscription OAuth sign-in (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring",
-	"version": "1.11.1",
+	"version": "1.11.2",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -30,8 +30,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "bin": {
-    "dsh-coding-oauth": "lib/bin.js",
-    "dsh-grok-build": "lib/bin.js",
+    "dsh-hub-oauth": "lib/bin.js",
+    "dsh-hub-grok-build": "lib/bin.js",
     "dsh-hub-oauth-gateway-install": "scripts/install.mjs"
   },
   "files": [
@@ -61,10 +61,6 @@
     "docs/02-architecture.zh-CN.md",
     "docs/03-configuration.md",
     "docs/04-migration-v1.md",
-    "docs/research/usage-analytics-landscape.md",
-    "docs/research/token-monitor.md",
-    "docs/research/token-monitor-supplement-proposal.md",
-    "docs/research/ccswitch-provider-usage.md",
     "compatibility/dsh-bom.json"
   ],
   "type": "module",
@@ -144,6 +140,7 @@
     "build": "pnpm run release:build",
     "test:next": "vitest run",
     "test:next:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test": "pnpm run build:next && pnpm run test:next",
     "lint:next": "biome check",
     "check:next": "pnpm run assert:node && pnpm run lint:next && pnpm run build:next && pnpm run test:next",

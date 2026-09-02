@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · 旧称 `dsh-usage-stats`
+**v1.11.2** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@
 | GitHub / 開発 | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | Cordis プラグイン id | `usage-stats` | 変更なし |
 | SQLite データベース | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | 変更なし |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build`（エイリアス） |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build`（エイリアス）。Subscription 所有の `dsh-coding-oauth` / `dsh-grok-build` は本パッケージではありません |
 
 リリース履歴は [`CHANGELOG.md`](CHANGELOG.md)。
 
@@ -53,7 +53,7 @@
 - **オプトインのローカルモニター** — 読み取り専用 CLI 認証スナップショットとクロスツール token スキャン（会話内容は読み取りません）。
 - **二言語 UI** — DSH locale サービス経由の中国語と英語。
 
-製品調査：[`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md)。アーキテクチャ：[`docs/02-architecture.md`](docs/02-architecture.md)。
+製品調査：[`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md)。アーキテクチャ：[`docs/02-architecture.md`](docs/02-architecture.md)。
 
 ## スクリーンショット
 
@@ -121,7 +121,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 - [ローカル API ゲートウェイ](#ローカル-api-ゲートウェイ)
 - [オプション機能](#オプション機能)
 - [ランタイム設定](#ランタイム設定)
-- [凭据](#凭据)
+- [認証情報](#認証情報)
 - [データと移行](#データと移行)
 - [プライバシーとセキュリティ](#プライバシーとセキュリティ)
 - [アーキテクチャ](#アーキテクチャ)
@@ -153,7 +153,7 @@ dsh plugin --profile web remove dsh-hub-oauth-gateway
 4. **Settings → Usage Center** で Display / Accounts / Gateway / Capabilities / Providers / Fees を設定。
 5. コストは常に推定 — カバレッジ率に注意；未価格 token は無料ではありません。
 
-CLI：`dsh-coding-oauth login [--pkce] | import | status | logout`（`dsh-grok-build` はエイリアス）。
+CLI：`dsh-hub-oauth login [--pkce] | import | status | logout`（`dsh-hub-grok-build` はエイリアス）。
 
 ## 設定
 
@@ -212,7 +212,7 @@ allowlist 内の公式 CLI OAuth ファイルは読み取り専用で発見。�
 
 完全なフィールド参照、monitors、proxy、pricing import：[`docs/03-configuration.md`](docs/03-configuration.md) と [`docs/01-install.md`](docs/01-install.md)。レガシー root `config.monitors` は `config.accounts.monitors` にマップ（両方設定しない）。
 
-## 凭据
+## 認証情報
 
 - DSH credential seam 経由で保存；ブラウザは `configured` / `source` / `writable` メタデータのみ受信 — 値は受信しません。
 - ローカル CLI インポート（Claude、Codex、Gemini、Grok、Amp）は絶対パスをログしません。
@@ -230,9 +230,9 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 ## プライバシーとセキュリティ
 
 - ループバック peer + ループバック Host；JSON 書き込みボディ；リバースプロキシ向け same-origin / forwarded-host ルール（`x-dsh-hub-oauth-gateway: 1`）。
-- 通常 GET はローカルのみ；凭据付き更新は明示 POST またはスケジュール。
-- Monitors：デフォルト HTTPS、URL 埋め込み凭据なし、手動 redirect、サイズ制限、接続前 DNS pinning。
-- SQLite は凭据、prompt、response、cwd、生プロバイダーペイロードを除外。
+- 通常 GET はローカルのみ；認証情報付き更新は明示 POST またはスケジュール。
+- Monitors：デフォルト HTTPS、URL 埋め込み認証情報なし、手動 redirect、サイズ制限、接続前 DNS pinning。
+- SQLite は認証情報、prompt、response、cwd、生プロバイダーペイロードを除外。
 - 分析と推定は請求書ではありません。所有または認可された口座と endpoint のみクエリ。
 
 脅威モデルと報告：[`.github/SECURITY.md`](.github/SECURITY.md)。

@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · anciennement `dsh-usage-stats`
+**v1.11.2** · anciennement `dsh-usage-stats`
 
 **Centre d’usage local-first pour [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, coût estimé, soldes de compte, quotas d’abonnement, tendances, prévisions, alertes et exports — plus OAuth d’abonnements coding (Grok Build, Codex, Kimi Code, Claude Code), une passerelle API loopback optionnelle et une surveillance locale opt-in auth/usage. **Ne collez pas de tokens dans le chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@ Publié initialement sous **`dsh-usage-stats`**. Le paquet et le dépôt sont d�
 | GitHub / développement | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | id du plugin Cordis | `usage-stats` | inchangé |
 | base SQLite | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | inchangé |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build` (alias) |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build` (alias). Les bins Subscription `dsh-coding-oauth` / `dsh-grok-build` ne sont pas ce paquet |
 
 Historique des releases dans [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -53,7 +53,7 @@ Historique des releases dans [`CHANGELOG.md`](CHANGELOG.md).
 - **Moniteur local opt-in** — snapshots read-only auth CLI et scans cross-tool de tokens (jamais le contenu des conversations).
 - **UI bilingue** — chinois et anglais via les services locale DSH.
 
-Recherche produit : [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). Architecture : [`docs/02-architecture.md`](docs/02-architecture.md).
+Recherche produit : [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). Architecture : [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## Captures d’écran
 
@@ -153,7 +153,7 @@ Installateur compatible si le gestionnaire de plugins manque : `npx --yes dsh-hu
 4. Configurez Display / Accounts / Gateway / Capabilities / Providers / Fees sous **Settings → Usage Center**.
 5. Les coûts sont toujours des estimations — surveillez le pourcentage de couverture ; tokens non tarifés ne sont pas gratuits.
 
-CLI : `dsh-coding-oauth login [--pkce] | import | status | logout` (`dsh-grok-build` est un alias).
+CLI : `dsh-hub-oauth login [--pkce] | import | status | logout` (`dsh-hub-grok-build` est un alias).
 
 ## Réglages
 

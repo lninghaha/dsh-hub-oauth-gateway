@@ -143,10 +143,6 @@ const expectedAllowlist = [
 	"docs/02-architecture.zh-CN.md",
 	"docs/03-configuration.md",
 	"docs/04-migration-v1.md",
-	"docs/research/usage-analytics-landscape.md",
-	"docs/research/token-monitor.md",
-	"docs/research/token-monitor-supplement-proposal.md",
-	"docs/research/ccswitch-provider-usage.md",
 	"compatibility/dsh-bom.json",
 ];
 const actualAllowlist = manifest.files;

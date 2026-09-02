@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const root = resolve(".");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
-assert.equal(manifest.version, "1.11.1");
+assert.equal(manifest.version, "1.11.2");
 assert.notEqual(manifest.private, true, "release package must not be private");
 assert.equal(manifest.dependencies?.["dsh-coding-oauth-core"], "0.1.1");
 assert.equal(manifest.dependencies?.undici, "7.29.0");
@@ -34,8 +34,11 @@ for (const path of [manifest.main, manifest.types, manifest.exports?.["."]?.impo
 }
 assert.equal(manifest.exports?.["./client"], "./lib/client.js");
 assert.equal(manifest.license, "MIT AND Apache-2.0");
-assert.equal(manifest.bin?.["dsh-coding-oauth"], "lib/bin.js");
-assert.equal(manifest.bin?.["dsh-grok-build"], "lib/bin.js");
+assert.equal(manifest.bin?.["dsh-hub-oauth"], "lib/bin.js");
+assert.equal(manifest.bin?.["dsh-hub-grok-build"], "lib/bin.js");
+assert.equal(manifest.bin?.["dsh-hub-oauth-gateway-install"], "scripts/install.mjs");
+assert.equal(manifest.bin?.["dsh-coding-oauth"], undefined);
+assert.equal(manifest.bin?.["dsh-grok-build"], undefined);
 const verifiedBom = JSON.parse(await readFile(resolve(root, "compatibility/dsh-bom.json"), "utf8"));
 assert.equal(manifest.dsh?.compatibility?.verifiedBom, "./compatibility/dsh-bom.json");
 assert.equal(manifest.dsh?.compatibility?.coreAbi, verifiedBom.coreAbi);

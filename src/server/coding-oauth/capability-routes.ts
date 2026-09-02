@@ -6,6 +6,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { authorizeCodingOAuthRequest } from "./authorize-request.js";
 import {
 	assertCapabilitySettingsPatch,
 	type CapabilitySettings,
@@ -110,7 +111,7 @@ async function handleCapabilities(
 		json(res, 405, { error: "method not allowed" });
 		return;
 	}
-	if (!ownerRequestPolicy.authorize(req).authorized) {
+	if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized) {
 		json(res, 403, { error: "forbidden" });
 		return;
 	}
@@ -144,7 +145,7 @@ async function handleUsage(
 		json(res, 405, { error: "method not allowed" });
 		return;
 	}
-	if (!ownerRequestPolicy.authorize(req).authorized) {
+	if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized) {
 		json(res, 403, { error: "forbidden" });
 		return;
 	}
@@ -170,7 +171,7 @@ async function handleCredentialStatus(
 		json(res, 405, { error: "method not allowed" });
 		return;
 	}
-	if (!ownerRequestPolicy.authorize(req).authorized) {
+	if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized) {
 		json(res, 403, { error: "forbidden" });
 		return;
 	}

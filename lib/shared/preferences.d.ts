@@ -1,8 +1,8 @@
 import { z } from "zod";
 export declare const DashboardPresetSchema: z.ZodEnum<{
+    minimal: "minimal";
     cost: "cost";
     quota: "quota";
-    minimal: "minimal";
     analyst: "analyst";
 }>;
 export type DashboardPreset = z.infer<typeof DashboardPresetSchema>;
@@ -43,9 +43,9 @@ export declare const UserPreferencesSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     display: z.ZodObject<{
         preset: z.ZodEnum<{
+            minimal: "minimal";
             cost: "cost";
             quota: "quota";
-            minimal: "minimal";
             analyst: "analyst";
         }>;
         sidebarMetric: z.ZodEnum<{

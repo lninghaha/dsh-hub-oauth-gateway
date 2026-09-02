@@ -4,6 +4,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { authorizeCodingOAuthRequest, authorizeLoopbackSecretRequest } from "./authorize-request.js";
 import type { CodingOAuthGatewayController } from "./gateway.js";
 import { assertGatewayPort } from "./gateway-config.js";
 import { readJsonRequest, requestErrorStatus } from "./http-json.js";
@@ -60,7 +61,7 @@ async function handleGatewaySettings(
 	controller: CodingOAuthGatewayController,
 	ownerRequestPolicy: OwnerRequestPolicy,
 ): Promise<void> {
-	if (!ownerRequestPolicy.authorize(req).authorized) {
+	if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized) {
 		json(res, 403, { error: "forbidden" });
 		return;
 	}
@@ -111,7 +112,7 @@ async function handleGatewayReveal(
 	controller: CodingOAuthGatewayController,
 	ownerRequestPolicy: OwnerRequestPolicy,
 ): Promise<void> {
-	if (!ownerRequestPolicy.authorize(req).authorized) {
+	if (!authorizeLoopbackSecretRequest(req, ownerRequestPolicy).authorized) {
 		json(res, 403, { error: "forbidden" });
 		return;
 	}
@@ -132,7 +133,7 @@ async function handleGatewayRotate(
 	controller: CodingOAuthGatewayController,
 	ownerRequestPolicy: OwnerRequestPolicy,
 ): Promise<void> {
-	if (!ownerRequestPolicy.authorize(req).authorized) {
+	if (!authorizeLoopbackSecretRequest(req, ownerRequestPolicy).authorized) {
 		json(res, 403, { error: "forbidden" });
 		return;
 	}

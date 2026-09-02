@@ -30,6 +30,7 @@ import { KIMI_PI_PROVIDER } from "../../../src/server/coding-oauth/ids.js";
 import { CORE_OAUTH_PROVIDER_DEFINITIONS } from "../../../src/server/coding-oauth/oauth-providers.js";
 import { OAuthProviderSession } from "../../../src/server/coding-oauth/oauth-session.js";
 import { GrokBuildSession } from "../../../src/server/coding-oauth/session.js";
+import type { OwnerRequestPolicy } from "../../../src/server/coding-oauth/web-origin.js";
 import {
 	CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
 	CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
@@ -56,7 +57,13 @@ class TestResponse {
 	}
 }
 
-function request(method: string, url: string, body?: unknown, host = "localhost:3080") {
+function request(
+	method: string,
+	url: string,
+	body?: unknown,
+	host = "localhost:3080",
+	headers: Record<string, string | undefined> = {},
+) {
 	const emitter = new EventEmitter() as EventEmitter & {
 		method: string;
 		url: string;
@@ -69,8 +76,12 @@ function request(method: string, url: string, body?: unknown, host = "localhost:
 	emitter.url = url;
 	emitter.headers = {
 		host,
-		...(method === "GET" ? {} : { "content-type": "application/json" }),
+		...(method === "GET" ? {} : { "content-type": "application/json", "x-dsh-hub-oauth-gateway": "1" }),
 	};
+	for (const [name, value] of Object.entries(headers)) {
+		if (value === undefined) delete emitter.headers[name];
+		else emitter.headers[name] = value;
+	}
 	emitter.socket = { remoteAddress: "127.0.0.1" };
 	emitter.destroy = vi.fn();
 	emitter.resume = vi.fn();
@@ -119,10 +130,11 @@ async function callRoute(
 	method: string,
 	body?: unknown,
 	host?: string,
+	headers?: Record<string, string | undefined>,
 ): Promise<{ status: number; payload: unknown }> {
 	const handler = mock.routes.get(path);
 	expect(handler).toBeDefined();
-	const req = request(method, path, body, host);
+	const req = request(method, path, body, host, headers);
 	const res = new TestResponse();
 	const pending = handler?.(req.value, res as unknown as ServerResponse);
 	req.emitBody();
@@ -195,6 +207,14 @@ describe("coding OAuth routes", () => {
 		expect((payload as { providers: Record<string, unknown> }).providers.kimi).toMatchObject({
 			status: "signed-out",
 		});
+	});
+
+	it("rejects mutating requests that omit the Hub CSRF header", async () => {
+		const denied = await callRoute(mock, CODING_OAUTH_LOGOUT_PATH, "POST", { provider: "kimi" }, undefined, {
+			"x-dsh-hub-oauth-gateway": undefined,
+		});
+		expect(denied.status).toBe(403);
+		expect(denied.payload).toEqual({ error: "forbidden" });
 	});
 
 	it("lists secret-free accounts on signed-in status and supports set-active / remove", async () => {
@@ -320,6 +340,41 @@ describe("coding OAuth gateway routes", () => {
 	it("rejects non-loopback Host values on the control surface", async () => {
 		const { status } = await callRoute(mock, GATEWAY_SETTINGS_PATH, "GET", undefined, "gateway.example.com");
 		expect(status).toBe(403);
+	});
+
+	it("rejects reveal without the Hub CSRF header", async () => {
+		const denied = await callRoute(mock, GATEWAY_REVEAL_PATH, "POST", {}, undefined, {
+			"x-dsh-hub-oauth-gateway": undefined,
+		});
+		expect(denied.status).toBe(403);
+	});
+
+	it("rejects reveal and rotate when owner access is not loopback", async () => {
+		const sshPolicy: OwnerRequestPolicy = {
+			authorize: () => ({ authorized: true, accessMode: "ssh-tunnel" }),
+			diagnostics: () => [],
+		};
+		const proxyPolicy: OwnerRequestPolicy = {
+			authorize: () => ({ authorized: true, accessMode: "trusted-https-proxy" }),
+			diagnostics: () => [],
+		};
+		for (const policy of [sshPolicy, proxyPolicy]) {
+			const grok = new GrokBuildSession();
+			const subscriptions = CORE_OAUTH_PROVIDER_DEFINITIONS.map((definition) => new OAuthProviderSession(definition));
+			const controller = createCodingOAuthGatewayController({
+				config: { port: 18_199 },
+				dshHome: home,
+				grok,
+				subscriptions,
+			});
+			const built = mockContext();
+			registerGatewayRoutes(built.ctx, controller, policy);
+			const revealed = await callRoute(built.mock, GATEWAY_REVEAL_PATH, "POST", {});
+			expect(revealed.status).toBe(403);
+			const rotated = await callRoute(built.mock, GATEWAY_ROTATE_PATH, "POST", {});
+			expect(rotated.status).toBe(403);
+			for (const dispose of built.mock.disposers.splice(0)) await dispose();
+		}
 	});
 });
 

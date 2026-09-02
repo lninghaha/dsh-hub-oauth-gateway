@@ -7,7 +7,19 @@ export default defineConfig({
 		coverage: {
 			provider: "v8",
 			reporter: ["text", "json-summary"],
-			include: ["src/shared/**/*.ts", "src/server/**/*.ts", "src/client/**/*.ts", "src/client/**/*.tsx"],
+			include: [
+				"src/server/coding-oauth/web-origin.ts",
+				"src/server/coding-oauth/authorize-request.ts",
+				"src/server/coding-oauth/gateway-routes.ts",
+			],
+			// Advisory floors for security-critical modules (aggregate over include).
+			// Measured green baseline ~88% statements / ~85% branches / ~90% lines.
+			thresholds: {
+				statements: 80,
+				branches: 80,
+				functions: 90,
+				lines: 85,
+			},
 		},
 	},
 });

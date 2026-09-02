@@ -13,6 +13,7 @@ import {
 } from "../../shared/coding-oauth.js";
 import { CODING_OAUTH_CORE_ABI, type DshCompatibility } from "../../shared/compatibility.js";
 import { grokBuildAuthStatus, importGrokBuildSession, loginGrokBuildSession } from "./auth.js";
+import { authorizeCodingOAuthRequest } from "./authorize-request.js";
 import type { CatalogSource } from "./catalog.js";
 import { probeGrokAuth } from "./grok-import.js";
 import { readJsonRequest, requestErrorStatus } from "./http-json.js";
@@ -670,7 +671,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_STATUS_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "GET") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					json(res, 200, await auth.status());
 				},
 			}),
@@ -679,7 +681,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_LOGIN_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						json(res, 200, await auth.signIn(readLoginMethod(await readJsonRequest(req))));
 					} catch (error: unknown) {
@@ -692,7 +695,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_LOGIN_CODE_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
 						const code = typeof body === "object" && body !== null && "code" in body ? body.code : undefined;
@@ -711,7 +715,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_LOGIN_CANCEL_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					await auth.cancel();
 					json(res, 200, await auth.status());
 				},
@@ -721,7 +726,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_IMPORT_PATH,
 				handler: (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					json(res, 410, { error: "legacy import retired; use OAuth Pull preview and confirmation" });
 				},
 			}),
@@ -730,7 +736,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_MODELS_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
 						const selected =
@@ -750,7 +757,8 @@ export function registerGrokBuildAuthRoutes(
 				path: GROK_BUILD_AUTH_LOGOUT_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					await auth.signOut();
 					json(res, 200, { ok: true });
 				},
@@ -889,7 +897,7 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_STATUS_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "GET") return json(res, 405, { error: "method not allowed" });
-					const decision = ownerRequestPolicy.authorize(req);
+					const decision = authorizeCodingOAuthRequest(req, ownerRequestPolicy);
 					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
 					try {
 						json(res, 200, await allStatus(decision.accessMode));
@@ -903,7 +911,8 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_LOGIN_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
 						const slug = providerSlug(body);
@@ -930,7 +939,8 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_LOGIN_CODE_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					if (!ownerRequestPolicy.authorize(req).authorized) return json(res, 403, { error: "forbidden" });
+					if (!authorizeCodingOAuthRequest(req, ownerRequestPolicy).authorized)
+						return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
 						const slug = providerSlug(body);
@@ -951,7 +961,7 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_LOGIN_CANCEL_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					const decision = ownerRequestPolicy.authorize(req);
+					const decision = authorizeCodingOAuthRequest(req, ownerRequestPolicy);
 					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
@@ -969,7 +979,7 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_MODELS_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					const decision = ownerRequestPolicy.authorize(req);
+					const decision = authorizeCodingOAuthRequest(req, ownerRequestPolicy);
 					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
@@ -991,7 +1001,7 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_LOGOUT_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					const decision = ownerRequestPolicy.authorize(req);
+					const decision = authorizeCodingOAuthRequest(req, ownerRequestPolicy);
 					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
 					try {
 						const body = await readJsonRequest(req);
@@ -1009,7 +1019,7 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					const decision = ownerRequestPolicy.authorize(req);
+					const decision = authorizeCodingOAuthRequest(req, ownerRequestPolicy);
 					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
 					try {
 						const body = recordBody(await readJsonRequest(req));
@@ -1031,7 +1041,7 @@ export function registerCodingOAuthRoutes(
 				path: CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
 				handler: async (req, res) => {
 					if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-					const decision = ownerRequestPolicy.authorize(req);
+					const decision = authorizeCodingOAuthRequest(req, ownerRequestPolicy);
 					if (!decision.authorized || decision.accessMode === undefined) return json(res, 403, { error: "forbidden" });
 					try {
 						const body = recordBody(await readJsonRequest(req));

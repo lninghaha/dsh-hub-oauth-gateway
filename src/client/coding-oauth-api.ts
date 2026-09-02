@@ -28,6 +28,7 @@ import {
 	OAuthImportSourcesResponseSchema,
 	type OAuthSourceKind,
 } from "../shared/coding-oauth.js";
+import { hubApiHeaders } from "./hub-headers.js";
 import { usageQueryClient } from "./queries.js";
 
 export class CodingOAuthApiError extends Error {
@@ -52,9 +53,9 @@ function errorFrom(payload: unknown, status: number): CodingOAuthApiError {
 	return new CodingOAuthApiError(`HTTP ${status}`, status);
 }
 
-async function callCodingOAuth<T>(path: string, schema: ZodType<T>, init: RequestInit = {}): Promise<T> {
-	const headers = new Headers(init.headers);
-	if (init.method !== undefined && init.method !== "GET") headers.set("content-type", "application/json");
+export async function callCodingOAuth<T>(path: string, schema: ZodType<T>, init: RequestInit = {}): Promise<T> {
+	const write = init.method !== undefined && init.method !== "GET";
+	const headers = hubApiHeaders(path, write, init.headers);
 	const response = await fetch(path, { ...init, headers });
 	let payload: unknown = null;
 	try {

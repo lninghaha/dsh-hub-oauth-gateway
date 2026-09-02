@@ -7,6 +7,26 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.11.2
+
+### Fixed
+
+- Register Hub invariants under `dsh-hub-oauth-gateway` instead of the standalone subscription package name.
+- Require `x-dsh-hub-oauth-gateway: 1` on mutating `/plugins/dsh-grok-build/*` settings routes, matching the Usage API CSRF guard. Trusted HTTPS proxy mutations still use the independent owner CSRF proof.
+- Restrict gateway key reveal/rotate to `accessMode === "loopback"`.
+
+### Changed
+
+- Extract shared pure helpers (`http-json`, `grok-errors`, `kimi-errors`, `gateway-protocol`) into vendored `dsh-coding-oauth-core@0.1.2` (local vendor metadata only; npm core remains `0.1.1` until the next published core release). Hub coding-oauth modules re-export from the core package.
+- Rename Hub CLI bins to avoid colliding with Subscription: `dsh-coding-oauth` → `dsh-hub-oauth`, `dsh-grok-build` → `dsh-hub-grok-build`. Keep `dsh-hub-oauth-gateway-install`. Subscription-owned `dsh-coding-oauth` / `dsh-grok-build` are not this package.
+- Stop shipping `docs/research/*` in the npm `files` allowlist. The research notes remain in git.
+
+### Documentation
+
+- Document the new Hub CLI bin names in README / community translations; leave HTTP paths `/plugins/dsh-grok-build/*` unchanged.
+- Translate the leftover Chinese 「凭据」 heading in `README.ja.md` and `README.ko.md`.
+- Refresh the token-monitor supplement research note status for Wave 1–3 and 1.9–1.11 baselines.
+
 ## 1.11.1
 
 - Pin the Hub, vendored core, and shared proxy runtime to `undici@7.29.0` and `dsh-coding-oauth-core@0.1.1` so co-installed participants do not split dispatcher majors.

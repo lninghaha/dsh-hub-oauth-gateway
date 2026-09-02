@@ -1,13 +1,3 @@
-/**
- * Kimi Code error remapping.
- * @module dsh-coding-subscription-oauth/kimi-errors
- */
-export declare function isMisclassifiedContextWindowError(detail: string): boolean;
-export declare function remapAuthFailureIfContextOverflow(failure: {
-    message: string;
-    code: string;
-}): {
-    message: string;
-    code: string;
-};
+/** Compatibility facade for shared Kimi context-overflow remapping owned by dsh-coding-oauth-core. */
+export { isMisclassifiedContextWindowError, remapAuthFailureIfContextOverflow } from "dsh-coding-oauth-core";
 //# sourceMappingURL=kimi-errors.d.ts.map

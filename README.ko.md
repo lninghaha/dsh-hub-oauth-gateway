@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.1** · 이전 이름 `dsh-usage-stats`
+**v1.11.2** · 이전 이름 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web용 로컬 우선 사용량 센터.** Token, 추정 비용, 계정 잔액, 구독 할당량, 추세, 예측, 알림, 내보내기 — 코딩 구독 OAuth(Grok Build, Codex, Kimi Code, Claude Code), 선택적 루프백 API 게이트웨이, 옵트인 로컬 인증/사용량 모니터링 포함. **채팅에 token을 붙여넣지 마세요.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.1` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.1` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -31,7 +31,7 @@
 | GitHub / 개발 | [`dsh-hub-oauth-gateway`](https://github.com/lninghaha/dsh-hub-oauth-gateway) | — |
 | Cordis 플러그인 id | `usage-stats` | 변경 없음 |
 | SQLite 데이터베이스 | `${DSH_HOME}/storages/usage-stats-v1.sqlite` | 변경 없음 |
-| CLI | `dsh-coding-oauth` | `dsh-grok-build`(별칭) |
+| CLI | `dsh-hub-oauth` | `dsh-hub-grok-build`(별칭). Subscription 소유의 `dsh-coding-oauth` / `dsh-grok-build`는 이 패키지가 아님 |
 
 릴리스 기록은 [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -53,7 +53,7 @@
 - **옵트인 로컬 모니터** — 읽기 전용 CLI 인증 스냅샷과 크로스툴 token 스캔(대화 내용은 읽지 않음).
 - **이중 언어 UI** — DSH locale 서비스를 통한 중국어와 영어.
 
-제품 조사: [`docs/research/usage-analytics-landscape.md`](docs/research/usage-analytics-landscape.md). 아키텍처: [`docs/02-architecture.md`](docs/02-architecture.md).
+제품 조사: [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). 아키텍처: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 ## 스크린샷
 
@@ -121,7 +121,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 - [로컬 API 게이트웨이](#로컬-api-게이트웨이)
 - [선택적 기능](#선택적-기능)
 - [런타임 설정](#런타임-설정)
-- [凭据](#凭据)
+- [자격 증명](#자격-증명)
 - [데이터와 마이그레이션](#데이터와-마이그레이션)
 - [개인정보와 보안](#개인정보와-보안)
 - [아키텍처](#아키텍처)
@@ -153,7 +153,7 @@ dsh plugin --profile web remove dsh-hub-oauth-gateway
 4. **Settings → Usage Center** 에서 Display / Accounts / Gateway / Capabilities / Providers / Fees 구성.
 5. 비용은 항상 추정 — 커버리지 비율 확인; 미가격 token은 무료가 아님.
 
-CLI: `dsh-coding-oauth login [--pkce] | import | status | logout`(`dsh-grok-build`는 별칭).
+CLI: `dsh-hub-oauth login [--pkce] | import | status | logout`(`dsh-hub-grok-build`는 별칭).
 
 ## 설정
 
@@ -212,7 +212,7 @@ allowlist 내 공식 CLI OAuth 파일은 읽기 전용으로 발견. 동기화�
 
 전체 필드 참조, monitors, proxy, pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) 및 [`docs/01-install.md`](docs/01-install.md). 레거시 root `config.monitors`는 `config.accounts.monitors`로 매핑(둘 다 설정하지 말 것).
 
-## 凭据
+## 자격 증명
 
 - DSH credential seam을 통해 저장; 브라우저는 `configured` / `source` / `writable` 메타데이터만 수신 — 값은 수신하지 않음.
 - 로컬 CLI import(Claude, Codex, Gemini, Grok, Amp)는 절대 경로를 로그하지 않음.
@@ -230,9 +230,9 @@ ${DSH_HOME:-~/.dsh}/storages/usage-stats-v1.sqlite
 ## 개인정보와 보안
 
 - 루프백 peer + 루프백 Host; JSON 쓰기 본문; 리버스 프록시용 same-origin / forwarded-host 규칙(`x-dsh-hub-oauth-gateway: 1`).
-- 일반 GET은 로컬 전용;凭据 포함 새로고침은 명시 POST 또는 스케줄.
-- Monitors: 기본 HTTPS, URL 내장凭据 없음, 수동 redirect, 크기 제한, 연결 전 DNS pinning.
-- SQLite는凭据, prompt, response, cwd, 원시 프로바이더 페이로드 제외.
+- 일반 GET은 로컬 전용; 자격 증명 포함 새로고침은 명시 POST 또는 스케줄.
+- Monitors: 기본 HTTPS, URL 내장 자격 증명 없음, 수동 redirect, 크기 제한, 연결 전 DNS pinning.
+- SQLite는 자격 증명, prompt, response, cwd, 원시 프로바이더 페이로드 제외.
 - 분석과 추정은 청구서가 아님. 소유하거나 권한 있는 계정과 endpoint만 쿼리.
 
 위협 모델 및 보고: [`.github/SECURITY.md`](.github/SECURITY.md).

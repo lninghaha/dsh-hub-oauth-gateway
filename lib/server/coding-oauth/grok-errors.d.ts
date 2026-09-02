@@ -1,13 +1,3 @@
-/**
- * xAI / Grok Build error remapping.
- * @module dsh-coding-subscription-oauth/grok-errors
- */
-export declare function isXaiCapacityError(detail: string): boolean;
-export declare function remapXaiCapacityFailure(failure: {
-    message: string;
-    code: string;
-}): {
-    message: string;
-    code: string;
-};
+/** Compatibility facade for shared xAI capacity remapping owned by dsh-coding-oauth-core. */
+export { isXaiCapacityError, remapXaiCapacityFailure } from "dsh-coding-oauth-core";
 //# sourceMappingURL=grok-errors.d.ts.map
