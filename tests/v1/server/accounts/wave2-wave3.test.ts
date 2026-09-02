@@ -216,6 +216,7 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 		});
 		expect(missing).toMatchObject({ status: "not-configured", missingCredentials: ["VOLCENGINE_SECRET_KEY"] });
 
+		const privateFetch = vi.fn();
 		await expect(
 			volcengineCodingPlanAdapter.collect({
 				spec: {
@@ -236,15 +237,80 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 					resolve: vi.fn(async () => ({ value: "secret" })),
 				},
 				deps: {
+					fetch: privateFetch as never,
 					lookup: vi.fn(async () => [{ address: "127.0.0.1", family: 4 }]),
 					now: () => 1,
 				},
 				now: 1,
 				credential: "secret",
 			}),
-		).resolves.toMatchObject({
-			status: expect.stringMatching(/unavailable|unauthorized|invalid-response|error|unsupported/),
-		});
+		).resolves.toMatchObject({ status: "unsupported" });
+		expect(privateFetch).not.toHaveBeenCalled();
+	});
+
+	it("rejects Volcengine link-local DNS and oversized JSON responses", async () => {
+		const linkLocalFetch = vi.fn();
+		await expect(
+			volcengineCodingPlanAdapter.collect({
+				spec: {
+					id: "volcengine",
+					profileId: "",
+					displayName: "Volcengine",
+					adapter: "volcengine-coding-plan",
+					mode: "subscription",
+					apiKeyRef: "VOLCENGINE_ACCESS_KEY",
+					monitor: {
+						secretKeyRef: "VOLCENGINE_SECRET_KEY",
+						usageBaseURL: "https://open.volcengineapi.com",
+						allowPrivateNetwork: false,
+					},
+					configKey: "{}",
+				},
+				credentials: { resolve: vi.fn(async () => ({ value: "secret" })) },
+				deps: {
+					fetch: linkLocalFetch as never,
+					lookup: vi.fn(async () => [{ address: "169.254.169.254", family: 4 }]),
+					now: () => 1,
+				},
+				now: 1,
+				credential: "secret",
+			}),
+		).resolves.toMatchObject({ status: "unsupported" });
+		expect(linkLocalFetch).not.toHaveBeenCalled();
+
+		const oversizedFetch = vi.fn(async () => ({
+			ok: true,
+			status: 200,
+			headers: {
+				get: (name: string) =>
+					name === "content-type" ? "application/json" : name === "content-length" ? "2048" : null,
+			},
+			json: async () => ({ Result: { Usage: { Session: { Used: 1, Total: 10 } } } }),
+		}));
+		await expect(
+			volcengineCodingPlanAdapter.collect({
+				spec: {
+					id: "volcengine",
+					profileId: "",
+					displayName: "Volcengine",
+					adapter: "volcengine-coding-plan",
+					mode: "subscription",
+					apiKeyRef: "VOLCENGINE_ACCESS_KEY",
+					monitor: { secretKeyRef: "VOLCENGINE_SECRET_KEY" },
+					configKey: "{}",
+				},
+				credentials: { resolve: vi.fn(async () => ({ value: "secret" })) },
+				deps: {
+					fetch: oversizedFetch as never,
+					lookup: vi.fn(async () => [{ address: "8.8.8.8", family: 4 }]),
+					maxResponseBytes: 64,
+					now: () => 1,
+				},
+				now: 1,
+				credential: "secret",
+			}),
+		).resolves.toMatchObject({ status: "invalid-response" });
+		expect(oversizedFetch).toHaveBeenCalledOnce();
 	});
 
 	it("queries zai-team-plan with type=2 and does not fall back to personal host", async () => {
@@ -282,6 +348,94 @@ describe("wave2 lastGood / multiprofile / adapters", () => {
 		});
 		expect(result.status).toBe("ok");
 		expect(result.plan).toBe("GLM Team");
+	});
+
+	it("rejects zai-team-plan private/link-local targets and oversized responses without personal-host fallback", async () => {
+		const privateFetch = vi.fn();
+		await expect(
+			zaiTeamPlanAdapter.collect({
+				spec: {
+					id: "zai-team",
+					profileId: "",
+					displayName: "GLM Team",
+					adapter: "zai-team-plan",
+					mode: "subscription",
+					apiKeyRef: "ZAI_TEAM_API_KEY",
+					monitor: { usageBaseURL: "https://quota.example.com/api/monitor/usage/quota/limit" },
+					configKey: "{}",
+				},
+				credentials: { resolve: vi.fn(async () => ({ value: "team-key" })) },
+				deps: {
+					fetch: privateFetch as never,
+					lookup: vi.fn(async () => [{ address: "10.0.0.8", family: 4 }]),
+				},
+				now: 1,
+				credential: "team-key",
+			}),
+		).resolves.toMatchObject({ status: "unsupported" });
+		expect(privateFetch).not.toHaveBeenCalled();
+
+		const linkLocalFetch = vi.fn();
+		await expect(
+			zaiTeamPlanAdapter.collect({
+				spec: {
+					id: "zai-team",
+					profileId: "",
+					displayName: "GLM Team",
+					adapter: "zai-team-plan",
+					mode: "subscription",
+					apiKeyRef: "ZAI_TEAM_API_KEY",
+					monitor: { usageBaseURL: "https://meta.example.com/api/monitor/usage/quota/limit" },
+					configKey: "{}",
+				},
+				credentials: { resolve: vi.fn(async () => ({ value: "team-key" })) },
+				deps: {
+					fetch: linkLocalFetch as never,
+					lookup: vi.fn(async () => [{ address: "169.254.169.254", family: 4 }]),
+				},
+				now: 1,
+				credential: "team-key",
+			}),
+		).resolves.toMatchObject({ status: "unsupported" });
+		expect(linkLocalFetch).not.toHaveBeenCalled();
+
+		const seen: string[] = [];
+		const oversizedFetch = vi.fn(async (url: string) => {
+			seen.push(String(url));
+			return {
+				ok: true,
+				status: 200,
+				headers: {
+					get: (name: string) =>
+						name === "content-type" ? "application/json" : name === "content-length" ? "4096" : null,
+				},
+				json: async () => ({ data: { limits: [] } }),
+			};
+		});
+		await expect(
+			zaiTeamPlanAdapter.collect({
+				spec: {
+					id: "zai-team",
+					profileId: "",
+					displayName: "GLM Team",
+					adapter: "zai-team-plan",
+					mode: "subscription",
+					apiKeyRef: "ZAI_TEAM_API_KEY",
+					monitor: {},
+					configKey: "{}",
+				},
+				credentials: { resolve: vi.fn(async () => ({ value: "team-key" })) },
+				deps: {
+					fetch: oversizedFetch as never,
+					lookup: vi.fn(async () => [{ address: "8.8.8.8", family: 4 }]),
+					maxResponseBytes: 128,
+				},
+				now: 1,
+				credential: "team-key",
+			}),
+		).resolves.toMatchObject({ status: "invalid-response" });
+		expect(seen.some((url) => url.includes("open.bigmodel.cn") && url.includes("type=2"))).toBe(true);
+		expect(seen.some((url) => url.includes("api.z.ai"))).toBe(false);
 	});
 });
 

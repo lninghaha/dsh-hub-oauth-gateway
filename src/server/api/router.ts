@@ -25,6 +25,7 @@ import {
 import { FeesDataSchema } from "../../shared/fees.js";
 import { UserPreferencesSchema } from "../../shared/preferences.js";
 import type { ProvidersData } from "../../shared/providers.js";
+import type { StatusProbesData } from "../../shared/status-probes.js";
 import type { OwnerAccessMode, OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
 import type { FeesRepository } from "../fees/repository.js";
 import type { LocalAuthSnapshot } from "../local-monitor/auth-status.js";
@@ -76,6 +77,10 @@ export interface LocalUsageApiService {
 	scan(): Promise<{ scannedAt: number; files: number; events: number; skipped: number }>;
 }
 
+export interface StatusProbesApiService {
+	snapshot(): Promise<StatusProbesData>;
+}
+
 export interface UsageStatsApiDependencies {
 	readonly logger: UsageStatsLogger;
 	readonly projection: UsageProjectionApiService;
@@ -88,6 +93,7 @@ export interface UsageStatsApiDependencies {
 	readonly alerts?: { list(): Promise<readonly UsageAlert[]> } | undefined;
 	readonly localAuth?: LocalAuthApiService | undefined;
 	readonly localUsage?: LocalUsageApiService | undefined;
+	readonly statusProbes?: StatusProbesApiService | undefined;
 	readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
 	freshness(): ApiFreshness;
 	compatibility?(accessMode: OwnerAccessMode): DshCompatibility;
@@ -368,9 +374,23 @@ export function registerV1Routes(
 		}),
 		register(API_PATHS.account, ["GET"], async (_request, response, url) => {
 			const id = z.string().min(1).parse(url.searchParams.get("id"));
-			const account = (await dependencies.accounts.list()).find(({ providerId }) => providerId === id) ?? null;
+			const profileId = url.searchParams.get("profileId") ?? "";
+			const accounts = await dependencies.accounts.list();
+			const account =
+				accounts.find((entry) => entry.providerId === id && entry.profileId === profileId) ??
+				(profileId === "" ? (accounts.find((entry) => entry.providerId === id) ?? null) : null);
 			if (account === null) {
-				writeJson(response, 404, failure(dependencies, "not-found", "account was not found"));
+				writeJson(
+					response,
+					404,
+					failure(
+						dependencies,
+						"not-found",
+						profileId === ""
+							? `account was not found for providerId="${id}"`
+							: `account was not found for providerId="${id}" profileId="${profileId}"`,
+					),
+				);
 				return;
 			}
 			writeJson(response, 200, success(dependencies, account));
@@ -588,6 +608,28 @@ export function registerV1Routes(
 			}
 			const result = await dependencies.localUsage.scan();
 			writeJson(response, 200, success(dependencies, { enabled: true, ...result }));
+		}),
+		register(API_PATHS.statusProbes, ["GET"], async (_request, response) => {
+			if (dependencies.statusProbes === undefined) {
+				writeJson(response, 200, success(dependencies, { enabled: false }));
+				return;
+			}
+			try {
+				const snapshot = await dependencies.statusProbes.snapshot();
+				writeJson(response, 200, success(dependencies, snapshot));
+			} catch {
+				// Probe subsystem must never break Usage Center; degrade to disabled-shaped error payload.
+				dependencies.logger.warn("usage-stats: status probes failed (details redacted)");
+				writeJson(
+					response,
+					200,
+					success(dependencies, {
+						enabled: true,
+						generatedAt: dependencies.now?.() ?? Date.now(),
+						probes: [],
+					}),
+				);
+			}
 		}),
 	];
 }

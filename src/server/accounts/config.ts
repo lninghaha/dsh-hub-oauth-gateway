@@ -165,8 +165,17 @@ function requestOf(value: unknown, label: string): DeclarativeRequest {
 function profileOf(value: unknown, label: string, allowInsecure: boolean): MonitorProfileConfig {
 	const input = recordOf(value, label);
 	const id = optionalString(input.id, `${label}.id`);
-	if (id === undefined || id.length > 128) throw new Error(`${label}.id is required and at most 128 characters`);
-	if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)) throw new Error(`${label}.id has invalid characters`);
+	if (id === undefined) {
+		throw new Error(`${label}.id is required (unique profile key under this monitor; e.g. "personal" or "work")`);
+	}
+	if (id.length > 128) {
+		throw new Error(`${label}.id must be at most 128 characters (got ${id.length})`);
+	}
+	if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)) {
+		throw new Error(
+			`${label}.id "${id}" has invalid characters; use letters, digits, and . _ : - (must start with alphanumeric)`,
+		);
+	}
 	return {
 		id,
 		...(optionalString(input.label, `${label}.label`) === undefined
@@ -206,12 +215,23 @@ function monitorOf(key: string, value: unknown, registry: AccountAdapterRegistry
 	}
 	let profiles: MonitorProfileConfig[] | undefined;
 	if (input.profiles !== undefined) {
-		if (!Array.isArray(input.profiles)) throw new Error(`${label}.profiles must be an array`);
-		if (input.profiles.length > 32) throw new Error(`${label}.profiles must contain at most 32 entries`);
+		if (!Array.isArray(input.profiles)) {
+			throw new Error(`${label}.profiles must be an array of { id, credentialRef?, label?, ... } objects`);
+		}
+		if (input.profiles.length > 32) {
+			throw new Error(`${label}.profiles must contain at most 32 entries (got ${input.profiles.length})`);
+		}
+		if (input.profiles.length === 0) {
+			throw new Error(`${label}.profiles is empty; omit the field for a single-profile monitor`);
+		}
 		const seen = new Set<string>();
 		profiles = input.profiles.map((entry, index) => {
 			const profile = profileOf(entry, `${label}.profiles[${index}]`, allowInsecure);
-			if (seen.has(profile.id)) throw new Error(`${label}.profiles duplicate id "${profile.id}"`);
+			if (seen.has(profile.id)) {
+				throw new Error(
+					`${label}.profiles duplicate id "${profile.id}"; each profileId must be unique under this monitor (snapshot key is providerId + profileId)`,
+				);
+			}
 			seen.add(profile.id);
 			return profile;
 		});

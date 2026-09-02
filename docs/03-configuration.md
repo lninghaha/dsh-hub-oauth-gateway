@@ -92,7 +92,7 @@ Common monitor fields:
 | `secretKeyRef` | Second credential (e.g. Volcengine SK) |
 | `usageBaseURL` | Optional absolute account API base URL |
 | `region` | Adapter-specific region selector |
-| `profiles` | Optional array of `{ id, label?, credentialRef?, ... }` for multi-account cards |
+| `profiles` | Optional array of `{ id, label?, credentialRef?, ... }` for multi-account cards. Snapshot key is `(providerId, profileId)`. Duplicate / empty / invalid `id` values fail config validation with actionable messages. |
 | `allowCookieSession` | Explicit opt-in for cookie-based adapters (`ollama-cloud`) |
 | `fallbackCredentialRef` | Separate fallback credential, used by selected adapters |
 | `fallbackUserIdRef` | Separate fallback user-ID reference |
@@ -301,6 +301,25 @@ localUsage:
 ```
 
 Parsers exist for Claude Code (`~/.claude/projects`), Codex CLI (`~/.codex/sessions`), Kimi Code (`~/.kimi*/sessions`), and OpenCode (`~/.local/share/opencode/storage`). Only timestamps, model ids, and token counters are extracted; message content is never read into an event. Cursors are keyed by the SHA-256 of the file path (no absolute paths in SQLite), and per-file daily aggregates make log rotation exact instead of double counted. Aggregates are served by `GET /api/usage-stats/v1/local/usage` and shown on the dashboard **本机 / Local** tab.
+
+## `statusProbes`
+
+Optional read-only probes of allowlisted public vendor Statuspage endpoints. **Default off.**
+
+```yaml
+statusProbes:
+  enabled: false
+```
+
+### Privacy / security boundary
+
+- Probes send **no credentials**, cookies, or custom auth headers.
+- Targets are a hard allowlist (`status.openai.com`, `status.claude.com`, `status.cursor.com` `/api/v2/status.json` only). Operators cannot add arbitrary URLs.
+- Requests reuse the account-monitor outbound/SSRF policy (HTTPS only, no private DNS/IP, no embedded URL credentials, size/timeout limits, manual redirects).
+- Failures are recorded per target and **never** interrupt Usage Center projection, account refresh, or other primary paths.
+- API responses expose only indicator / description / page URL — never raw upstream bodies.
+
+When enabled, `GET /api/usage-stats/v1/status-probes` and the dashboard **本机 / Local** tab show the latest probe cards. Opening the dashboard does not credential-refresh accounts; status probes are a separate GET.
 
 ## `debug`
 

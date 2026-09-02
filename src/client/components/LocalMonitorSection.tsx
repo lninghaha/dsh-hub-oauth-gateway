@@ -1,15 +1,17 @@
 /**
  * Dashboard "本机" tab: token-monitor-style local machine surfaces. The auth
  * cards show the allowlisted CLI credential states and this plugin's own
- * OAuth sessions; the usage panel aggregates the opt-in cross-tool log scan.
- * Neither surface ever contains credential material or message content.
+ * OAuth sessions; the usage panel aggregates the opt-in cross-tool log scan;
+ * optional vendor status-page probes appear when enabled. Neither surface
+ * ever contains credential material or message content.
  */
 
 import type { LocalAuthCliStatus, LocalUsageRow } from "../../shared/local-monitor.js";
+import type { StatusProbeResult } from "../../shared/status-probes.js";
 import { usageUiController } from "../controller.js";
 import { formatCompact, formatRelativeTime } from "../format.js";
 import type { Translate } from "../locales.js";
-import { useLocalAuthQuery, useLocalUsageQuery, useLocalUsageScanMutation } from "../queries.js";
+import { useLocalAuthQuery, useLocalUsageQuery, useLocalUsageScanMutation, useStatusProbesQuery } from "../queries.js";
 
 function cliStateLabel(t: Translate, status: LocalAuthCliStatus): string {
 	switch (status.state) {
@@ -61,6 +63,26 @@ function formatUntil(timestamp: number, now = Date.now()): string {
 	return `${Math.round(hours / 24)}d`;
 }
 
+function probeStatusClass(probe: StatusProbeResult): string {
+	if (!probe.ok) return "is-error";
+	switch (probe.indicator) {
+		case "none":
+			return "is-ok";
+		case "minor":
+			return "is-stale";
+		case "major":
+		case "critical":
+			return "is-error";
+		default:
+			return "";
+	}
+}
+
+function probeStatusLabel(t: Translate, probe: StatusProbeResult): string {
+	if (!probe.ok) return t("statusProbes.failed", { code: probe.errorCode ?? "unavailable" });
+	return t(`statusProbes.indicator.${probe.indicator}` as const);
+}
+
 function UsageTable({ rows, t }: { readonly rows: readonly LocalUsageRow[]; readonly t: Translate }) {
 	if (rows.length === 0) return <div className="dus-chart-empty dus-empty-small">{t("local.usage.empty")}</div>;
 	const byTool = new Map<
@@ -110,8 +132,10 @@ export function LocalMonitorSection({ t }: { readonly t: Translate }) {
 	const auth = useLocalAuthQuery();
 	const usage = useLocalUsageQuery();
 	const scan = useLocalUsageScanMutation();
+	const statusProbes = useStatusProbesQuery();
 	const authData = auth.data?.ok === true ? auth.data.data : null;
 	const usageData = usage.data?.ok === true ? usage.data.data : null;
+	const probesData = statusProbes.data?.ok === true ? statusProbes.data.data : null;
 	return (
 		<>
 			<section className="dus-section" data-local-monitor="auth">
@@ -169,6 +193,41 @@ export function LocalMonitorSection({ t }: { readonly t: Translate }) {
 										{session.authenticated ? t("local.auth.signedIn") : t("local.auth.signedOut")}
 									</span>
 								</div>
+							</article>
+						))}
+					</div>
+				)}
+			</section>
+			<section className="dus-section" data-status-probes="1">
+				<div className="dus-section-head">
+					<h3 className="dus-section-title">{t("statusProbes.title")}</h3>
+					{probesData?.enabled === true ? (
+						<span className="dus-section-note">
+							{t("dashboard.updated", { time: formatRelativeTime(probesData.generatedAt) })}
+						</span>
+					) : null}
+				</div>
+				<p className="dus-settings-hint">{t("statusProbes.hint")}</p>
+				{probesData === null ? (
+					<div className="dus-chart-empty dus-empty-small">{t("dashboard.loading")}</div>
+				) : !probesData.enabled ? (
+					<div className="dus-empty-guide">
+						<p className="dus-row-hint">{t("statusProbes.disabled")}</p>
+					</div>
+				) : probesData.probes.length === 0 ? (
+					<div className="dus-chart-empty dus-empty-small">{t("statusProbes.empty")}</div>
+				) : (
+					<div className="dus-account-grid is-compact">
+						{probesData.probes.map((probe) => (
+							<article className="dus-account-card" key={probe.id} data-status-probe={probe.id}>
+								<div className="dus-account-select">
+									<span>
+										<span className="dus-account-name">{probe.label}</span>
+										<span className="dus-account-plan">{probe.pageUrl}</span>
+									</span>
+									<span className={`dus-status ${probeStatusClass(probe)}`}>{probeStatusLabel(t, probe)}</span>
+								</div>
+								{probe.description !== null ? <span className="dus-account-note">{probe.description}</span> : null}
 							</article>
 						))}
 					</div>

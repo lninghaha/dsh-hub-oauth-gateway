@@ -74,6 +74,8 @@ DSH Web slots ──> classic client bundle ──> TanStack Query ──> Quick
 
 Provider 描述符来自 DSH 设置与兼容性目录。`resolveAccountSpecs()` 将每个描述符与经校验的 monitor 配置组合，并选择 21 个 adapter 之一。
 
+Antigravity 额度保持 Hub **只读、显式配置** 的 `antigravity-quota`；Google OAuth 仍由 `dsh-agy` 负责。见 [`docs/research/adr-antigravity-quota-probe.md`](research/adr-antigravity-quota-probe.md)。
+
 每个 adapter 返回相同结构的规范化快照：
 
 - provider/display/adapter 标识符；
@@ -136,7 +138,7 @@ Provider 描述符来自 DSH 设置与兼容性目录。`resolveAccountSpecs()` 
 
 `src/server/coding-oauth/` 树集成 `dsh-coding-subscription-oauth` 包（保留 Apache-2.0 署名；见 `docs/oauth-provenance.md`）。它通过 `ctx.llm.registerAdapter` 注册 LLM 路由 `grok-build`、`codex-oauth`、`kimi-code-oauth` 与 `claude-code-oauth`，使已登录的订阅账户在 DSH 模型选择器中显示为 `(OAuth)`。Grok Build 使用 first-party PKCE 加 device-code 登录 `auth.x.ai`，并从 `cli-chat-proxy.grok.com` 流式传输；Codex/Kimi/Claude 复用 pi-ai provider-native OAuth 与 refresh 协议。凭据存放在 `${DSH_HOME}` 下仅所有者可读的 `0600` 文件中，任何 HTTP 状态、日志或 UI 表面均不返回凭据。
 
-Hub 与独立包都精确依赖 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。核心统一拥有 root-scoped owner 选举、引用计数代理策略、原子注册、provider/route/credential 标识、能力设置命名空间、Gateway 状态文件名，以及全部新旧管理路径。Hub 优先成为 owner；Hub 卸载后独立包自动接管。相同状态契约也通过 browser-safe 入口供客户端使用，避免客户端路径与服务端静默漂移。Grok Imagine 保留显式 pinned dispatcher，不使用共享 proxy lease。
+Hub 与独立包目前在 registry 上精确依赖 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。Hub 另在 `vendor/dsh-coding-oauth-core` 维护可发布的 `0.1.2`（本地 `file:` override），新增共享 helper（`http-json`、`grok-errors`、`kimi-errors`、`gateway-protocol`）及对应 subpath exports。核心统一拥有 root-scoped owner 选举、引用计数代理策略、原子注册、provider/route/credential 标识、能力设置命名空间、Gateway 状态文件名，以及全部新旧管理路径。Hub 优先成为 owner；Hub 卸载后独立包自动接管。相同状态契约也通过 browser-safe 入口供客户端使用，避免客户端路径与服务端静默漂移。Grok Imagine 保留显式 pinned dispatcher，不使用共享 proxy lease。
 
 设置 UI（Settings → Usage Center → 订阅账号/网关/能力 tabs）与插件自有的同源路由 `/plugins/dsh-grok-build/*` 通信：`oauth/status|login|code|cancel|logout|models` 用于登录状态机，`oauth/sources(+preview|commit|cancel)` 用于两阶段 allowlisted CLI 凭据拉取，`gateway(+reveal|rotate)` 用于 opt-in loopback API gateway（在独立的 `node:http` listener 上提供 `/v1/chat/completions`、`/v1/responses`、`/v1/messages`，默认关闭），`capabilities` 用于七个默认关闭的可选 capability 开关及基于 revision 的 compare-and-swap 写入。这些路由均要求受信任的 owner 请求；变更类请求还要求 JSON body 与 Hub CSRF 头 `x-dsh-hub-oauth-gateway: 1`（受信任 HTTPS 反代的变更请求改用独立的 owner CSRF proof）。网关密钥 reveal/rotate 仍仅限回环。
 
@@ -145,6 +147,7 @@ Hub 与独立包都精确依赖 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0
 `src/server/local-monitor/` 增加 token-monitor 风格的本地能力面，均为 opt-in：
 
 - **认证快照**（`localMonitor.enabled`）：复用 OAuth 导入 allowlist 与加固 reader，报告各官方 CLI 的登录状态、token 过期与 refresh-token 是否存在，以及本插件自身存储的 OAuth 会话。仅不含 secret 的状态会跨越 API 边界。
+- **供应商状态页探测**（`statusProbes.enabled`，默认关）：仅 GET 白名单公开 Statuspage JSON（无凭据）。失败按目标隔离，不中断用量投影或账户刷新。
 - **跨工具用量扫描**（`localUsage.enabled`）：增量扫描器遍历 Claude Code、Codex CLI、Kimi Code 与 OpenCode 日志根目录，含 symlink/owner/regular-file 检查及 per-file/per-run 字节预算。解析器仅提取 timestamp、model id 与 token 计数。SQLite schema v4 以文件路径 SHA-256 为 key 存储 per-file 日聚合，因此轮转会精确替换某文件的贡献，且从不持久化绝对路径。扫描在调度器或显式 `POST /local/usage/scan` 时运行；`GET /local/usage` 仅读取聚合。
 
 ## 客户端架构

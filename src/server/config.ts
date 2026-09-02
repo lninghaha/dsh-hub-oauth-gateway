@@ -40,6 +40,10 @@ const DEFAULT_LOCAL_USAGE = Object.freeze({
 	retentionDays: 400,
 });
 
+const DEFAULT_STATUS_PROBES = Object.freeze({
+	enabled: false,
+});
+
 const LocalMonitorConfigSchema = z
 	.object({
 		/** Read-only local CLI authentication snapshot (hardened allowlist reads). */
@@ -65,6 +69,16 @@ const LocalUsageConfigSchema = z
 			.max(1024 * 1024 * 1024)
 			.default(DEFAULT_LOCAL_USAGE.maxTotalBytes),
 		retentionDays: z.number().int().min(7).max(3650).default(DEFAULT_LOCAL_USAGE.retentionDays),
+	})
+	.strict();
+
+const StatusProbesConfigSchema = z
+	.object({
+		/**
+		 * Opt-in read-only probes of allowlisted public vendor status pages.
+		 * Default off; never sends credentials; failures stay off the Usage path.
+		 */
+		enabled: z.boolean().default(DEFAULT_STATUS_PROBES.enabled),
 	})
 	.strict();
 
@@ -197,6 +211,8 @@ const RuntimeConfigInputSchema = z
 		localMonitor: LocalMonitorConfigSchema.default(DEFAULT_LOCAL_MONITOR),
 		/** Opt-in cross-tool local usage scan. Default off; scans never run on page loads. */
 		localUsage: LocalUsageConfigSchema.default(DEFAULT_LOCAL_USAGE),
+		/** Opt-in vendor status-page probes. Default off; no credentials; isolated from Usage. */
+		statusProbes: StatusProbesConfigSchema.default(DEFAULT_STATUS_PROBES),
 		debug: z.boolean().default(false),
 	})
 	.strict()

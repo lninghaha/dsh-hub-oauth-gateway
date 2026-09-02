@@ -93,9 +93,9 @@ export type ModelState = z.infer<typeof ModelStateSchema>;
  * - unlinked:      credential present but not linked to any quota source
  */
 export declare const QuotaStateSchema: z.ZodEnum<{
-    available: "available";
     unavailable: "unavailable";
     stale: "stale";
+    available: "available";
     disabled: "disabled";
     "not-supported": "not-supported";
     unlinked: "unlinked";
@@ -138,9 +138,9 @@ export type ProviderModelSummary = z.infer<typeof ProviderModelSummarySchema>;
 /** Micro-summary of quota freshness for one provider. */
 export declare const ProviderQuotaSummarySchema: z.ZodObject<{
     state: z.ZodEnum<{
-        available: "available";
         unavailable: "unavailable";
         stale: "stale";
+        available: "available";
         disabled: "disabled";
         "not-supported": "not-supported";
         unlinked: "unlinked";
@@ -217,9 +217,9 @@ export declare const ProviderRecordSchema: z.ZodObject<{
         "available-not-enabled": "available-not-enabled";
     }>;
     quotaState: z.ZodEnum<{
-        available: "available";
         unavailable: "unavailable";
         stale: "stale";
+        available: "available";
         disabled: "disabled";
         "not-supported": "not-supported";
         unlinked: "unlinked";
@@ -312,9 +312,9 @@ export declare const ProvidersDataSchema: z.ZodObject<{
             "available-not-enabled": "available-not-enabled";
         }>;
         quotaState: z.ZodEnum<{
-            available: "available";
             unavailable: "unavailable";
             stale: "stale";
+            available: "available";
             disabled: "disabled";
             "not-supported": "not-supported";
             unlinked: "unlinked";

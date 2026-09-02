@@ -17,7 +17,7 @@
 
 ---
 
-> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.2` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.2` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.1` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。仓库内 vendored 的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）已按 `vendor/dsh-coding-oauth-core` 准备好 npm 发布；打包/发布步骤见该包 README。
 
 ---
 
@@ -51,6 +51,7 @@
 - **可选回环 API 网关** —— 默认关闭的 OpenAI/Anthropic 兼容服务，仅供本机工具。
 - **可选能力** —— Codex 搜索 / 图像 / 用量 / Fast 与 Grok Imagine 默认关闭，打开后立即生效。
 - **可选本机监控** —— 只读 CLI 认证快照与跨工具 Token 扫描（从不读取对话内容）。
+- **可选供应商状态页探测** —— 白名单公开 Statuspage GET（默认关；无凭据；与用量主路径隔离）。
 - **中英文界面** —— 复用 DSH locale 服务。
 
 产品调研：[`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md)。架构：[`docs/02-architecture.md`](docs/02-architecture.md)。
@@ -216,6 +217,8 @@ GitHub Copilot LLM 路由（`github-copilot-oauth`）在配置 `oauthDevice.copi
         localUsage:
           enabled: false
           intervalMinutes: 30
+        statusProbes:
+          enabled: false
 ```
 
 完整字段、monitor、代理与价格导入：[`docs/03-configuration.md`](docs/03-configuration.md) 与 [`docs/01-install.md`](docs/01-install.md)。旧根级 `config.monitors` 映射到 `config.accounts.monitors`（不要同时配置）。

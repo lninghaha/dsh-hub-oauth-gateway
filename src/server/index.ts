@@ -39,6 +39,7 @@ import { PricingRepository } from "./pricing/repository.js";
 import { collectProvidersData } from "./providers/catalog.js";
 import { adaptiveAccountIntervalMs, startRefreshScheduler } from "./scheduler.js";
 import { PreferencesRepository } from "./settings/repository.js";
+import { StatusProbeService } from "./status-probes/service.js";
 import { UsageDatabase } from "./storage/database.js";
 import { usageDatabasePath } from "./storage/path.js";
 import { UsageQueryService } from "./usage/query.js";
@@ -372,6 +373,16 @@ export async function apply(
 			})()
 		: undefined;
 
+	const statusProbesApi = config.statusProbes.enabled
+		? {
+				snapshot: () =>
+					new StatusProbeService({
+						deps: { timeoutMs: Math.min(config.refresh.timeoutMs, 8_000), now },
+						now,
+					}).snapshot(),
+			}
+		: undefined;
+
 	const disposeRoutes = registerWebRouteSetupAtomically(webServer, (tracked) => {
 		registerV1Routes(tracked, {
 			logger: ctx.logger,
@@ -385,6 +396,7 @@ export async function apply(
 			alerts: alertsApi,
 			...(localAuthApi === undefined ? {} : { localAuth: localAuthApi }),
 			...(localUsageApi === undefined ? {} : { localUsage: localUsageApi }),
+			...(statusProbesApi === undefined ? {} : { statusProbes: statusProbesApi }),
 			ownerRequestPolicy,
 			freshness,
 			compatibility: (accessMode) =>

@@ -80,6 +80,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
         maxTotalBytes: z.ZodDefault<z.ZodNumber>;
         retentionDays: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>>;
+    statusProbes: z.ZodDefault<z.ZodObject<{
+        enabled: z.ZodDefault<z.ZodBoolean>;
+    }, z.core.$strict>>;
     debug: z.ZodDefault<z.ZodBoolean>;
 }, z.core.$strict>, z.ZodTransform<{
     accounts: {};
@@ -151,6 +154,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
         maxTotalBytes: number;
         retentionDays: number;
     };
+    statusProbes: {
+        enabled: boolean;
+    };
     debug: boolean;
 }, {
     refresh: {
@@ -220,6 +226,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
         maxFileBytes: number;
         maxTotalBytes: number;
         retentionDays: number;
+    };
+    statusProbes: {
+        enabled: boolean;
     };
     debug: boolean;
     accounts?: unknown;
