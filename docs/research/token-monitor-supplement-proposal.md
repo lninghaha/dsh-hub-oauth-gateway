@@ -52,7 +52,7 @@
 | 额度自适应刷新 | burn-rate adaptive | 固定 interval | **已落地（1.4.0，`adaptive` 可选）** |
 | 失败保留 lastGood | LimitsRuntime | `withStaleData` 已有 | **已加固（1.4.0）** |
 | 同供应商多账号 | 广泛支持 | 基本一 provider 一 monitor | **monitor profiles 已落地（1.4.0）；OAuth AuthDocument v2 多账号已落地（1.11.0）** |
-| Status 页探测 | 可选 | 无 | 可选（P2，未做） |
+| Status 页探测 | 可选 | 无 | **已落地（本分支，`statusProbes`，默认关）** |
 | Discord / 托盘作曲家 | 有 | 不适用 | 不照搬 |
 | Session 逐 prompt | 读本地 transcript | 刻意排除 | 不照搬 |
 | Hub/Subscription 共装与 BOM | — | 无共享 core 选举 | **已落地（1.9.0–1.10.0）**：`dsh-coding-oauth-core` 所有权、DSH BOM/client 门禁 |

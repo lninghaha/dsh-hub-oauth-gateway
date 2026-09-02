@@ -25,6 +25,7 @@ export declare const API_PATHS: Readonly<{
     localAuth: "/api/usage-stats/v1/local/auth";
     localUsage: "/api/usage-stats/v1/local/usage";
     localUsageScan: "/api/usage-stats/v1/local/usage/scan";
+    statusProbes: "/api/usage-stats/v1/status-probes";
 }>;
 export { DshCompatibilitySchema };
 export declare const ExportLayoutSchema: z.ZodEnum<{

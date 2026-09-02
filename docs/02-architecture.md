@@ -147,6 +147,7 @@ The settings UI (Settings → Usage Center → 订阅账号/网关/能力 tabs) 
 `src/server/local-monitor/` adds the token-monitor-style local surfaces, both opt-in:
 
 - **Authentication snapshot** (`localMonitor.enabled`): reuses the OAuth-import allowlist and hardened reader to report each official CLI's sign-in state, token expiry, and refresh-token presence, alongside this plugin's own stored OAuth sessions. Only secret-free status crosses the API boundary.
+- **Vendor status probes** (`statusProbes.enabled`, default off): GET allowlisted public Statuspage JSON only (no credentials). Failures stay per-target and never interrupt Usage projection or account refresh.
 - **Cross-tool usage scan** (`localUsage.enabled`): an incremental scanner walks Claude Code, Codex CLI, Kimi Code, and OpenCode log roots with symlink/owner/regular-file checks and per-file/per-run byte budgets. Parsers extract only timestamps, model ids, and token counters. SQLite schema v4 stores per-file daily aggregates keyed by the SHA-256 of the file path, so rotation replaces a file's contribution exactly and no absolute path is ever persisted. Scans run on the scheduler or an explicit `POST /local/usage/scan`; `GET /local/usage` reads aggregates only.
 
 ## Client architecture

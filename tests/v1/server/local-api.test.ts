@@ -123,6 +123,13 @@ describe("local monitor API", () => {
 		);
 		expect(JSON.parse(usageResponse.body)).toMatchObject({ ok: true, data: { enabled: false } });
 
+		const statusResponse = new TestResponse();
+		await routes.get(API_PATHS.statusProbes)?.(
+			request("GET", API_PATHS.statusProbes).value,
+			statusResponse as unknown as ServerResponse,
+		);
+		expect(JSON.parse(statusResponse.body)).toMatchObject({ ok: true, data: { enabled: false } });
+
 		const scan = request("POST", API_PATHS.localUsageScan, {});
 		const scanResponse = new TestResponse();
 		const handler = routes.get(API_PATHS.localUsageScan);

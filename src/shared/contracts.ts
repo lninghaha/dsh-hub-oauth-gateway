@@ -34,6 +34,7 @@ export const API_PATHS = Object.freeze({
 	localAuth: `${API_BASE}/local/auth`,
 	localUsage: `${API_BASE}/local/usage`,
 	localUsageScan: `${API_BASE}/local/usage/scan`,
+	statusProbes: `${API_BASE}/status-probes`,
 });
 
 export { DshCompatibilitySchema };

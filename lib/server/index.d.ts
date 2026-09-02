@@ -83,6 +83,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         maxTotalBytes: import("zod").ZodDefault<import("zod").ZodNumber>;
         retentionDays: import("zod").ZodDefault<import("zod").ZodNumber>;
     }, import("zod/v4/core").$strict>>;
+    statusProbes: import("zod").ZodDefault<import("zod").ZodObject<{
+        enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
+    }, import("zod/v4/core").$strict>>;
     debug: import("zod").ZodDefault<import("zod").ZodBoolean>;
 }, import("zod/v4/core").$strict>, import("zod").ZodTransform<{
     accounts: {};
@@ -154,6 +157,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         maxTotalBytes: number;
         retentionDays: number;
     };
+    statusProbes: {
+        enabled: boolean;
+    };
     debug: boolean;
 }, {
     refresh: {
@@ -223,6 +229,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
         maxFileBytes: number;
         maxTotalBytes: number;
         retentionDays: number;
+    };
+    statusProbes: {
+        enabled: boolean;
     };
     debug: boolean;
     accounts?: unknown;

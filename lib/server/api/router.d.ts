@@ -3,6 +3,7 @@ import type { DshCompatibility } from "../../shared/compatibility.js";
 import { type UsageAlert, type UsageFreshnessState } from "../../shared/contracts.js";
 import type { AccountSnapshot } from "../../shared/domain.js";
 import type { ProvidersData } from "../../shared/providers.js";
+import type { StatusProbesData } from "../../shared/status-probes.js";
 import type { OwnerAccessMode, OwnerRequestPolicy } from "../coding-oauth/web-origin.js";
 import type { FeesRepository } from "../fees/repository.js";
 import type { LocalAuthSnapshot } from "../local-monitor/auth-status.js";
@@ -56,6 +57,9 @@ export interface LocalUsageApiService {
         skipped: number;
     }>;
 }
+export interface StatusProbesApiService {
+    snapshot(): Promise<StatusProbesData>;
+}
 export interface UsageStatsApiDependencies {
     readonly logger: UsageStatsLogger;
     readonly projection: UsageProjectionApiService;
@@ -72,6 +76,7 @@ export interface UsageStatsApiDependencies {
     } | undefined;
     readonly localAuth?: LocalAuthApiService | undefined;
     readonly localUsage?: LocalUsageApiService | undefined;
+    readonly statusProbes?: StatusProbesApiService | undefined;
     readonly ownerRequestPolicy?: OwnerRequestPolicy | undefined;
     freshness(): ApiFreshness;
     compatibility?(accessMode: OwnerAccessMode): DshCompatibility;

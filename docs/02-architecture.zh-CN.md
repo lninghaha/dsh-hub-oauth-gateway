@@ -147,6 +147,7 @@ Hub 与独立包目前在 registry 上精确依赖 `dsh-coding-oauth-core@0.1.1`
 `src/server/local-monitor/` 增加 token-monitor 风格的本地能力面，均为 opt-in：
 
 - **认证快照**（`localMonitor.enabled`）：复用 OAuth 导入 allowlist 与加固 reader，报告各官方 CLI 的登录状态、token 过期与 refresh-token 是否存在，以及本插件自身存储的 OAuth 会话。仅不含 secret 的状态会跨越 API 边界。
+- **供应商状态页探测**（`statusProbes.enabled`，默认关）：仅 GET 白名单公开 Statuspage JSON（无凭据）。失败按目标隔离，不中断用量投影或账户刷新。
 - **跨工具用量扫描**（`localUsage.enabled`）：增量扫描器遍历 Claude Code、Codex CLI、Kimi Code 与 OpenCode 日志根目录，含 symlink/owner/regular-file 检查及 per-file/per-run 字节预算。解析器仅提取 timestamp、model id 与 token 计数。SQLite schema v4 以文件路径 SHA-256 为 key 存储 per-file 日聚合，因此轮转会精确替换某文件的贡献，且从不持久化绝对路径。扫描在调度器或显式 `POST /local/usage/scan` 时运行；`GET /local/usage` 仅读取聚合。
 
 ## 客户端架构

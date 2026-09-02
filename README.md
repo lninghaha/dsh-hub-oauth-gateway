@@ -51,6 +51,7 @@ Release history lives in [`CHANGELOG.md`](CHANGELOG.md).
 - **Optional loopback API gateway** — default-off OpenAI/Anthropic-compatible server for your own tools.
 - **Optional capabilities** — Codex search / images / usage / Fast and Grok Imagine default off; apply live.
 - **Opt-in local monitor** — read-only CLI auth snapshots and cross-tool token scans (never conversation content).
+- **Opt-in vendor status probes** — allowlisted public Statuspage GETs (default off; no credentials; isolated from Usage).
 - **Bilingual UI** — Chinese and English through DSH locale services.
 
 Product research: [`docs/research/usage-analytics-landscape.md`](https://github.com/lninghaha/dsh-hub-oauth-gateway/blob/main/docs/research/usage-analytics-landscape.md). Architecture: [`docs/02-architecture.md`](docs/02-architecture.md).
@@ -216,6 +217,8 @@ Merge `config` under the existing Cordis entry — do not add a second entry:
         localUsage:
           enabled: false
           intervalMinutes: 30
+        statusProbes:
+          enabled: false
 ```
 
 Full field reference, monitors, proxy, and pricing import: [`docs/03-configuration.md`](docs/03-configuration.md) and [`docs/01-install.md`](docs/01-install.md). Legacy root `config.monitors` maps to `config.accounts.monitors` (do not set both).

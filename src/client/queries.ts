@@ -22,6 +22,7 @@ import {
 } from "../shared/local-monitor.js";
 import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
 import { ProvidersDataSchema } from "../shared/providers.js";
+import { StatusProbesResponseSchema } from "../shared/status-probes.js";
 import { fetchApi, mutateApi } from "./api.js";
 import { queryString, type ResolvedUsageQuery } from "./range.js";
 
@@ -404,6 +405,18 @@ export function useLocalUsageScanMutation() {
 			onSuccess: async () => {
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "local-usage"] });
 			},
+		},
+		usageQueryClient,
+	);
+}
+
+export function useStatusProbesQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "status-probes"],
+			queryFn: ({ signal }) => fetchApi(API_PATHS.statusProbes, StatusProbesResponseSchema, {}, signal),
+			enabled,
+			refetchInterval: visibleRefetchInterval(120_000, enabled),
 		},
 		usageQueryClient,
 	);

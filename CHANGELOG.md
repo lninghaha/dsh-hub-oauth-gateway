@@ -7,9 +7,23 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Added
+
+- Optional `statusProbes` (default **off**): read-only allowlisted vendor Statuspage probes (`openai` / `claude` / `cursor`) with no credentials, shared outbound/SSRF policy, and failures isolated from the Usage primary path. Exposed as `GET /api/usage-stats/v1/status-probes` and on the Local dashboard tab.
+
+### Fixed
+
+- Multi-profile monitor config validation now rejects empty `profiles[]` and emits actionable messages for duplicate / invalid `profileId` values (snapshot key remains `(providerId, profileId)`).
+- `GET /api/usage-stats/v1/account` accepts `profileId` so multi-profile snapshots resolve correctly.
+
 ### Changed
 
 - Prepare vendored `dsh-coding-oauth-core@0.1.2` for npm publish: drop `private`, commit built `lib/`, add subpath exports (`http-json` / `grok-errors` / `kimi-errors` / `gateway-protocol`), and document operator `npm pack` / `npm publish` steps. Hub still overrides with `file:vendor/dsh-coding-oauth-core` and declares registry `0.1.1` until the operator publishes `0.1.2`.
+
+### Documentation
+
+- Document `statusProbes` privacy boundary in `docs/03-configuration.md`.
+- Clarify multi-profile monitor snapshot keys and validation in configuration docs.
 
 ## 1.11.2
 
