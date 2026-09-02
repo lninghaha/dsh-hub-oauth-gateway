@@ -6,10 +6,10 @@
  */
 import { z } from "zod";
 export declare const LocalAuthToolKindSchema: z.ZodEnum<{
-    grok: "grok";
-    codex: "codex";
     kimi: "kimi";
     claude: "claude";
+    codex: "codex";
+    grok: "grok";
 }>;
 export type LocalAuthToolKind = z.infer<typeof LocalAuthToolKindSchema>;
 export declare const LocalAuthCliStateSchema: z.ZodEnum<{
@@ -21,10 +21,10 @@ export declare const LocalAuthCliStateSchema: z.ZodEnum<{
 export type LocalAuthCliState = z.infer<typeof LocalAuthCliStateSchema>;
 export declare const LocalAuthCliStatusSchema: z.ZodObject<{
     kind: z.ZodEnum<{
-        grok: "grok";
-        codex: "codex";
         kimi: "kimi";
         claude: "claude";
+        codex: "codex";
+        grok: "grok";
     }>;
     displayPath: z.ZodString;
     state: z.ZodEnum<{
@@ -45,10 +45,10 @@ export declare const LocalAuthCliStatusSchema: z.ZodObject<{
 export type LocalAuthCliStatus = z.infer<typeof LocalAuthCliStatusSchema>;
 export declare const LocalAuthSessionStatusSchema: z.ZodObject<{
     provider: z.ZodEnum<{
-        grok: "grok";
-        codex: "codex";
         kimi: "kimi";
         claude: "claude";
+        codex: "codex";
+        grok: "grok";
     }>;
     route: z.ZodString;
     authenticated: z.ZodBoolean;
@@ -60,10 +60,10 @@ export declare const LocalAuthDataSchema: z.ZodObject<{
     generatedAt: z.ZodNumber;
     cli: z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
-            grok: "grok";
-            codex: "codex";
             kimi: "kimi";
             claude: "claude";
+            codex: "codex";
+            grok: "grok";
         }>;
         displayPath: z.ZodString;
         state: z.ZodEnum<{
@@ -83,10 +83,10 @@ export declare const LocalAuthDataSchema: z.ZodObject<{
     }, z.core.$strict>>;
     sessions: z.ZodArray<z.ZodObject<{
         provider: z.ZodEnum<{
-            grok: "grok";
-            codex: "codex";
             kimi: "kimi";
             claude: "claude";
+            codex: "codex";
+            grok: "grok";
         }>;
         route: z.ZodString;
         authenticated: z.ZodBoolean;
@@ -102,10 +102,10 @@ export declare const LocalAuthResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
     generatedAt: z.ZodNumber;
     cli: z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
-            grok: "grok";
-            codex: "codex";
             kimi: "kimi";
             claude: "claude";
+            codex: "codex";
+            grok: "grok";
         }>;
         displayPath: z.ZodString;
         state: z.ZodEnum<{
@@ -125,10 +125,10 @@ export declare const LocalAuthResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
     }, z.core.$strict>>;
     sessions: z.ZodArray<z.ZodObject<{
         provider: z.ZodEnum<{
-            grok: "grok";
-            codex: "codex";
             kimi: "kimi";
             claude: "claude";
+            codex: "codex";
+            grok: "grok";
         }>;
         route: z.ZodString;
         authenticated: z.ZodBoolean;

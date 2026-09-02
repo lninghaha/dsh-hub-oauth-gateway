@@ -9,8 +9,8 @@ export type UsageBuckets = z.infer<typeof UsageBucketsSchema>;
 export declare const EMPTY_USAGE_BUCKETS: Readonly<UsageBuckets>;
 export declare function totalTokens(buckets: UsageBuckets): number;
 export declare const AccountStatusSchema: z.ZodEnum<{
-    error: "error";
     unsupported: "unsupported";
+    error: "error";
     ok: "ok";
     pending: "pending";
     "not-configured": "not-configured";
@@ -64,8 +64,8 @@ export declare const AccountSnapshotSchema: z.ZodObject<{
         hybrid: "hybrid";
     }>>;
     status: z.ZodEnum<{
-        error: "error";
         unsupported: "unsupported";
+        error: "error";
         ok: "ok";
         pending: "pending";
         "not-configured": "not-configured";

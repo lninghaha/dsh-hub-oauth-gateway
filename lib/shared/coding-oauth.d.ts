@@ -33,11 +33,11 @@ export declare const CODING_OAUTH_PATHS: Readonly<{
     imagineCredential: "/plugins/dsh-grok-build/imagine/credential-status";
 }>;
 export declare const CodingOAuthProviderSlugSchema: z.ZodEnum<{
-    grok: "grok";
-    codex: "codex";
+    copilot: "copilot";
     kimi: "kimi";
     claude: "claude";
-    copilot: "copilot";
+    codex: "codex";
+    grok: "grok";
 }>;
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
 export declare const LoginAccountModeSchema: z.ZodEnum<{
@@ -108,10 +108,10 @@ export declare const GrokBuildWebAuthStatusSchema: z.ZodDiscriminatedUnion<[z.Zo
 export type GrokBuildWebAuthStatus = z.infer<typeof GrokBuildWebAuthStatusSchema>;
 export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObject<{
     provider: z.ZodEnum<{
-        codex: "codex";
+        copilot: "copilot";
         kimi: "kimi";
         claude: "claude";
-        copilot: "copilot";
+        codex: "codex";
     }>;
     route: z.ZodString;
     displayName: z.ZodString;
@@ -230,10 +230,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">;
         codex: z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
-                codex: "codex";
+                copilot: "copilot";
                 kimi: "kimi";
                 claude: "claude";
-                copilot: "copilot";
+                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -274,10 +274,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">>;
         kimi: z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
-                codex: "codex";
+                copilot: "copilot";
                 kimi: "kimi";
                 claude: "claude";
-                copilot: "copilot";
+                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -318,10 +318,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">>;
         claude: z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
-                codex: "codex";
+                copilot: "copilot";
                 kimi: "kimi";
                 claude: "claude";
-                copilot: "copilot";
+                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -362,10 +362,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         }, z.core.$strip>], "status">>;
         copilot: z.ZodOptional<z.ZodIntersection<z.ZodObject<{
             provider: z.ZodEnum<{
-                codex: "codex";
+                copilot: "copilot";
                 kimi: "kimi";
                 claude: "claude";
-                copilot: "copilot";
+                codex: "codex";
             }>;
             route: z.ZodString;
             displayName: z.ZodString;
@@ -419,10 +419,10 @@ export declare const LoginChallengeSchema: z.ZodObject<{
 }, z.core.$strip>;
 export type LoginChallenge = z.infer<typeof LoginChallengeSchema>;
 export declare const OAuthSourceKindSchema: z.ZodEnum<{
-    grok: "grok";
-    codex: "codex";
     kimi: "kimi";
     claude: "claude";
+    codex: "codex";
+    grok: "grok";
 }>;
 export type OAuthSourceKind = z.infer<typeof OAuthSourceKindSchema>;
 export declare const OAuthSourceUnavailableReasonSchema: z.ZodEnum<{
@@ -433,10 +433,10 @@ export declare const OAuthSourceUnavailableReasonSchema: z.ZodEnum<{
 }>;
 export declare const OAuthSourceDiscoverySchema: z.ZodObject<{
     kind: z.ZodEnum<{
-        grok: "grok";
-        codex: "codex";
         kimi: "kimi";
         claude: "claude";
+        codex: "codex";
+        grok: "grok";
     }>;
     displayPath: z.ZodString;
     available: z.ZodBoolean;
@@ -456,10 +456,10 @@ export type OAuthSourceDiscovery = z.infer<typeof OAuthSourceDiscoverySchema>;
 export declare const OAuthImportSourcesResponseSchema: z.ZodObject<{
     sources: z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
-            grok: "grok";
-            codex: "codex";
             kimi: "kimi";
             claude: "claude";
+            codex: "codex";
+            grok: "grok";
         }>;
         displayPath: z.ZodString;
         available: z.ZodBoolean;
@@ -490,10 +490,10 @@ export type OAuthImportConflict = z.infer<typeof OAuthImportConflictSchema>;
 export declare const OAuthImportPreviewSchema: z.ZodObject<{
     previewId: z.ZodString;
     kind: z.ZodEnum<{
-        grok: "grok";
-        codex: "codex";
         kimi: "kimi";
         claude: "claude";
+        codex: "codex";
+        grok: "grok";
     }>;
     displayPath: z.ZodString;
     expiresAt: z.ZodNumber;
