@@ -1,0 +1,1 @@
+{"version":3,"file":"gateway-protocol.js","sourceRoot":"","sources":["../src/gateway-protocol.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAsCH,MAAM,UAAU,eAAe,CAAC,KAAa;IAC5C,OAAO,CACN,KAAK,KAAK,KAAK;QACf,KAAK,KAAK,SAAS;QACnB,KAAK,KAAK,KAAK;QACf,KAAK,KAAK,QAAQ;QAClB,KAAK,KAAK,MAAM;QAChB,KAAK,KAAK,OAAO;QACjB,KAAK,KAAK,KAAK,CACf,CAAC;AACH,CAAC"}

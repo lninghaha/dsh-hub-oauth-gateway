@@ -1,0 +1,6 @@
+node_modules/
+output/
+*.tgz
+*.tsbuildinfo
+*.log
+.DS_Store

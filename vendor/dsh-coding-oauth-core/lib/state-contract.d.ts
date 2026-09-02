@@ -1,0 +1,30 @@
+/** Stable on-disk and HTTP contracts shared by every OAuth runtime owner. */
+export declare const CODING_OAUTH_STATE_SCHEMA_VERSION: 1;
+export declare const CAPABILITY_SETTINGS_NAMESPACE: "coding-subscription-oauth";
+export declare const GATEWAY_KEY_FILENAME: ".coding-oauth-gateway.json";
+export declare const IMAGINE_MEDIA_STORE_DIRNAME: ".dsh-coding-subscription-oauth-media";
+export declare const GROK_BUILD_AUTH_STATUS_PATH: "/plugins/dsh-grok-build/auth/status";
+export declare const GROK_BUILD_AUTH_LOGIN_PATH: "/plugins/dsh-grok-build/auth/login";
+export declare const GROK_BUILD_AUTH_LOGIN_CODE_PATH: "/plugins/dsh-grok-build/auth/login/code";
+export declare const GROK_BUILD_AUTH_LOGIN_CANCEL_PATH: "/plugins/dsh-grok-build/auth/login/cancel";
+export declare const GROK_BUILD_AUTH_IMPORT_PATH: "/plugins/dsh-grok-build/auth/import";
+export declare const GROK_BUILD_AUTH_LOGOUT_PATH: "/plugins/dsh-grok-build/auth/logout";
+export declare const GROK_BUILD_AUTH_MODELS_PATH: "/plugins/dsh-grok-build/auth/models";
+export declare const CODING_OAUTH_STATUS_PATH: "/plugins/dsh-grok-build/oauth/status";
+export declare const CODING_OAUTH_LOGIN_PATH: "/plugins/dsh-grok-build/oauth/login";
+export declare const CODING_OAUTH_LOGIN_CODE_PATH: "/plugins/dsh-grok-build/oauth/code";
+export declare const CODING_OAUTH_LOGIN_CANCEL_PATH: "/plugins/dsh-grok-build/oauth/cancel";
+export declare const CODING_OAUTH_LOGOUT_PATH: "/plugins/dsh-grok-build/oauth/logout";
+export declare const CODING_OAUTH_MODELS_PATH: "/plugins/dsh-grok-build/oauth/models";
+export declare const OAUTH_IMPORT_SOURCES_PATH: "/plugins/dsh-grok-build/oauth/sources";
+export declare const OAUTH_IMPORT_PREVIEW_PATH: "/plugins/dsh-grok-build/oauth/sources/preview";
+export declare const OAUTH_IMPORT_COMMIT_PATH: "/plugins/dsh-grok-build/oauth/sources/commit";
+export declare const OAUTH_IMPORT_CANCEL_PATH: "/plugins/dsh-grok-build/oauth/sources/cancel";
+export declare const CAPABILITY_SETTINGS_PATH: "/plugins/dsh-grok-build/capabilities";
+export declare const CODEX_USAGE_PATH: "/plugins/dsh-grok-build/codex/usage";
+export declare const IMAGINE_CREDENTIAL_STATUS_PATH: "/plugins/dsh-grok-build/imagine/credential-status";
+export declare const GATEWAY_SETTINGS_PATH: "/plugins/dsh-grok-build/gateway";
+export declare const GATEWAY_REVEAL_PATH: "/plugins/dsh-grok-build/gateway/reveal";
+export declare const GATEWAY_ROTATE_PATH: "/plugins/dsh-grok-build/gateway/rotate";
+export declare const CODING_OAUTH_MANAGEMENT_PATHS: readonly ["/plugins/dsh-grok-build/auth/status", "/plugins/dsh-grok-build/auth/login", "/plugins/dsh-grok-build/auth/login/code", "/plugins/dsh-grok-build/auth/login/cancel", "/plugins/dsh-grok-build/auth/import", "/plugins/dsh-grok-build/auth/logout", "/plugins/dsh-grok-build/auth/models", "/plugins/dsh-grok-build/oauth/status", "/plugins/dsh-grok-build/oauth/login", "/plugins/dsh-grok-build/oauth/code", "/plugins/dsh-grok-build/oauth/cancel", "/plugins/dsh-grok-build/oauth/logout", "/plugins/dsh-grok-build/oauth/models", "/plugins/dsh-grok-build/oauth/sources", "/plugins/dsh-grok-build/oauth/sources/preview", "/plugins/dsh-grok-build/oauth/sources/commit", "/plugins/dsh-grok-build/oauth/sources/cancel", "/plugins/dsh-grok-build/capabilities", "/plugins/dsh-grok-build/codex/usage", "/plugins/dsh-grok-build/imagine/credential-status", "/plugins/dsh-grok-build/gateway", "/plugins/dsh-grok-build/gateway/reveal", "/plugins/dsh-grok-build/gateway/rotate"];
+//# sourceMappingURL=state-contract.d.ts.map

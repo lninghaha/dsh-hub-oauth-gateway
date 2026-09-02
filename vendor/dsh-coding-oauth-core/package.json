@@ -1,48 +1,89 @@
 {
   "name": "dsh-coding-oauth-core",
   "version": "0.1.2",
-  "description": "Vendored build input for the DSH-neutral coding OAuth runtime coordinator.",
+  "description": "DSH-neutral ownership and compatibility primitives shared by coding OAuth integrations.",
   "type": "module",
-  "private": true,
+  "private": false,
   "license": "Apache-2.0",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lninghaha/dsh-hub-oauth-gateway.git",
+    "directory": "vendor/dsh-coding-oauth-core"
+  },
+  "homepage": "https://github.com/lninghaha/dsh-hub-oauth-gateway/tree/main/vendor/dsh-coding-oauth-core#readme",
+  "bugs": "https://github.com/lninghaha/dsh-hub-oauth-gateway/issues",
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "oauth",
+    "coding-oauth"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "default": "./lib/index.js"
     },
     "./contracts": {
-      "types": "./src/contracts.ts",
-      "import": "./src/contracts.ts",
-      "default": "./src/contracts.ts"
+      "types": "./lib/contracts.d.ts",
+      "import": "./lib/contracts.js",
+      "default": "./lib/contracts.js"
     },
     "./http-json": {
-      "types": "./src/http-json.ts",
-      "import": "./src/http-json.ts",
-      "default": "./src/http-json.ts"
+      "types": "./lib/http-json.d.ts",
+      "import": "./lib/http-json.js",
+      "default": "./lib/http-json.js"
     },
     "./grok-errors": {
-      "types": "./src/grok-errors.ts",
-      "import": "./src/grok-errors.ts",
-      "default": "./src/grok-errors.ts"
+      "types": "./lib/grok-errors.d.ts",
+      "import": "./lib/grok-errors.js",
+      "default": "./lib/grok-errors.js"
     },
     "./kimi-errors": {
-      "types": "./src/kimi-errors.ts",
-      "import": "./src/kimi-errors.ts",
-      "default": "./src/kimi-errors.ts"
+      "types": "./lib/kimi-errors.d.ts",
+      "import": "./lib/kimi-errors.js",
+      "default": "./lib/kimi-errors.js"
     },
     "./gateway-protocol": {
-      "types": "./src/gateway-protocol.ts",
-      "import": "./src/gateway-protocol.ts",
-      "default": "./src/gateway-protocol.ts"
-    }
+      "types": "./lib/gateway-protocol.d.ts",
+      "import": "./lib/gateway-protocol.js",
+      "default": "./lib/gateway-protocol.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "clean": "node -e \"import('node:fs').then((fs) => fs.rmSync('lib', { recursive: true, force: true }))\"",
+    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test tests/*.test.mjs",
+    "check": "pnpm run test",
+    "release:pack": "pnpm run check && pnpm pack --pack-destination output",
+    "release:inspect": "pnpm run check && npm pack --dry-run --json --ignore-scripts",
+    "release:publish": "pnpm run check && npm publish --access public"
   },
   "dependencies": {
     "undici": "7.29.0"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-llm": "0.1.1-rc.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "6.0.3"
   }
 }

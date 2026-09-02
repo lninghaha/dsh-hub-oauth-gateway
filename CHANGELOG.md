@@ -7,6 +7,10 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Changed
+
+- Prepare vendored `dsh-coding-oauth-core@0.1.2` for npm publish: drop `private`, commit built `lib/`, add subpath exports (`http-json` / `grok-errors` / `kimi-errors` / `gateway-protocol`), and document operator `npm pack` / `npm publish` steps. Hub still overrides with `file:vendor/dsh-coding-oauth-core` and declares registry `0.1.1` until the operator publishes `0.1.2`.
+
 ## 1.11.2
 
 ### Fixed
