@@ -7,7 +7,7 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
-## 1.12.0 - 2026-09-10
+## 1.12.0
 
 ### Added
 
