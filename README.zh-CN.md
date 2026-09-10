@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.2** · 原名 `dsh-usage-stats`
+**v1.12.0** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.11.2` 与 Subscription `0.6.4` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.12.0` 与 Subscription `0.7.0` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
 
 ---
 
@@ -132,7 +132,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## 要求
 
-- DeepSeek Harness Web，已验证 `@deepseek-ai/dsh 0.1.1-rc.2`
+- DeepSeek Harness Web，已验证 `@deepseek-ai/dsh 0.1.1-rc.2`（精确 BOM）。`0.1.5-rc.1` 等未验证候选仅记在 `compatibility/dsh-bom.json`，见 [`docs/01-install.md`](docs/01-install.md)。
 - Node.js `^22.19.0 || >=24.0.0`
 - DSH Web 后端保持回环；可通过受控本机 HTTPS 反向代理向已认证私网提供完整 Web。不要单独暴露插件 API，也不要无认证发布到公网。
 
@@ -276,6 +276,7 @@ flowchart LR
 | [`docs/02-architecture.md`](docs/02-architecture.md) | 内部架构 · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | 运行配置参考 |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 数据迁移 |
+| [`docs/05-dsh-alpha-smoke.md`](docs/05-dsh-alpha-smoke.md) | 未验证 DSH 候选宿主的隔离冒烟（`0.1.2-alpha.*`、`0.1.5-rc.1`） |
 | [`catalog/`](https://github.com/lninghaha/dsh-hub-oauth-gateway/tree/main/catalog) | Desktop Market Path A 目录源（`catalog-source.json`、`v1/plugins.json`）；不在 npm 包 `files` 白名单内 |
 | [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | 贡献指南 |
 | [`.github/SECURITY.md`](.github/SECURITY.md) | 安全策略 |

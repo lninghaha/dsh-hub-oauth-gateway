@@ -33,6 +33,17 @@ The server exports the Cordis contract `name`, `inject`, `Config`, and `apply`. 
 
 It never registers a `root` application or starts a second web server.
 
+## Host compatibility boundary
+
+Exact host pins live in `compatibility/dsh-bom.json` (`verified` vs `candidates`). Hub must not hard-code a single host API shape when a measured dialect split exists:
+
+| Surface | Verified `0.1.1-rc.2` | Candidate `0.1.5-rc.1` |
+|---|---|---|
+| `sessionPersistence` | `list` + `readFrom` | `list` + `open` → `read` → `close` / `asyncDispose` |
+| Client inject | May include `@deepseek-ai/dsh-client-runtime` and related UI packages | Those packages are absent; `ClientContext` comes from `@deepseek-ai/cordis`; missing optional inject is soft-skip |
+
+`src/server/host/adapter.ts` probes capability from the live service methods. `src/server/host/session-inventory.ts` prefers `readFrom` when both dialects exist, otherwise uses the handle dialect. Promoting a candidate to `verified` still requires the smoke checklist in `docs/05-dsh-alpha-smoke.md` and a deliberate BOM edit — dual-dialect support alone does not promote the pin.
+
 ## Usage projection
 
 The session inventory exposes persisted and live snapshots. Projection folds only usage-bearing events and writes one fact per:

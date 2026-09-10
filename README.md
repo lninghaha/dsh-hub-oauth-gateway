@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.11.2** · formerly `dsh-usage-stats`
+**v1.12.0** · formerly `dsh-usage-stats`
 
 **Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.11.2` and Subscription `0.6.4` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin. Published `dsh-coding-oauth-core@0.1.2` (helpers + subpath exports) is consumed from npm; Hub still keeps `vendor/dsh-coding-oauth-core` as the editable publish source.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.12.0` and Subscription `0.7.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin. Published `dsh-coding-oauth-core@0.1.2` (helpers + subpath exports) is consumed from npm; Hub still keeps `vendor/dsh-coding-oauth-core` as the editable publish source.
 
 ### Shared core `dsh-coding-oauth-core@0.1.2`
 
@@ -136,7 +136,7 @@ Then open **Settings → Usage Center**. For Accounts / Gateway / Capabilities, 
 
 ## Requirements
 
-- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.1-rc.2`
+- DeepSeek Harness Web, verified against `@deepseek-ai/dsh 0.1.1-rc.2` (exact BOM). Unverified candidates such as `0.1.5-rc.1` are recorded in `compatibility/dsh-bom.json` only — see [`docs/01-install.md`](docs/01-install.md).
 - Node.js `^22.19.0 || >=24.0.0`
 - Loopback DSH Web backend; a controlled local HTTPS reverse proxy to an authenticated private network is OK. Do not expose the plugin API alone or publish unauthenticated to the public internet.
 
@@ -280,6 +280,7 @@ Details: [`docs/02-architecture.md`](docs/02-architecture.md) · [中文](docs/0
 | [`docs/02-architecture.md`](docs/02-architecture.md) | Internal architecture · [中文](docs/02-architecture.zh-CN.md) |
 | [`docs/03-configuration.md`](docs/03-configuration.md) | Runtime configuration reference |
 | [`docs/04-migration-v1.md`](docs/04-migration-v1.md) | 1.0 data migration |
+| [`docs/05-dsh-alpha-smoke.md`](docs/05-dsh-alpha-smoke.md) | Isolated smoke on unverified DSH candidates (`0.1.2-alpha.*`, `0.1.5-rc.1`) |
 | [`catalog/`](https://github.com/lninghaha/dsh-hub-oauth-gateway/tree/main/catalog) | Desktop Market Path A catalog source (`catalog-source.json`, `v1/plugins.json`); not shipped in the npm package `files` whitelist |
 | [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) | Contribution guide |
 | [`.github/SECURITY.md`](.github/SECURITY.md) | Security policy |

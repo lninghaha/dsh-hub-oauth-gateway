@@ -143,6 +143,7 @@ const expectedAllowlist = [
 	"docs/02-architecture.zh-CN.md",
 	"docs/03-configuration.md",
 	"docs/04-migration-v1.md",
+	"docs/05-dsh-alpha-smoke.md",
 	"compatibility/dsh-bom.json",
 ];
 const actualAllowlist = manifest.files;

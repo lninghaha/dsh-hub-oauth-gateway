@@ -1,7 +1,7 @@
 {
   "name": "dsh-hub-oauth-gateway",
   "description": "Local-first usage, cost, quota, account, and forecast analytics for DeepSeek Harness Web, with coding-subscription OAuth sign-in (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring",
-	"version": "1.11.2",
+	"version": "1.12.0",
   "private": false,
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -61,6 +61,7 @@
     "docs/02-architecture.zh-CN.md",
     "docs/03-configuration.md",
     "docs/04-migration-v1.md",
+    "docs/05-dsh-alpha-smoke.md",
     "compatibility/dsh-bom.json"
   ],
   "type": "module",
@@ -120,12 +121,9 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-layout",
-        "@deepseek-ai/dsh-client-ui-primitives",
         "@deepseek-ai/dsh-client-ui-settings",
-        "@deepseek-ai/dsh-client-ui-sidebar",
-        "@deepseek-ai/dsh-client-ui-slots"
+        "@deepseek-ai/dsh-client-ui-sidebar"
       ]
     }
   },

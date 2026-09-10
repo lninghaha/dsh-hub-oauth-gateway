@@ -7,24 +7,30 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.12.0
+
 ### Added
 
 - Optional `statusProbes` (default **off**): read-only allowlisted vendor Statuspage probes (`openai` / `claude` / `cursor`) with no credentials, shared outbound/SSRF policy, and failures isolated from the Usage primary path. Exposed as `GET /api/usage-stats/v1/status-probes` and on the Local dashboard tab.
+- Record DeepSeek Harness `0.1.5-rc.1` as an **unverified** BOM candidate in `compatibility/dsh-bom.json` (verified pin remains `0.1.1-rc.2`).
 
 ### Fixed
 
 - Multi-profile monitor config validation now rejects empty `profiles[]` and emits actionable messages for duplicate / invalid `profileId` values (snapshot key remains `(providerId, profileId)`).
 - `GET /api/usage-stats/v1/account` accepts `profileId` so multi-profile snapshots resolve correctly.
+- Host `sessionPersistence` probe accepts both dialects: legacy `list` + `readFrom` (verified `0.1.1-rc.2`) and handle-style `list` + `open`/`read`/`close` (candidate `0.1.5-rc.1`), so usage inventory is no longer marked `incompatible` on the newer host shape.
 
 ### Changed
 
 - Prepare vendored `dsh-coding-oauth-core@0.1.2` for npm publish: drop `private`, commit built `lib/`, add subpath exports (`http-json` / `grok-errors` / `kimi-errors` / `gateway-protocol`), and document operator publish steps.
 - After npm publish of `dsh-coding-oauth-core@0.1.2`, pin Hub to the registry package and drop the `file:vendor/dsh-coding-oauth-core` pnpm override. Keep `vendor/` as the editable source for future core releases.
+- Drop `@deepseek-ai/dsh-client-runtime` (and related UI primitive/slot inject keys that the candidate host no longer ships) from the client Cordis inject surface; resolve `ClientContext` from `@deepseek-ai/cordis`. Missing optional client inject remains a soft diagnostic, not a hard fail.
 
 ### Documentation
 
 - Document `statusProbes` privacy boundary in `docs/03-configuration.md`.
 - Clarify multi-profile monitor snapshot keys and validation in configuration docs.
+- Document the verified vs candidate DSH BOM, `sessionPersistence` dual dialect, and client-inject changes in `docs/01-install.md`, `docs/02-architecture.md` (+ zh-CN), and `docs/05-dsh-alpha-smoke.md`.
 
 ## 1.11.2
 
