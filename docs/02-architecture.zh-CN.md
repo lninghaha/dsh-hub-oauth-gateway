@@ -33,6 +33,17 @@ DSH Web slots ──> classic client bundle ──> TanStack Query ──> Quick
 
 它从不注册 `root` 应用，也不启动第二个 Web 服务器。
 
+## 宿主兼容边界
+
+精确宿主钉死版本见 `compatibility/dsh-bom.json`（`verified` 与 `candidates`）。当实测存在方言分裂时，Hub 不得只硬编码一种宿主 API 形状：
+
+| 表面 | 已验证 `0.1.1-rc.2` | 候选 `0.1.5-rc.1` |
+|---|---|---|
+| `sessionPersistence` | `list` + `readFrom` | `list` + `open` → `read` → `close` / `asyncDispose` |
+| 客户端 inject | 可能包含 `@deepseek-ai/dsh-client-runtime` 及相关 UI 包 | 这些包不存在；`ClientContext` 来自 `@deepseek-ai/cordis`；缺失的可选 inject 为 soft-skip |
+
+`src/server/host/adapter.ts` 按实活服务方法探测能力。`src/server/host/session-inventory.ts` 在两种方言并存时优先 `readFrom`，否则走 handle 方言。把候选提升为 `verified` 仍需按 `docs/05-dsh-alpha-smoke.md` 完成冒烟清单并刻意改 BOM——双方言适配本身不等于提升 pin。
+
 ## 用量投影
 
 会话清单（session inventory）暴露持久化与实时快照。投影仅折叠携带用量信息的事件，并为以下组合各写入一条 fact：
