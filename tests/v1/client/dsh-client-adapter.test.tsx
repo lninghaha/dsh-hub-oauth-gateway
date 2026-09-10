@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DshClientAdapter } from "../../../src/client/DshClientAdapter.js";

@@ -56,6 +56,42 @@ describe("DSH host compatibility boundary", () => {
 		});
 	});
 
+	it("treats open-only session persistence as available under session-persistence-v1", () => {
+		const sessionPersistence = {
+			list: vi.fn(async () => [{ header: { id: "s1" }, revision: "r1" }]),
+			open: vi.fn(async () => ({
+				read: async () => ({ events: [] }),
+				close: async () => undefined,
+			})),
+		};
+		const adapter = new DshHostAdapter({
+			logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+			sessionPersistence,
+			effect() {},
+		});
+
+		expect(adapter.persistence()).toBe(sessionPersistence);
+		expect(adapter.compatibility().capabilities.sessionPersistence).toEqual({
+			state: "available",
+			contract: "session-persistence-v1",
+		});
+		expect(adapter.compatibility().diagnostics).not.toContain("sessionPersistence: incompatible");
+	});
+
+	it("marks list-only session persistence incompatible", () => {
+		const adapter = new DshHostAdapter({
+			logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+			sessionPersistence: { list: vi.fn(async () => []) },
+			effect() {},
+		});
+		expect(adapter.persistence()).toBeUndefined();
+		expect(adapter.compatibility().capabilities.sessionPersistence).toEqual({
+			state: "incompatible",
+			contract: "session-persistence-v1",
+			reason: "service shape does not match the verified contract",
+		});
+	});
+
 	it("loads with every optional host service absent and reports a degraded diagnostic", async () => {
 		const routes = new Map<string, (request: IncomingMessage, response: ServerResponse) => void | Promise<void>>();
 		const cleanups: Array<() => void | Promise<void>> = [];

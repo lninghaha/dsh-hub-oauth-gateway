@@ -1,4 +1,5 @@
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
+import type {} from "@deepseek-ai/dsh-client-locale/client";
 import type { TranslateNS } from "@deepseek-ai/dsh-client-ui-slots";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -98,7 +99,11 @@ function FallbackEntry({ t }: { readonly t: Translate }) {
 	);
 }
 
-type SlotsApi = ClientContext["slots"];
+/** Minimal slots surface used by this plugin (host may or may not expose it). */
+type SlotsApi = {
+	inject(name: string, factory: () => (() => void) | undefined): () => void;
+	register(entry: Record<string, unknown>, component: unknown): () => void;
+};
 
 function slotsOf(context: unknown): SlotsApi | undefined {
 	if (typeof context !== "object" || context === null) return undefined;

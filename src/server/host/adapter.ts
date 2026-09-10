@@ -37,9 +37,29 @@ function hasFunctions(value: unknown, names: readonly string[]): boolean {
 	return candidate !== null && names.every((name) => typeof candidate[name] === "function");
 }
 
+/**
+ * session-persistence-v1 accepts either host dialect:
+ * - legacy (0.1.1): list + readFrom
+ * - handle (0.1.5): list + open (read handle)
+ */
+function isSessionPersistenceShape(value: unknown): boolean {
+	const candidate = record(value);
+	if (candidate === null || typeof candidate.list !== "function") return false;
+	return typeof candidate.readFrom === "function" || typeof candidate.open === "function";
+}
+
 function capability(value: unknown, contract: string, functions: readonly string[]): HostCapability {
 	if (value === undefined || value === null) return { state: "missing", contract };
 	if (!hasFunctions(value, functions)) {
+		return { state: "incompatible", contract, reason: "service shape does not match the verified contract" };
+	}
+	return { state: "available", contract };
+}
+
+function sessionPersistenceCapability(value: unknown): HostCapability {
+	const contract = "session-persistence-v1";
+	if (value === undefined || value === null) return { state: "missing", contract };
+	if (!isSessionPersistenceShape(value)) {
 		return { state: "incompatible", contract, reason: "service shape does not match the verified contract" };
 	}
 	return { state: "available", contract };
@@ -87,7 +107,7 @@ export class DshHostAdapter {
 
 	persistence(): SessionPersistenceLike | undefined {
 		const value = this.#service("sessionPersistence", () => this.#ctx.sessionPersistence);
-		return hasFunctions(value, ["list", "readFrom"]) ? (value as SessionPersistenceLike) : undefined;
+		return isSessionPersistenceShape(value) ? (value as SessionPersistenceLike) : undefined;
 	}
 
 	settings(): SettingsLike | undefined {
@@ -124,7 +144,7 @@ export class DshHostAdapter {
 			webServer: capability(raw.webServer, "exact-route-v1", ["register"]),
 			credentials: capability(raw.credentials, "credential-resolver-v1", ["resolve"]),
 			sessions: capability(raw.sessions, "session-list-v1", ["list"]),
-			sessionPersistence: capability(raw.sessionPersistence, "session-persistence-v1", ["list", "readFrom"]),
+			sessionPersistence: sessionPersistenceCapability(raw.sessionPersistence),
 			settings: capability(raw.settings, "settings-get-v1", ["get"]),
 			llm: capability(raw.llm, "llm-adapter-registry-v1", ["registerAdapter"]),
 			ownerRequestPolicy: capability(raw.ownerRequestPolicy, "owner-request-policy-v1", ["authorize", "diagnostics"]),
