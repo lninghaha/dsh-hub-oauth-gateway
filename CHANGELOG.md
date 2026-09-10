@@ -7,6 +7,10 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+### Fixed
+
+- Initialize empty `modelErrors` on coding-OAuth provider profiles so DSH `0.1.5-rc.1` model resolution no longer throws `Cannot read properties of undefined (reading 'get')` before a provider request.
+
 ## 1.12.0
 
 ### Added
