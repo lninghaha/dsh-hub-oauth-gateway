@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.12.0 - 2026-09-10
+
 ### Added
 
 - Optional `statusProbes` (default **off**): read-only allowlisted vendor Statuspage probes (`openai` / `claude` / `cursor`) with no credentials, shared outbound/SSRF policy, and failures isolated from the Usage primary path. Exposed as `GET /api/usage-stats/v1/status-probes` and on the Local dashboard tab.
