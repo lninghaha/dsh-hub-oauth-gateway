@@ -106,7 +106,7 @@ Merge under the existing entry — never a second plugin row:
             # switchMargin: 2
           # proxy: http://127.0.0.1:7890
           # proxyKimi: false
-          # gateway: { enabled: false, bind: 127.0.0.1, port: 18080 }
+          # gateway: { enabled: false, bind: 127.0.0.1, port: 18080, opencodeGo: { enabled: false } }
         localMonitor:
           enabled: false
         localUsage:
@@ -139,7 +139,7 @@ codingOAuth:
 
 ## Local API gateway
 
-Default off. Enabling starts an isolated loopback `node:http` server (separate from the DSH web port):
+Default off. Enabling starts an isolated loopback `node:http` server (separate from the DSH web port). Optional `codingOAuth.gateway.opencodeGo.enabled` (also on the Gateway tab, default off) forwards `POST /v1/chat/completions` to pinned `https://opencode.ai/zen/go/v1/chat/completions` with sticky `x-opencode-session`; set the gateway Bearer key to your OpenCode API key for that mode:
 
 ```yaml
 codingOAuth:

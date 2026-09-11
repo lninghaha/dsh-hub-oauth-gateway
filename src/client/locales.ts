@@ -424,6 +424,9 @@ export const zh = {
 	"oauth.importDone.overwritten": "已覆盖",
 	"gateway.intro": "可选的本机 OpenAI/Anthropic 兼容网关，复用已登录的订阅会话，仅供本机工具使用，不是公网中继。",
 	"gateway.enabled": "启用本地 API 网关",
+	"gateway.opencodeGoEnabled": "将聊天代理到 OpenCode Go",
+	"gateway.opencodeGoHint":
+		"开启后，POST /v1/chat/completions 会转发到 OpenCode Go，并带上粘性会话头。请把网关 Bearer key 设为你的 OpenCode API key。默认关闭。请遵守 OpenCode 条款；仍会消耗你的 OpenCode 配额。",
 	"gateway.running": "监听中",
 	"gateway.stopped": "未运行",
 	"gateway.bind": "监听地址",
@@ -950,6 +953,9 @@ export const en = {
 	"gateway.intro":
 		"An optional loopback OpenAI/Anthropic-compatible gateway that reuses your signed-in subscription sessions. It serves only your local tools and is not a public relay.",
 	"gateway.enabled": "Enable the local API gateway",
+	"gateway.opencodeGoEnabled": "Proxy chat to OpenCode Go",
+	"gateway.opencodeGoHint":
+		"When on, POST /v1/chat/completions is forwarded to OpenCode Go with a sticky session header. Set the gateway Bearer key to your OpenCode API key. Default off. Follow OpenCode terms; this still consumes your OpenCode quota.",
 	"gateway.running": "Listening",
 	"gateway.stopped": "Not running",
 	"gateway.bind": "Bind address",

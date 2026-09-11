@@ -260,7 +260,11 @@ export function useGatewayStatusQuery(enabled = true) {
 export function useGatewayPatchMutation() {
 	return useMutation(
 		{
-			mutationFn: (patch: { enabled?: boolean; port?: number }): Promise<GatewayPublicStatus> =>
+			mutationFn: (patch: {
+				enabled?: boolean;
+				port?: number;
+				opencodeGoEnabled?: boolean;
+			}): Promise<GatewayPublicStatus> =>
 				callCodingOAuth(CODING_OAUTH_PATHS.gateway, GatewayPublicStatusSchema, {
 					method: "PATCH",
 					body: JSON.stringify(patch),

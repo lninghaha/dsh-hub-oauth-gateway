@@ -229,6 +229,7 @@ export const GatewayPublicStatusSchema = z.object({
 	keyConfigured: z.boolean(),
 	keyHint: z.string(),
 	warning: z.string(),
+	opencodeGoEnabled: z.boolean(),
 });
 export type GatewayPublicStatus = z.infer<typeof GatewayPublicStatusSchema>;
 

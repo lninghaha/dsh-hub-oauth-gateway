@@ -268,6 +268,7 @@ Integrated coding-subscription OAuth owner. Keep this enabled after cutover so G
 | `pool.switchMargin` | `2` | Quota margin (1–10) used by `quota_aware` before switching away from the sticky account |
 | `capabilities` | all flags off | Secret-free composition defaults; live user overrides stay in the `coding-subscription-oauth` settings namespace |
 | `gateway` | disabled | Opt-in isolated local OpenAI-compatible gateway; loopback bind only |
+| `gateway.opencodeGo.enabled` | `false` | When true, gateway chat completions proxy to OpenCode Go with sticky `x-opencode-session` |
 | `ownerRequest` | strict loopback fallback | Prefer DSH-native owner authentication; otherwise configure SSH access mode or a complete trusted HTTPS proxy policy |
 
 Hub and `dsh-coding-subscription-oauth` may be installed together. Their exact `dsh-coding-oauth-core` ABI elects one host-wide owner: Hub wins regardless of activation order, while the standalone package remains on standby and resumes after Hub unloads. Routes, adapter ids, settings namespace, credential filenames, and login state remain unchanged; an ABI mismatch fails closed instead of registering a second runtime.

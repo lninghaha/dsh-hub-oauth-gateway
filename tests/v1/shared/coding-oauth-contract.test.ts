@@ -105,6 +105,7 @@ describe("cross-owner coding OAuth wire contracts", () => {
 			keyAvailable: true,
 			keyConfigured: true,
 			keyHint: "dsh_…abcd",
+			opencodeGoEnabled: false,
 			warning: "owner only",
 		});
 		expect(parsed.models).toEqual(["codex/gpt-5"]);

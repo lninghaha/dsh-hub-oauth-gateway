@@ -109,6 +109,12 @@ const CodingOAuthGatewaySchema = z
 		port: z.number().int().min(1024).max(65_535).default(18_080),
 		apiKey: z.string().min(1).max(256).optional(),
 		rateLimit: z.number().int().min(0).max(1_000_000).default(0),
+		opencodeGo: z
+			.object({
+				enabled: z.boolean().default(false),
+			})
+			.strict()
+			.default({ enabled: false }),
 	})
 	.strict();
 

@@ -182,6 +182,8 @@ Allowlisted official CLI OAuth files are discovered read-only. Sync is an explic
 
 Default **off**. When enabled, an isolated `node:http` listener (not the DSH web port) serves `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /v1/messages` on loopback, reusing signed-in OAuth sessions. Bind stays YAML-only; non-loopback bind requires a Bearer key. This is not a remote relay. Details: [`docs/01-install.md`](docs/01-install.md).
 
+Optional **OpenCode Go** chat proxy (`codingOAuth.gateway.opencodeGo.enabled`, default off) can also be toggled on the Gateway tab. When on, `POST /v1/chat/completions` is forwarded to pinned `https://opencode.ai/zen/go/v1/chat/completions` with a sticky `x-opencode-session`. Set the gateway Bearer key to your OpenCode API key for that mode; the toggle does not require a restart.
+
 ## Optional capabilities
 
 Seven switches default **off** and apply **live**: `codexSearch`, `codexImages`, `codexImageEdits`, `codexUsage`, `codexFast`, `grokImagineImage`, `grokImagineVideo`. Codex Fast / private endpoints and Grok Imagine stay fail-closed until enabled. With `codexFast` on, the session picker uses the existing `codex-oauth-fast` route (Standard/Fast hint in Capabilities). That route appears only after a live catalog lists a `priority`-eligible model. It is not a second Fast stack. See [`docs/01-install.md`](docs/01-install.md) and [`docs/03-configuration.md`](docs/03-configuration.md).
