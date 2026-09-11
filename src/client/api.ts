@@ -53,7 +53,7 @@ export async function fetchApi<T>(
 
 export async function mutateApi<TBody, T>(
 	url: string,
-	method: "POST" | "PUT" | "DELETE",
+	method: "POST" | "PUT" | "PATCH" | "DELETE",
 	body: TBody,
 	schema: ZodType<T>,
 	signal?: AbortSignal,

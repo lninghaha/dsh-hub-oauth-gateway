@@ -154,10 +154,16 @@ export interface CodingOAuthWebStatus {
         route: typeof ANTIGRAVITY_ROUTE;
         management: "cli";
     };
+    opencodeGo: {
+        active: boolean;
+        lastCall: "no-call" | "success" | "failure" | "missing-session";
+        updatedAt: number | null;
+    };
 }
 export interface CodingOAuthStatusContext {
     readonly uiOwner: "hub" | "standalone";
     compatibility(accessMode: OwnerAccessMode): DshCompatibility;
+    opencodeGo?(): CodingOAuthWebStatus["opencodeGo"];
 }
 /** Register the unified Coding OAuth API plus the compatibility Grok routes. */
 export declare function registerCodingOAuthRoutes(ctx: Context, grokSession: GrokBuildSession, subscriptionSessions: readonly OAuthProviderSession[], ownerRequestPolicy?: OwnerRequestPolicy, statusContext?: CodingOAuthStatusContext): void;

@@ -32,6 +32,7 @@ export const CODING_OAUTH_API_BASE = "/plugins/dsh-grok-build";
 /** Hub-local multi-account mutations (peer core contracts do not list these yet). */
 export const CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH = `${CODING_OAUTH_API_BASE}/oauth/accounts/set-active` as const;
 export const CODING_OAUTH_ACCOUNTS_REMOVE_PATH = `${CODING_OAUTH_API_BASE}/oauth/accounts/remove` as const;
+export const OPENCODE_GO_CONNECTION_PATH = `${CODING_OAUTH_API_BASE}/opencode-go` as const;
 
 /** Operator-owned account hard cap mirrored for Settings copy and client guards. */
 export const OAUTH_MAX_ACCOUNTS = 8;
@@ -45,6 +46,7 @@ export const CODING_OAUTH_PATHS = Object.freeze({
 	models: CODING_OAUTH_MODELS_PATH,
 	accountsSetActive: CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH,
 	accountsRemove: CODING_OAUTH_ACCOUNTS_REMOVE_PATH,
+	opencodeGo: OPENCODE_GO_CONNECTION_PATH,
 	sources: OAUTH_IMPORT_SOURCES_PATH,
 	sourcePreview: OAUTH_IMPORT_PREVIEW_PATH,
 	sourceCommit: OAUTH_IMPORT_COMMIT_PATH,
@@ -154,8 +156,65 @@ export const CodingOAuthWebStatusSchema = z.object({
 		route: z.string(),
 		management: z.literal("cli"),
 	}),
+	opencodeGo: z
+		.object({
+			active: z.boolean(),
+			lastCall: z.enum(["no-call", "success", "failure", "missing-session"]),
+			httpStatus: z.enum(["no-call", "accepted", "rejected", "network-error"]).optional(),
+			streamStatus: z.enum(["no-call", "completed", "failed", "cancelled", "missing-session"]).optional(),
+			updatedAt: z.number().nullable(),
+		})
+		.default({ active: false, lastCall: "no-call", updatedAt: null }),
 });
 export type CodingOAuthWebStatus = z.infer<typeof CodingOAuthWebStatusSchema>;
+
+export const OpenCodeGoModelSchema = z.object({
+	id: z.string().min(1),
+	name: z.string().min(1).optional(),
+	contextWindow: z.number().int().positive().optional(),
+	maxTokens: z.number().int().positive().optional(),
+});
+export type OpenCodeGoModel = z.infer<typeof OpenCodeGoModelSchema>;
+
+export const OpenCodeGoConnectionStatusSchema = z.object({
+	credential: z.object({
+		selectedRef: z.string().min(1),
+		configured: z.boolean(),
+		writable: z.boolean(),
+		source: z.string().nullable(),
+		requiresChoice: z.boolean(),
+		candidates: z.array(
+			z.object({
+				ref: z.string().min(1),
+				configured: z.boolean(),
+				writable: z.boolean(),
+				source: z.string().nullable(),
+			}),
+		),
+	}),
+	configuration: z.object({
+		revision: z.number().int().nonnegative().nullable(),
+		writable: z.boolean(),
+		api: z.string().nullable(),
+		baseURL: z.string().nullable(),
+		models: z.array(OpenCodeGoModelSchema),
+		ready: z.boolean(),
+		conflicts: z.array(z.enum(["protocol", "base-url", "static-session-header"])),
+	}),
+	call: z.object({
+		active: z.boolean(),
+		lastCall: z.enum(["no-call", "success", "failure", "missing-session"]),
+		httpStatus: z.enum(["no-call", "accepted", "rejected", "network-error"]).optional(),
+		streamStatus: z.enum(["no-call", "completed", "failed", "cancelled", "missing-session"]).optional(),
+		updatedAt: z.number().nullable(),
+	}),
+});
+export type OpenCodeGoConnectionStatus = z.infer<typeof OpenCodeGoConnectionStatusSchema>;
+
+export const OpenCodeGoModelsResponseSchema = z.object({
+	status: OpenCodeGoConnectionStatusSchema,
+	models: z.array(OpenCodeGoModelSchema),
+});
 
 export const LoginChallengeSchema = z.object({
 	method: z.string(),

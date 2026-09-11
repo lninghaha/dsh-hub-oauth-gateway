@@ -8,6 +8,7 @@ import {
 	UsageMetricSchema,
 } from "./domain.js";
 import { FeesDataSchema } from "./fees.js";
+import { UserPreferencesPatchSchema, UserPreferencesSchema } from "./preferences.js";
 
 export const API_BASE = "/api/usage-stats/v1";
 
@@ -21,6 +22,7 @@ export const API_PATHS = Object.freeze({
 	providers: `${API_BASE}/providers`,
 	refresh: `${API_BASE}/refresh`,
 	settings: `${API_BASE}/settings`,
+	settingsState: `${API_BASE}/settings/state`,
 	pricing: `${API_BASE}/pricing`,
 	alerts: `${API_BASE}/alerts`,
 	fees: `${API_BASE}/fees`,
@@ -81,6 +83,13 @@ export interface ApiFailure {
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
+
+export const PreferencesSnapshotSchema = z
+	.object({ preferences: UserPreferencesSchema, revision: z.number().int().nonnegative() })
+	.strict();
+export const PreferencesPatchRequestSchema = z
+	.object({ patch: UserPreferencesPatchSchema, expectedRevision: z.number().int().nonnegative() })
+	.strict();
 
 export const CostEstimateSchema = z
 	.object({

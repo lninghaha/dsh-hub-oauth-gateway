@@ -15,6 +15,24 @@ const cancelMutate = vi.fn();
 
 vi.mock("../../../src/client/coding-oauth-api.js", () => ({
 	useCodingOAuthStatusQuery: () => ({ data: statusFixture, error: null, isPending: false }),
+	useOpenCodeGoConnectionQuery: () => ({
+		data: {
+			credential: {
+				selectedRef: "OPENCODE_GO_API_KEY",
+				configured: false,
+				writable: true,
+				source: null,
+				requiresChoice: false,
+				candidates: [{ ref: "OPENCODE_GO_API_KEY", configured: false, writable: true, source: null }],
+			},
+			configuration: { revision: 1, writable: true, api: null, baseURL: null, models: [], ready: false, conflicts: [] },
+			call: statusFixture.opencodeGo,
+		},
+		error: null,
+	}),
+	useOpenCodeGoCredentialMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+	useOpenCodeGoModelsMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+	useOpenCodeGoApplyMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
 	useCodingOAuthLoginMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useCodingOAuthCodeMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useCodingOAuthCancelMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
@@ -83,6 +101,7 @@ const statusFixture = {
 		},
 	},
 	antigravity: { installed: false, route: "agy", management: "cli" },
+	opencodeGo: { active: false, lastCall: "no-call", updatedAt: null },
 };
 
 const previewFixture = {
@@ -104,7 +123,7 @@ describe("AccountsTab CLI pull state", () => {
 		previewData = previewFixture;
 		commitData = { action: "imported", displayPath: previewFixture.displayPath, expiresAt: 10, warnings: [] };
 		previewMutate.mockImplementation(
-			(kind: string, options?: { onSuccess?: (data: typeof previewFixture) => void }) => {
+			(_kind: string, options?: { onSuccess?: (data: typeof previewFixture) => void }) => {
 				previewData = previewFixture;
 				options?.onSuccess?.(previewFixture);
 			},

@@ -27,6 +27,9 @@ import {
 	OAuthImportPreviewSchema,
 	OAuthImportSourcesResponseSchema,
 	type OAuthSourceKind,
+	OpenCodeGoConnectionStatusSchema,
+	type OpenCodeGoModel,
+	OpenCodeGoModelsResponseSchema,
 } from "../shared/coding-oauth.js";
 import { hubApiHeaders } from "./hub-headers.js";
 import { usageQueryClient } from "./queries.js";
@@ -90,6 +93,71 @@ export function useCodingOAuthStatusQuery(enabled = true) {
 				return signingIn ? 2_000 : 30_000;
 			},
 			retry: 1,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useOpenCodeGoConnectionQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: [CODING_OAUTH_KEY, "opencode-go"],
+			queryFn: () => callCodingOAuth(CODING_OAUTH_PATHS.opencodeGo, OpenCodeGoConnectionStatusSchema),
+			enabled,
+			retry: 1,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useOpenCodeGoModelsMutation() {
+	return useMutation(
+		{
+			mutationFn: (credentialRef: string) =>
+				callCodingOAuth(
+					`${CODING_OAUTH_PATHS.opencodeGo}?models=1&credentialRef=${encodeURIComponent(credentialRef)}`,
+					OpenCodeGoModelsResponseSchema,
+				),
+		},
+		usageQueryClient,
+	);
+}
+
+export function useOpenCodeGoCredentialMutation() {
+	return useMutation(
+		{
+			mutationFn: ({ credentialRef, apiKey }: { credentialRef: string; apiKey?: string }) =>
+				postCodingOAuth(
+					CODING_OAUTH_PATHS.opencodeGo,
+					{ action: "credential", credentialRef, ...(apiKey === undefined ? {} : { apiKey }) },
+					OpenCodeGoConnectionStatusSchema,
+				),
+			onSuccess: invalidateCodingOAuthQueries,
+		},
+		usageQueryClient,
+	);
+}
+
+export function useOpenCodeGoApplyMutation() {
+	return useMutation(
+		{
+			mutationFn: ({
+				credentialRef,
+				model,
+				expectedRevision,
+				confirmConflicts,
+			}: {
+				credentialRef: string;
+				model: OpenCodeGoModel;
+				expectedRevision: number;
+				confirmConflicts: boolean;
+			}) =>
+				postCodingOAuth(
+					CODING_OAUTH_PATHS.opencodeGo,
+					{ action: "apply", credentialRef, model, expectedRevision, confirmConflicts },
+					OpenCodeGoConnectionStatusSchema,
+				),
+			onSuccess: invalidateCodingOAuthQueries,
 		},
 		usageQueryClient,
 	);

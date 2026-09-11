@@ -60,11 +60,13 @@ const subscriptionStatus = {
 		},
 	},
 	antigravity: { installed: false, route: "agy", management: "cli" },
+	opencodeGo: { active: true, lastCall: "success", updatedAt: 1_700_000_000_000 },
 } as const;
 
 describe("cross-owner coding OAuth wire contracts", () => {
 	it("lets the Hub client parse a standalone status response", () => {
 		expect(CodingOAuthWebStatusSchema.parse(subscriptionStatus).uiOwner).toBe("standalone");
+		expect(CodingOAuthWebStatusSchema.parse(subscriptionStatus).opencodeGo).toEqual(subscriptionStatus.opencodeGo);
 	});
 
 	it("parses signed-in account summaries without tokens and keeps the hard cap constant", () => {

@@ -11,6 +11,7 @@ import type { AccountSnapshot } from "../../../src/shared/domain.js";
 import { defaultUserPreferences, type UserPreferences } from "../../../src/shared/preferences.js";
 
 const openPeek = vi.fn();
+const hudMocks = vi.hoisted(() => ({ savePosition: vi.fn() }));
 
 vi.mock("../../../src/client/controller.js", () => ({
 	usageUiController: {
@@ -58,13 +59,18 @@ vi.mock("../../../src/client/queries.js", async () => {
 	);
 	return {
 		...actual,
+		usePreferencesStateQuery: () => ({
+			data: { ok: true as const, data: { preferences, revision: 0 } },
+			isPending: false,
+			error: null,
+		}),
 		usePreferencesQuery: () => ({
 			data: { ok: true as const, data: preferences },
 			isPending: false,
 			error: null,
 		}),
-		useSavePreferencesMutation: () => ({
-			mutate: vi.fn(),
+		usePatchPreferencesMutation: () => ({
+			mutate: hudMocks.savePosition,
 			isPending: false,
 			isSuccess: false,
 		}),
@@ -117,6 +123,7 @@ describe("entry surface modes", () => {
 
 	beforeEach(() => {
 		openPeek.mockClear();
+		hudMocks.savePosition.mockClear();
 		preferences = {
 			...defaultUserPreferences("UTC"),
 			display: {
@@ -178,5 +185,32 @@ describe("entry surface modes", () => {
 		fireEvent.pointerUp(hud, { button: 0, clientX: 40, clientY: 50, pointerId: 2 });
 		fireEvent.click(hud);
 		expect(openPeek).not.toHaveBeenCalled();
+	});
+
+	it("keeps the dragged HUD position when its PATCH fails and an old snapshot refetches", () => {
+		const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		const view = render(
+			<QueryClientProvider client={client}>
+				<FloatingHud t={translate as never} />
+			</QueryClientProvider>,
+		);
+		const hud = screen.getByRole("button", { name: en["hud.openPeek"] });
+		fireEvent.pointerDown(hud, { button: 0, clientX: 10, clientY: 10, pointerId: 3 });
+		fireEvent.pointerMove(hud, { button: 0, clientX: 40, clientY: 50, pointerId: 3 });
+		fireEvent.pointerUp(hud, { button: 0, clientX: 40, clientY: 50, pointerId: 3 });
+		expect(hudMocks.savePosition).toHaveBeenCalledTimes(1);
+		expect(hud.getAttribute("style")).toContain("left: 70px");
+		expect(hud.getAttribute("style")).toContain("top: 90px");
+
+		// The mutation mock represents a failed PATCH: it never updates the snapshot.
+		preferences = { ...preferences, display: { ...preferences.display, hudPosition: { left: 40, top: 50 } } };
+		view.rerender(
+			<QueryClientProvider client={client}>
+				<FloatingHud t={translate as never} />
+			</QueryClientProvider>,
+		);
+		const refreshedHud = screen.getByRole("button", { name: en["hud.openPeek"] });
+		expect(refreshedHud.getAttribute("style")).toContain("left: 70px");
+		expect(refreshedHud.getAttribute("style")).toContain("top: 90px");
 	});
 });

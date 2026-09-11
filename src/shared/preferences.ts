@@ -143,6 +143,27 @@ export const UserPreferencesSchema = z
 
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 
+export const UserPreferencesPatchSchema = z
+	.object({
+		display: z.record(z.string(), z.unknown()).optional(),
+		providers: z.record(z.string(), z.unknown()).optional(),
+		privacy: z.record(z.string(), z.unknown()).optional(),
+		alerts: z.record(z.string(), z.unknown()).optional(),
+	})
+	.strict();
+export type UserPreferencesPatch = z.infer<typeof UserPreferencesPatchSchema>;
+
+export function patchUserPreferences(current: UserPreferences, patch: UserPreferencesPatch): UserPreferences {
+	return UserPreferencesSchema.parse({
+		...current,
+		...patch,
+		display: { ...current.display, ...patch.display },
+		providers: { ...current.providers, ...patch.providers },
+		privacy: { ...current.privacy, ...patch.privacy },
+		alerts: { ...current.alerts, ...patch.alerts },
+	});
+}
+
 export function defaultUserPreferences(timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone): UserPreferences {
 	const modules = modulesForPreset("analyst");
 	return {

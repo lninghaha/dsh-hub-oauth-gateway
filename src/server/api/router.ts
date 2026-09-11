@@ -9,6 +9,8 @@ import {
 	type ApiSuccess,
 	DshCompatibilitySchema,
 	ExportLayoutSchema,
+	PreferencesPatchRequestSchema,
+	PreferencesSnapshotSchema,
 	type PricingData,
 	type UsageAlert,
 	type UsageFreshnessState,
@@ -416,16 +418,34 @@ export function registerV1Routes(
 				result.accounts = await dependencies.accounts.refresh(input.providerIds);
 			writeJson(response, 200, success(dependencies, result));
 		}),
-		register(API_PATHS.settings, ["GET", "PUT"], async (request, response) => {
+		register(API_PATHS.settings, ["GET", "PUT", "PATCH"], async (request, response) => {
 			if (request.method === "GET") {
 				writeJson(response, 200, success(dependencies, dependencies.preferences.load("UTC")));
 				return;
 			}
 			const body = await readJsonBody(request, response);
 			if (body === undefined) return;
+			if (request.method === "PATCH") {
+				const input = PreferencesPatchRequestSchema.parse(body);
+				const updated = dependencies.preferences.patch(input.expectedRevision, input.patch);
+				if (updated === undefined) {
+					writeJson(response, 409, failure(dependencies, "settings-conflict", "settings changed; reload and retry"));
+					return;
+				}
+				dependencies.queries.setBaseCurrency(updated.preferences.display.baseCurrency);
+				writeJson(response, 200, success(dependencies, PreferencesSnapshotSchema.parse(updated)));
+				return;
+			}
 			const value = dependencies.preferences.save(UserPreferencesSchema.parse(body));
 			dependencies.queries.setBaseCurrency(value.display.baseCurrency);
 			writeJson(response, 200, success(dependencies, value));
+		}),
+		register(API_PATHS.settingsState, ["GET"], async (_request, response) => {
+			writeJson(
+				response,
+				200,
+				success(dependencies, PreferencesSnapshotSchema.parse(dependencies.preferences.snapshot("UTC"))),
+			);
 		}),
 		register(API_PATHS.pricing, ["GET", "PUT"], async (request, response) => {
 			if (request.method === "GET") {

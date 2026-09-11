@@ -254,7 +254,7 @@ describe("SQLite usage projection", () => {
 		}
 	});
 
-	it("upgrades schema v1 databases to v4 with account_fees, profile_id, and local usage tables", async () => {
+	it("upgrades schema v1 databases to v5 with account_fees, profile_id, settings revision, and local usage tables", async () => {
 		const directory = await mkdtemp(join(process.cwd(), "output", "database-v1-upgrade-"));
 		const path = join(directory, "v1.sqlite");
 		try {
@@ -275,7 +275,7 @@ describe("SQLite usage projection", () => {
 			const upgraded = await UsageDatabase.open(path);
 			try {
 				const version = (upgraded.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
-				expect(version).toBe(4);
+				expect(version).toBe(5);
 				const tables = (
 					upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'account_fees'").get() as
 						| { name: string }

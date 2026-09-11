@@ -10,7 +10,12 @@ import { defaultUserPreferences, type HudPosition, type UserPreferences } from "
 import { usageUiController } from "../controller.js";
 import { formatCompact, formatCurrency, formatDurationUntil } from "../format.js";
 import { translator } from "../locales.js";
-import { useAccountsQuery, useOverviewQuery, usePreferencesQuery, useSavePreferencesMutation } from "../queries.js";
+import {
+	useAccountsQuery,
+	useOverviewQuery,
+	usePatchPreferencesMutation,
+	usePreferencesStateQuery,
+} from "../queries.js";
 import { filtersFromPreferences, resolveUsageQuery } from "../range.js";
 
 const MAX_HUD_BLOCKS = 6;
@@ -103,11 +108,11 @@ function shortName(name: string): string {
 
 export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 	const t = translator(rawTranslate);
-	const preferencesQuery = usePreferencesQuery();
-	const savePreferences = useSavePreferencesMutation();
+	const preferencesQuery = usePreferencesStateQuery();
+	const savePreferences = usePatchPreferencesMutation();
 	const preferences =
 		preferencesQuery.data?.ok === true
-			? preferencesQuery.data.data
+			? preferencesQuery.data.data.preferences
 			: defaultUserPreferences(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 	const enabled = preferences.display.entryMode === "floating";
@@ -121,6 +126,8 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 	const shellRef = useRef<HTMLButtonElement | null>(null);
 	const [position, setPosition] = useState<HudPosition>(() => preferences.display.hudPosition ?? defaultHudPosition());
 	const positionRef = useRef(position);
+	const hasLocalPosition = useRef(false);
+	const pendingPosition = useRef<{ readonly position: HudPosition; readonly expectedRevision: number } | null>(null);
 	const dragRef = useRef<{
 		pointerId: number;
 		originX: number;
@@ -153,10 +160,27 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 	}, [enabled, bumpCollapseTimer]);
 
 	useEffect(() => {
+		if (hasLocalPosition.current) {
+			const pending = pendingPosition.current;
+			const snapshot = preferencesQuery.data?.ok === true ? preferencesQuery.data.data : null;
+			if (
+				pending !== null &&
+				snapshot !== null &&
+				savePreferences.error === null &&
+				snapshot.revision > pending.expectedRevision &&
+				snapshot.preferences.display.hudPosition?.left === pending.position.left &&
+				snapshot.preferences.display.hudPosition?.top === pending.position.top
+			) {
+				hasLocalPosition.current = false;
+				pendingPosition.current = null;
+			} else {
+				return;
+			}
+		}
 		if (preferences.display.hudPosition !== null) {
 			setPosition(preferences.display.hudPosition);
 		}
-	}, [preferences.display.hudPosition]);
+	}, [preferences.display.hudPosition, preferencesQuery.data, savePreferences.error]);
 
 	useEffect(() => {
 		if (!enabled) return;
@@ -206,12 +230,16 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 	})();
 
 	const persistPosition = (next: HudPosition): void => {
+		if (preferencesQuery.data?.ok === true) {
+			hasLocalPosition.current = true;
+			pendingPosition.current = { position: next, expectedRevision: preferencesQuery.data.data.revision };
+		}
 		positionRef.current = next;
 		setPosition(next);
 		if (preferencesQuery.data?.ok !== true) return;
 		savePreferences.mutate({
-			...preferences,
-			display: { ...preferences.display, hudPosition: next },
+			patch: { display: { hudPosition: next } },
+			expectedRevision: preferencesQuery.data.data.revision,
 		});
 	};
 
@@ -220,6 +248,7 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 		bumpCollapseTimer();
 		const node = shellRef.current;
 		if (node === null) return;
+		hasLocalPosition.current = true;
 		suppressClickRef.current = false;
 		dragRef.current = {
 			pointerId: event.pointerId,
@@ -260,7 +289,10 @@ export function FloatingHud({ t: rawTranslate }: FloatingHudProps) {
 		} catch {
 			// ignore
 		}
-		if (!drag.moved) return;
+		if (!drag.moved) {
+			hasLocalPosition.current = false;
+			return;
+		}
 		const next =
 			node === null ? positionRef.current : clampPosition(positionRef.current, node.offsetWidth, node.offsetHeight);
 		persistPosition(next);

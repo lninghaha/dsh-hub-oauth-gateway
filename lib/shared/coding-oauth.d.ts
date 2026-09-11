@@ -10,6 +10,7 @@ export declare const CODING_OAUTH_API_BASE = "/plugins/dsh-grok-build";
 /** Hub-local multi-account mutations (peer core contracts do not list these yet). */
 export declare const CODING_OAUTH_ACCOUNTS_SET_ACTIVE_PATH: "/plugins/dsh-grok-build/oauth/accounts/set-active";
 export declare const CODING_OAUTH_ACCOUNTS_REMOVE_PATH: "/plugins/dsh-grok-build/oauth/accounts/remove";
+export declare const OPENCODE_GO_CONNECTION_PATH: "/plugins/dsh-grok-build/opencode-go";
 /** Operator-owned account hard cap mirrored for Settings copy and client guards. */
 export declare const OAUTH_MAX_ACCOUNTS = 8;
 export declare const CODING_OAUTH_PATHS: Readonly<{
@@ -21,6 +22,7 @@ export declare const CODING_OAUTH_PATHS: Readonly<{
     models: "/plugins/dsh-grok-build/oauth/models";
     accountsSetActive: "/plugins/dsh-grok-build/oauth/accounts/set-active";
     accountsRemove: "/plugins/dsh-grok-build/oauth/accounts/remove";
+    opencodeGo: "/plugins/dsh-grok-build/opencode-go";
     sources: "/plugins/dsh-grok-build/oauth/sources";
     sourcePreview: "/plugins/dsh-grok-build/oauth/sources/preview";
     sourceCommit: "/plugins/dsh-grok-build/oauth/sources/commit";
@@ -410,8 +412,159 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         route: z.ZodString;
         management: z.ZodLiteral<"cli">;
     }, z.core.$strip>;
+    opencodeGo: z.ZodDefault<z.ZodObject<{
+        active: z.ZodBoolean;
+        lastCall: z.ZodEnum<{
+            success: "success";
+            failure: "failure";
+            "no-call": "no-call";
+            "missing-session": "missing-session";
+        }>;
+        httpStatus: z.ZodOptional<z.ZodEnum<{
+            "no-call": "no-call";
+            accepted: "accepted";
+            rejected: "rejected";
+            "network-error": "network-error";
+        }>>;
+        streamStatus: z.ZodOptional<z.ZodEnum<{
+            "no-call": "no-call";
+            "missing-session": "missing-session";
+            completed: "completed";
+            failed: "failed";
+            cancelled: "cancelled";
+        }>>;
+        updatedAt: z.ZodNullable<z.ZodNumber>;
+    }, z.core.$strip>>;
 }, z.core.$strip>;
 export type CodingOAuthWebStatus = z.infer<typeof CodingOAuthWebStatusSchema>;
+export declare const OpenCodeGoModelSchema: z.ZodObject<{
+    id: z.ZodString;
+    name: z.ZodOptional<z.ZodString>;
+    contextWindow: z.ZodOptional<z.ZodNumber>;
+    maxTokens: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+export type OpenCodeGoModel = z.infer<typeof OpenCodeGoModelSchema>;
+export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
+    credential: z.ZodObject<{
+        selectedRef: z.ZodString;
+        configured: z.ZodBoolean;
+        writable: z.ZodBoolean;
+        source: z.ZodNullable<z.ZodString>;
+        requiresChoice: z.ZodBoolean;
+        candidates: z.ZodArray<z.ZodObject<{
+            ref: z.ZodString;
+            configured: z.ZodBoolean;
+            writable: z.ZodBoolean;
+            source: z.ZodNullable<z.ZodString>;
+        }, z.core.$strip>>;
+    }, z.core.$strip>;
+    configuration: z.ZodObject<{
+        revision: z.ZodNullable<z.ZodNumber>;
+        writable: z.ZodBoolean;
+        api: z.ZodNullable<z.ZodString>;
+        baseURL: z.ZodNullable<z.ZodString>;
+        models: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            name: z.ZodOptional<z.ZodString>;
+            contextWindow: z.ZodOptional<z.ZodNumber>;
+            maxTokens: z.ZodOptional<z.ZodNumber>;
+        }, z.core.$strip>>;
+        ready: z.ZodBoolean;
+        conflicts: z.ZodArray<z.ZodEnum<{
+            protocol: "protocol";
+            "base-url": "base-url";
+            "static-session-header": "static-session-header";
+        }>>;
+    }, z.core.$strip>;
+    call: z.ZodObject<{
+        active: z.ZodBoolean;
+        lastCall: z.ZodEnum<{
+            success: "success";
+            failure: "failure";
+            "no-call": "no-call";
+            "missing-session": "missing-session";
+        }>;
+        httpStatus: z.ZodOptional<z.ZodEnum<{
+            "no-call": "no-call";
+            accepted: "accepted";
+            rejected: "rejected";
+            "network-error": "network-error";
+        }>>;
+        streamStatus: z.ZodOptional<z.ZodEnum<{
+            "no-call": "no-call";
+            "missing-session": "missing-session";
+            completed: "completed";
+            failed: "failed";
+            cancelled: "cancelled";
+        }>>;
+        updatedAt: z.ZodNullable<z.ZodNumber>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type OpenCodeGoConnectionStatus = z.infer<typeof OpenCodeGoConnectionStatusSchema>;
+export declare const OpenCodeGoModelsResponseSchema: z.ZodObject<{
+    status: z.ZodObject<{
+        credential: z.ZodObject<{
+            selectedRef: z.ZodString;
+            configured: z.ZodBoolean;
+            writable: z.ZodBoolean;
+            source: z.ZodNullable<z.ZodString>;
+            requiresChoice: z.ZodBoolean;
+            candidates: z.ZodArray<z.ZodObject<{
+                ref: z.ZodString;
+                configured: z.ZodBoolean;
+                writable: z.ZodBoolean;
+                source: z.ZodNullable<z.ZodString>;
+            }, z.core.$strip>>;
+        }, z.core.$strip>;
+        configuration: z.ZodObject<{
+            revision: z.ZodNullable<z.ZodNumber>;
+            writable: z.ZodBoolean;
+            api: z.ZodNullable<z.ZodString>;
+            baseURL: z.ZodNullable<z.ZodString>;
+            models: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                name: z.ZodOptional<z.ZodString>;
+                contextWindow: z.ZodOptional<z.ZodNumber>;
+                maxTokens: z.ZodOptional<z.ZodNumber>;
+            }, z.core.$strip>>;
+            ready: z.ZodBoolean;
+            conflicts: z.ZodArray<z.ZodEnum<{
+                protocol: "protocol";
+                "base-url": "base-url";
+                "static-session-header": "static-session-header";
+            }>>;
+        }, z.core.$strip>;
+        call: z.ZodObject<{
+            active: z.ZodBoolean;
+            lastCall: z.ZodEnum<{
+                success: "success";
+                failure: "failure";
+                "no-call": "no-call";
+                "missing-session": "missing-session";
+            }>;
+            httpStatus: z.ZodOptional<z.ZodEnum<{
+                "no-call": "no-call";
+                accepted: "accepted";
+                rejected: "rejected";
+                "network-error": "network-error";
+            }>>;
+            streamStatus: z.ZodOptional<z.ZodEnum<{
+                "no-call": "no-call";
+                "missing-session": "missing-session";
+                completed: "completed";
+                failed: "failed";
+                cancelled: "cancelled";
+            }>>;
+            updatedAt: z.ZodNullable<z.ZodNumber>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+    models: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        name: z.ZodOptional<z.ZodString>;
+        contextWindow: z.ZodOptional<z.ZodNumber>;
+        maxTokens: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
 export declare const LoginChallengeSchema: z.ZodObject<{
     method: z.ZodString;
     url: z.ZodString;

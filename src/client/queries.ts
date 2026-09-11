@@ -10,6 +10,7 @@ import {
 	type ExportLayout,
 	FeesDataSchema,
 	OverviewDataSchema,
+	PreferencesSnapshotSchema,
 	PricingDataSchema,
 	SeriesDataSchema,
 } from "../shared/contracts.js";
@@ -20,7 +21,7 @@ import {
 	LocalUsageResponseSchema,
 	LocalUsageScanResultSchema,
 } from "../shared/local-monitor.js";
-import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
+import { type UserPreferences, type UserPreferencesPatch, UserPreferencesSchema } from "../shared/preferences.js";
 import { ProvidersDataSchema } from "../shared/providers.js";
 import { StatusProbesResponseSchema } from "../shared/status-probes.js";
 import { fetchApi, mutateApi } from "./api.js";
@@ -205,6 +206,32 @@ export function usePreferencesQuery(enabled = true) {
 			queryKey: ["usage-stats", "settings"],
 			queryFn: ({ signal }) => fetchApi(API_PATHS.settings, UserPreferencesSchema, {}, signal),
 			enabled,
+		},
+		usageQueryClient,
+	);
+}
+
+export function usePreferencesStateQuery(enabled = true) {
+	return useQuery(
+		{
+			queryKey: ["usage-stats", "settings-state"],
+			queryFn: ({ signal }) => fetchApi(API_PATHS.settingsState, PreferencesSnapshotSchema, {}, signal),
+			enabled,
+		},
+		usageQueryClient,
+	);
+}
+
+export function usePatchPreferencesMutation() {
+	return useMutation(
+		{
+			mutationFn: ({ patch, expectedRevision }: { patch: UserPreferencesPatch; expectedRevision: number }) =>
+				mutateApi(API_PATHS.settings, "PATCH", { patch, expectedRevision }, PreferencesSnapshotSchema),
+			onSuccess: async () => {
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "settings-state"] });
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "settings"] });
+				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "overview"] });
+			},
 		},
 		usageQueryClient,
 	);

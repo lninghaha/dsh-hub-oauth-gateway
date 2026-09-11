@@ -12,6 +12,7 @@ export declare const API_PATHS: Readonly<{
     providers: "/api/usage-stats/v1/providers";
     refresh: "/api/usage-stats/v1/refresh";
     settings: "/api/usage-stats/v1/settings";
+    settingsState: "/api/usage-stats/v1/settings/state";
     pricing: "/api/usage-stats/v1/pricing";
     alerts: "/api/usage-stats/v1/alerts";
     fees: "/api/usage-stats/v1/fees";
@@ -73,6 +74,107 @@ export interface ApiFailure {
     readonly meta: ApiMeta;
 }
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
+export declare const PreferencesSnapshotSchema: z.ZodObject<{
+    preferences: z.ZodObject<{
+        version: z.ZodLiteral<1>;
+        display: z.ZodObject<{
+            preset: z.ZodEnum<{
+                minimal: "minimal";
+                quota: "quota";
+                cost: "cost";
+                analyst: "analyst";
+            }>;
+            sidebarMetric: z.ZodEnum<{
+                todayTokens: "todayTokens";
+                todayCost: "todayCost";
+                lowestQuota: "lowestQuota";
+                alerts: "alerts";
+            }>;
+            entryMode: z.ZodDefault<z.ZodEnum<{
+                sidebar: "sidebar";
+                floating: "floating";
+            }>>;
+            hudPosition: z.ZodDefault<z.ZodNullable<z.ZodObject<{
+                left: z.ZodNumber;
+                top: z.ZodNumber;
+            }, z.core.$strict>>>;
+            defaultRange: z.ZodEnum<{
+                month: "month";
+                today: "today";
+                "7d": "7d";
+                "30d": "30d";
+            }>;
+            comparePrevious: z.ZodBoolean;
+            density: z.ZodEnum<{
+                compact: "compact";
+                comfortable: "comfortable";
+            }>;
+            reducedMotion: z.ZodEnum<{
+                never: "never";
+                system: "system";
+                always: "always";
+            }>;
+            timeZone: z.ZodString;
+            weekStartsOn: z.ZodUnion<readonly [z.ZodLiteral<0>, z.ZodLiteral<1>, z.ZodLiteral<6>]>;
+            baseCurrency: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+            modules: z.ZodDefault<z.ZodObject<{
+                order: z.ZodArray<z.ZodEnum<{
+                    accounts: "accounts";
+                    alerts: "alerts";
+                    kpi: "kpi";
+                    heatmap: "heatmap";
+                    trend: "trend";
+                    breakdown: "breakdown";
+                    local: "local";
+                }>>;
+                hidden: z.ZodArray<z.ZodEnum<{
+                    accounts: "accounts";
+                    alerts: "alerts";
+                    kpi: "kpi";
+                    heatmap: "heatmap";
+                    trend: "trend";
+                    breakdown: "breakdown";
+                    local: "local";
+                }>>;
+            }, z.core.$strict>>;
+            modulesCustomized: z.ZodDefault<z.ZodBoolean>;
+            streakMinTokens: z.ZodDefault<z.ZodNumber>;
+        }, z.core.$strict>;
+        providers: z.ZodObject<{
+            hidden: z.ZodArray<z.ZodString>;
+            order: z.ZodArray<z.ZodString>;
+            aliases: z.ZodRecord<z.ZodString, z.ZodString>;
+            colors: z.ZodRecord<z.ZodString, z.ZodString>;
+        }, z.core.$strict>;
+        privacy: z.ZodObject<{
+            showSessionIdentifiers: z.ZodBoolean;
+            redactExports: z.ZodBoolean;
+            autoExportEnabled: z.ZodDefault<z.ZodBoolean>;
+            autoExportDirectory: z.ZodDefault<z.ZodString>;
+            autoExportLayout: z.ZodDefault<z.ZodEnum<{
+                daily: "daily";
+                filtered: "filtered";
+                bundle: "bundle";
+            }>>;
+            autoExportIntervalMinutes: z.ZodDefault<z.ZodNumber>;
+        }, z.core.$strict>;
+        alerts: z.ZodDefault<z.ZodObject<{
+            enabled: z.ZodBoolean;
+            quotaRemainingRatio: z.ZodNumber;
+            dailyCostThreshold: z.ZodNullable<z.ZodNumber>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>;
+    revision: z.ZodNumber;
+}, z.core.$strict>;
+export declare const PreferencesPatchRequestSchema: z.ZodObject<{
+    patch: z.ZodObject<{
+        display: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        providers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        privacy: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        alerts: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    }, z.core.$strict>;
+    expectedRevision: z.ZodNumber;
+}, z.core.$strict>;
 export declare const CostEstimateSchema: z.ZodObject<{
     amount: z.ZodNullable<z.ZodNumber>;
     currency: z.ZodString;
@@ -266,9 +368,9 @@ export type AccountsData = z.infer<typeof AccountsDataSchema>;
 export declare const UsageAlertSchema: z.ZodObject<{
     id: z.ZodString;
     kind: z.ZodEnum<{
-        account: "account";
-        cost: "cost";
         quota: "quota";
+        cost: "cost";
+        account: "account";
     }>;
     level: z.ZodEnum<{
         info: "info";
@@ -286,9 +388,9 @@ export declare const AlertsDataSchema: z.ZodObject<{
     alerts: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
-            account: "account";
-            cost: "cost";
             quota: "quota";
+            cost: "cost";
+            account: "account";
         }>;
         level: z.ZodEnum<{
             info: "info";

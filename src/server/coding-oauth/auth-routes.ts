@@ -783,11 +783,17 @@ export interface CodingOAuthWebStatus {
 		route: typeof ANTIGRAVITY_ROUTE;
 		management: "cli";
 	};
+	opencodeGo: {
+		active: boolean;
+		lastCall: "no-call" | "success" | "failure" | "missing-session";
+		updatedAt: number | null;
+	};
 }
 
 export interface CodingOAuthStatusContext {
 	readonly uiOwner: "hub" | "standalone";
 	compatibility(accessMode: OwnerAccessMode): DshCompatibility;
+	opencodeGo?(): CodingOAuthWebStatus["opencodeGo"];
 }
 
 const DEFAULT_STATUS_CONTEXT: CodingOAuthStatusContext = {
@@ -801,6 +807,7 @@ const DEFAULT_STATUS_CONTEXT: CodingOAuthStatusContext = {
 		capabilities: {},
 		diagnostics: ["host compatibility adapter is unavailable"],
 	}),
+	opencodeGo: () => ({ active: false, lastCall: "no-call", updatedAt: null }),
 };
 
 function recordBody(body: unknown): Record<string, unknown> {
@@ -887,6 +894,7 @@ export function registerCodingOAuthRoutes(
 				route: ANTIGRAVITY_ROUTE,
 				management: "cli",
 			},
+			opencodeGo: statusContext.opencodeGo?.() ?? { active: false, lastCall: "no-call", updatedAt: null },
 		};
 	};
 

@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
 	refresh: vi.fn(),
 	deviceCode: vi.fn(),
 	devicePoll: vi.fn(),
+	patchError: null as Error | null,
+	refetchPreferences: vi.fn(),
 }));
 
 vi.mock("../../../src/client/queries.js", () => ({
@@ -24,12 +26,15 @@ vi.mock("../../../src/client/queries.js", () => ({
 		isError: false,
 		error: null,
 	}),
-	usePreferencesQuery: () => {
+	usePreferencesStateQuery: () => {
 		const preferences = defaultUserPreferences("UTC");
 		preferences.providers.hidden = [...mocks.hidden];
-		return { data: { ok: true as const, data: preferences } };
+		return {
+			data: { ok: true as const, data: { preferences, revision: 0 } },
+			refetch: mocks.refetchPreferences,
+		};
 	},
-	useSavePreferencesMutation: () => ({ mutate: mocks.savePreferences, isPending: false }),
+	usePatchPreferencesMutation: () => ({ mutate: mocks.savePreferences, isPending: false, error: mocks.patchError }),
 	useSetCredentialMutation: () => ({ mutate: mocks.setCredential, isPending: false, error: null }),
 	useUnsetCredentialMutation: () => ({ mutate: mocks.unsetCredential, isPending: false, error: null }),
 	useRefreshMutation: () => ({ mutate: mocks.refresh, isPending: false }),
@@ -95,6 +100,7 @@ describe("provider management maintenance", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mocks.hidden = [];
+		mocks.patchError = null;
 	});
 
 	it("keeps the Subscriptions CTA visible for signed-out OAuth providers", () => {
@@ -175,8 +181,8 @@ describe("provider management maintenance", () => {
 		expect(toggle.getAttribute("aria-checked")).toBe("false");
 		fireEvent.click(toggle);
 		expect(mocks.savePreferences).toHaveBeenCalledTimes(1);
-		const saved = mocks.savePreferences.mock.calls[0]?.[0] as { providers: { hidden: string[] } };
-		expect(saved.providers.hidden).toEqual([]);
+		const saved = mocks.savePreferences.mock.calls[0]?.[0] as { patch: { providers: { hidden: string[] } } };
+		expect(saved.patch.providers.hidden).toEqual([]);
 	});
 
 	it("hides a provider under its account id so the dashboard filter matches", () => {
@@ -184,8 +190,28 @@ describe("provider management maintenance", () => {
 		const toggle = screen.getByRole("switch", { name: "Show {name} on the dashboard" });
 		expect(toggle.getAttribute("aria-checked")).toBe("true");
 		fireEvent.click(toggle);
-		const saved = mocks.savePreferences.mock.calls[0]?.[0] as { providers: { hidden: string[] } };
-		expect(saved.providers.hidden).toEqual(["codex"]);
+		const saved = mocks.savePreferences.mock.calls[0]?.[0] as { patch: { providers: { hidden: string[] } } };
+		expect(saved.patch.providers.hidden).toEqual(["codex"]);
+	});
+
+	it("keeps a failed visibility edit until the user explicitly reloads", () => {
+		mocks.patchError = new Error("settings changed; reload and retry");
+		const provider = record({ id: "codex-oauth", authSource: "oauth", accountProviderId: "codex" });
+		mocks.providersData = providersData([provider]);
+		const view = render(<ProviderManagement t={translate as never} onOpenAccounts={vi.fn()} />);
+		const toggle = screen.getByRole("switch", { name: "Show {name} on the dashboard" });
+		fireEvent.click(toggle);
+		expect(toggle.getAttribute("aria-checked")).toBe("false");
+		expect(screen.getByRole("alert").textContent).toContain(en["settings.patchFailed"]);
+
+		// A query refresh with the old snapshot must not silently discard the failed local edit.
+		mocks.hidden = [];
+		view.rerender(<ProviderManagement t={translate as never} onOpenAccounts={vi.fn()} />);
+		expect(screen.getByRole("switch", { name: "Show {name} on the dashboard" }).getAttribute("aria-checked")).toBe(
+			"false",
+		);
+		fireEvent.click(screen.getByRole("button", { name: en["settings.reload"] }));
+		expect(mocks.refetchPreferences).toHaveBeenCalledTimes(1);
 	});
 
 	it("offers device authorization on the Copilot card", () => {

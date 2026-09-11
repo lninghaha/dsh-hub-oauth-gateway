@@ -170,14 +170,16 @@ describe("coding OAuth routes", () => {
 		const document = payload as {
 			providers: Record<string, { status: string }>;
 			antigravity: { installed: boolean; route: string; management: string };
+			opencodeGo: { active: boolean; lastCall: string; updatedAt: number | null };
 		};
 		expect(Object.keys(document.providers).sort()).toEqual(["claude", "codex", "grok", "kimi"]);
 		for (const provider of Object.values(document.providers)) {
 			expect(provider.status).toBe("signed-out");
 		}
 		expect(document.antigravity).toEqual({ installed: false, route: "agy", management: "cli" });
+		expect(document.opencodeGo).toEqual({ active: false, lastCall: "no-call", updatedAt: null });
 		// No token material may appear in the status document.
-		expect(JSON.stringify(document)).not.toMatch(/accessToken|refreshToken|apiKey/i);
+		expect(JSON.stringify(document)).not.toMatch(/accessToken|refreshToken|apiKey|session-a/i);
 	});
 
 	it("rejects non-loopback Host values even from a loopback peer", async () => {

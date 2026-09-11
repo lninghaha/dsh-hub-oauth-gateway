@@ -76,6 +76,12 @@ import {
 import { enabledOAuthProviderDefinitions } from "./oauth-providers.js";
 import { OAuthProviderSession } from "./oauth-session.js";
 import type { OAuthSourceCredential } from "./oauth-sources.js";
+import { installOpenCodeGoHeaderCompatibility, OpenCodeGoHeaderState } from "./opencode-go-header.js";
+import {
+	createOpenCodeGoConnectionController,
+	type OpenCodeGoSettingsProvider,
+	registerOpenCodeGoConnectionRoute,
+} from "./opencode-go-connection.js";
 import { acquireCodingOAuthProxy } from "./proxy.js";
 import { AccountPoolController, type GetQuotaWindows, type PoolMode } from "./quota-pool.js";
 import { GrokBuildSession } from "./session.js";
@@ -492,6 +498,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			.filter((route) => !(CODING_OAUTH_ROUTES as readonly string[]).includes(route)),
 	];
 	const codex = requireSubscription(subscriptions, CODEX_PI_PROVIDER);
+	const opencodeGo = new OpenCodeGoHeaderState();
 	const codexAuth = codexAuthFromSession(codex);
 	const usage = createCodexUsageReader({ auth: codexAuth });
 	const codexModels = createCodexModelCapabilities({ auth: codexAuth });
@@ -509,6 +516,10 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 	ctx.inject(["llm"], (llmCtx) => {
 		const llm = new DshHostAdapter(llmCtx as never).llm();
 		if (llm === undefined) throw new Error("DSH LLM adapter registry is incompatible");
+		llmCtx.effect(
+			() => installOpenCodeGoHeaderCompatibility(llmCtx, opencodeGo),
+			"dsh-coding-oauth: OpenCode Go session header",
+		);
 		const adapterRegistration = llm.registerAdapter(
 			[...registeredRoutes],
 			createCodingOAuthAdapter(grok, subscriptions, () => llmCtx.get("attachments"), config.retryPolicy, {
@@ -616,6 +627,17 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		});
 		return () => gateway.stop();
 	}, "dsh-coding-subscription-oauth: local API gateway");
+	ctx.inject(["webServer", "credentials", "settings"], (goCtx) => {
+		registerOpenCodeGoConnectionRoute(
+			goCtx,
+			createOpenCodeGoConnectionController({
+				credentials: goCtx.get("credentials") as CredentialProvider,
+				settings: goCtx.get("settings") as OpenCodeGoSettingsProvider,
+				callStatus: () => opencodeGo.snapshot(),
+			}),
+			ownerRequestPolicy,
+		);
+	});
 
 	let webRoutesMounted = false;
 	const webRoutesFiber = ctx.inject(["webServer"], (webCtx) => {
@@ -628,6 +650,7 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		registerGatewayRoutes(webCtx, gateway, ownerRequestPolicy);
 		registerCodingOAuthRoutes(webCtx, grok, subscriptions, ownerRequestPolicy, {
 			uiOwner: "hub",
+			opencodeGo: () => opencodeGo.snapshot(),
 			compatibility: (accessMode) => {
 				const host = dshHost.compatibility({ uiOwner: "hub", accessMode });
 				const policyDiagnostics = ownerRequestPolicy.diagnostics();

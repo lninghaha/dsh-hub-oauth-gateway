@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
 const APPLICATION_ID = 0x44555331;
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const SQLITE_HEADER = Buffer.from("SQLite format 3\0", "utf8");
 
 const KNOWN_TABLES = new Set([
@@ -189,6 +189,10 @@ function migrateToVersionOne(db: DatabaseSync): void {
 	`);
 }
 
+function migrateToVersionFive(db: DatabaseSync): void {
+	db.exec("ALTER TABLE preferences ADD COLUMN revision INTEGER NOT NULL DEFAULT 0");
+}
+
 function migrateToVersionTwo(db: DatabaseSync): void {
 	db.exec(`
 		CREATE TABLE account_fees (
@@ -268,6 +272,7 @@ function migrate(db: DatabaseSync, fromVersion: number): void {
 		if (fromVersion < 2) migrateToVersionTwo(db);
 		if (fromVersion < 3) migrateToVersionThree(db);
 		if (fromVersion < 4) migrateToVersionFour(db);
+		if (fromVersion < 5) migrateToVersionFive(db);
 		db.exec(`PRAGMA application_id = ${APPLICATION_ID}`);
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 		db.exec("COMMIT");

@@ -9,10 +9,10 @@ import type { Translate, UsageLocaleKey } from "../locales.js";
 import {
 	useDeviceCodeMutation,
 	useDevicePollMutation,
-	usePreferencesQuery,
+	usePatchPreferencesMutation,
+	usePreferencesStateQuery,
 	useProvidersQuery,
 	useRefreshMutation,
-	useSavePreferencesMutation,
 	useSetCredentialMutation,
 	useUnsetCredentialMutation,
 } from "../queries.js";
@@ -277,14 +277,21 @@ export function ProviderManagement({
 	readonly onOpenAccounts: () => void;
 }) {
 	const query = useProvidersQuery();
-	const preferences = usePreferencesQuery();
-	const savePreferences = useSavePreferencesMutation();
+	const preferences = usePreferencesStateQuery();
+	const savePreferences = usePatchPreferencesMutation();
 	const data: ProvidersData | undefined = query.data?.ok === true ? query.data.data : undefined;
-	const prefs = preferences.data?.ok === true ? preferences.data.data : null;
+	const snapshot = preferences.data?.ok === true ? preferences.data.data : null;
+	const prefs = snapshot?.preferences ?? null;
 	const hidden = new Set(prefs?.providers.hidden ?? []);
+	const [visibilityOverrides, setVisibilityOverrides] = useState<ReadonlyMap<string, boolean>>(() => new Map());
+	const isVisible = (provider: ProviderRecord): boolean => {
+		const override = visibilityOverrides.get(visibilityId(provider));
+		if (override !== undefined) return override;
+		return !hidden.has(visibilityId(provider)) && !hidden.has(provider.id);
+	};
 
 	const setVisible = (provider: ProviderRecord, visible: boolean): void => {
-		if (prefs === null) return;
+		if (prefs === null || snapshot === null) return;
 		// Visibility preferences are keyed by the account provider id so they stay
 		// aligned with the dashboard account grid; the record id is removed too so
 		// entries written by older builds cannot keep a provider hidden.
@@ -292,10 +299,26 @@ export function ProviderManagement({
 		const nextHidden = visible
 			? prefs.providers.hidden.filter((id) => !ids.has(id))
 			: [...new Set([...prefs.providers.hidden, visibilityId(provider)])];
-		savePreferences.mutate({
-			...prefs,
-			providers: { ...prefs.providers, hidden: nextHidden },
-		});
+		setVisibilityOverrides((current) => new Map(current).set(visibilityId(provider), visible));
+		savePreferences.mutate(
+			{
+				patch: { providers: { hidden: nextHidden } },
+				expectedRevision: snapshot.revision,
+			},
+			{
+				onSuccess: () => {
+					setVisibilityOverrides((current) => {
+						const next = new Map(current);
+						next.delete(visibilityId(provider));
+						return next;
+					});
+				},
+			},
+		);
+	};
+	const reloadVisibility = (): void => {
+		setVisibilityOverrides(new Map());
+		void preferences.refetch();
 	};
 
 	const grouped = new Map<(typeof GROUP_ORDER)[number], ProviderRecord[]>();
@@ -314,6 +337,14 @@ export function ProviderManagement({
 				<p className="dus-error-inline" role="alert">
 					{t("dashboard.error", { message: query.error instanceof Error ? query.error.message : "unavailable" })}
 				</p>
+			) : null}
+			{savePreferences.error instanceof Error ? (
+				<div className="dus-error-inline" role="alert">
+					{t("settings.patchFailed")}
+					<button type="button" className="dus-button is-small" onClick={reloadVisibility}>
+						{t("settings.reload")}
+					</button>
+				</div>
 			) : null}
 			{data === undefined ? (
 				<p className="dus-muted">{t("dashboard.loading")}</p>
@@ -344,7 +375,7 @@ export function ProviderManagement({
 											<ProviderCard
 												key={provider.id}
 												provider={provider}
-												hidden={hidden.has(visibilityId(provider)) || hidden.has(provider.id)}
+												hidden={!isVisible(provider)}
 												onToggleVisible={(visible) => setVisible(provider, visible)}
 												onOpenAccounts={onOpenAccounts}
 												t={t}

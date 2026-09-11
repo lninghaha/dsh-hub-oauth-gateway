@@ -9,6 +9,8 @@ import { CapabilitiesTab } from "../../../src/client/components/oauth/Capabiliti
 import { GatewayTab } from "../../../src/client/components/oauth/GatewayTab.js";
 import { en, translator } from "../../../src/client/locales.js";
 
+const oauthMocks = vi.hoisted(() => ({ login: vi.fn(), refetchStatus: vi.fn() }));
+
 let statusFixture = {
 	providers: {
 		grok: { status: "signed-out" as const, grokImportAvailable: false },
@@ -50,6 +52,7 @@ let statusFixture = {
 		},
 	},
 	antigravity: { installed: false, route: "agy", management: "cli" as const },
+	opencodeGo: { active: true, lastCall: "success" as const, updatedAt: 1_700_000_000_000 },
 };
 
 function resetStatusFixture(): void {
@@ -94,6 +97,7 @@ function resetStatusFixture(): void {
 			},
 		},
 		antigravity: { installed: false, route: "agy", management: "cli" },
+		opencodeGo: { active: true, lastCall: "success", updatedAt: 1_700_000_000_000 },
 	};
 }
 
@@ -135,8 +139,39 @@ vi.mock("../../../src/client/coding-oauth-api.js", async () => {
 	);
 	return {
 		...actual,
-		useCodingOAuthStatusQuery: () => ({ data: statusFixture, error: null, isPending: false }),
-		useCodingOAuthLoginMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+		useCodingOAuthStatusQuery: () => ({
+			data: statusFixture,
+			error: null,
+			isPending: false,
+			refetch: oauthMocks.refetchStatus,
+		}),
+		useOpenCodeGoConnectionQuery: () => ({
+			data: {
+				credential: {
+					selectedRef: "OPENCODE_GO_API_KEY",
+					configured: false,
+					writable: true,
+					source: null,
+					requiresChoice: false,
+					candidates: [{ ref: "OPENCODE_GO_API_KEY", configured: false, writable: true, source: null }],
+				},
+				configuration: {
+					revision: 1,
+					writable: true,
+					api: null,
+					baseURL: null,
+					models: [],
+					ready: false,
+					conflicts: [],
+				},
+				call: statusFixture.opencodeGo,
+			},
+			error: null,
+		}),
+		useOpenCodeGoCredentialMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+		useOpenCodeGoModelsMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+		useOpenCodeGoApplyMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+		useCodingOAuthLoginMutation: () => ({ mutate: oauthMocks.login, isPending: false, error: null }),
 		useCodingOAuthCodeMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 		useCodingOAuthCancelMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 		useCodingOAuthLogoutMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
@@ -187,14 +222,16 @@ vi.mock("../../../src/client/queries.js", () => ({
 
 const t = translator(((key: string) => (en as Record<string, string>)[key] ?? key) as never);
 
-function renderWithClient(node: ReactNode): void {
+function renderWithClient(node: ReactNode) {
 	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-	render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
+	return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
 }
 
 describe("coding OAuth settings tabs", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		oauthMocks.login.mockClear();
+		oauthMocks.refetchStatus.mockClear();
 		revealedGatewayKey = undefined;
 		resetStatusFixture();
 	});
@@ -210,6 +247,8 @@ describe("coding OAuth settings tabs", () => {
 		expect(document.querySelector('[data-oauth-provider="kimi"]')).toBeTruthy();
 		expect(document.querySelector('[data-oauth-provider="claude"]')).toBeTruthy();
 		expect(document.querySelector('[data-oauth-provider="antigravity"]')).toBeTruthy();
+		expect(document.querySelector('[data-opencode-go-status="success"]')).toBeTruthy();
+		expect(screen.getByText(en["oauth.opencodeGo.title"])).toBeTruthy();
 		const claude = document.querySelector('[data-oauth-provider="claude"]');
 		expect(claude).toBeTruthy();
 		const toggle = claude?.querySelector(".dus-oauth-card-toggle");
@@ -241,6 +280,38 @@ describe("coding OAuth settings tabs", () => {
 		expect(screen.getByText(en["oauth.loginDevice"])).toBeTruthy();
 	});
 
+	it("classifies provider auth failures and connects recovery actions to login or status reload", () => {
+		statusFixture.providers.codex.status = "error";
+		(statusFixture.providers.codex as { message?: string }).message = "invalid token";
+		const view = renderWithClient(<AccountsTab t={t} />);
+		const card = document.querySelector('[data-oauth-provider="codex"]');
+		expect(card).toBeTruthy();
+		expect(document.querySelector('[data-oauth-provider="grok"]')).toBeTruthy();
+		expect(document.querySelector('[data-oauth-provider="claude"]')).toBeTruthy();
+		fireEvent.click(card?.querySelector(".dus-oauth-card-toggle") as Element);
+		expect(screen.getByText(en["oauth.recovery.reauthorize"])).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: en["oauth.recovery.reauthorizeAction"] }));
+		expect(oauthMocks.login).toHaveBeenCalledWith({ provider: "codex", method: "device", accountMode: "add" });
+
+		(statusFixture.providers.codex as { message?: string }).message = "atomic writer lock";
+		view.rerender(
+			<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+				<AccountsTab t={t} />
+			</QueryClientProvider>,
+		);
+		expect(screen.getByText(en["oauth.recovery.storage"])).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: en["oauth.recovery.retryAction"] }));
+		expect(oauthMocks.refetchStatus).toHaveBeenCalledTimes(1);
+
+		(statusFixture.providers.codex as { message?: string }).message = "network timeout";
+		view.rerender(
+			<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+				<AccountsTab t={t} />
+			</QueryClientProvider>,
+		);
+		expect(screen.getByText(en["oauth.recovery.network"])).toBeTruthy();
+	});
+
 	it("lists stored accounts with set-default and remove when signed in", () => {
 		statusFixture.providers.codex.status = "signed-in";
 		statusFixture.providers.codex.expiresAt = Date.now() + 3_600_000;
@@ -258,6 +329,19 @@ describe("coding OAuth settings tabs", () => {
 		expect(screen.getByText(en["oauth.accountSetDefault"])).toBeTruthy();
 		expect(screen.getAllByText(en["oauth.accountRemove"]).length).toBeGreaterThan(0);
 		expect(screen.getAllByText(new RegExp(en["oauth.accountAdd"])).length).toBeGreaterThan(0);
+		const betaRemove = document.querySelector(
+			'[data-account-id="acct-b"] button.dus-button.is-danger',
+		) as HTMLButtonElement;
+		fireEvent.click(betaRemove);
+		expect(screen.getByText(/DSH local storage/u)).toBeTruthy();
+		expect(screen.getByRole("button", { name: en["oauth.accountRemoveConfirmAction"] })).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: en["oauth.importCancel"] }));
+		expect(screen.queryByText(/DSH local storage/u)).toBeNull();
+		expect(document.activeElement).toBe(betaRemove);
+		fireEvent.click(screen.getByRole("button", { name: en["oauth.logout"] }));
+		expect(screen.getByText(/locally stored DSH login/u)).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: en["oauth.importCancel"] }));
+		expect(screen.queryByText(/locally stored DSH login/u)).toBeNull();
 	});
 
 	it("renders the gateway tab with status, port editor, and key lifecycle controls", () => {

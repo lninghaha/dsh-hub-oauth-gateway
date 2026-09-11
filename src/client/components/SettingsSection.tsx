@@ -1,14 +1,15 @@
 import type { SettingsSectionOwnerProps } from "@deepseek-ai/dsh-client-ui-settings/client";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import type { UserPreferences } from "../../shared/preferences.js";
 import {
 	applyPresetToPreferences,
 	type DashboardModuleId,
 	defaultUserPreferences,
+	patchUserPreferences,
 	resetModulesToPreset,
+	type UserPreferences,
+	type UserPreferencesPatch,
 } from "../../shared/preferences.js";
-import { useCodingOAuthStatusQuery, useGatewayStatusQuery } from "../coding-oauth-api.js";
 import { SETTINGS_OPEN_EVENT, SETTINGS_TAB_STORAGE_KEY, usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
 import {
@@ -16,9 +17,8 @@ import {
 	useCredentialQuery,
 	useDeviceCodeMutation,
 	useDevicePollMutation,
-	usePreferencesQuery,
-	usePricingQuery,
-	useSavePreferencesMutation,
+	usePatchPreferencesMutation,
+	usePreferencesStateQuery,
 	useSetCredentialMutation,
 	useUnsetCredentialMutation,
 } from "../queries.js";
@@ -35,100 +35,48 @@ import { ProviderManagement } from "./ProviderManagement.js";
 
 type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
-const ONBOARDING_GATEWAY_SKIP_KEY = "dsh.usage-stats.onboarding.gateway-not-needed";
+type PreferenceSection = "display" | "providers" | "privacy" | "alerts";
 
-function readGatewaySkipped(): boolean {
-	try {
-		return localStorage.getItem(ONBOARDING_GATEWAY_SKIP_KEY) === "1";
-	} catch {
-		return false;
-	}
+interface PreferenceDraftBase {
+	readonly preferences: UserPreferences;
+	readonly revision: number;
 }
 
+const PREFERENCE_SECTIONS: readonly PreferenceSection[] = ["display", "providers", "privacy", "alerts"];
+
+function equalPreferenceSection(
+	left: UserPreferences[PreferenceSection],
+	right: UserPreferences[PreferenceSection],
+): boolean {
+	return JSON.stringify(left) === JSON.stringify(right);
+}
+
+export function changedPreferenceSections(baseline: UserPreferences, draft: UserPreferences): PreferenceSection[] {
+	return PREFERENCE_SECTIONS.filter((section) => !equalPreferenceSection(baseline[section], draft[section]));
+}
+
+export function preferencePatch(baseline: UserPreferences, draft: UserPreferences): UserPreferencesPatch {
+	const patch: UserPreferencesPatch = {};
+	for (const section of changedPreferenceSections(baseline, draft)) {
+		patch[section] = draft[section];
+	}
+	return patch;
+}
+
+function overlappingPreferenceSections(
+	baseline: UserPreferences,
+	draft: UserPreferences,
+	latest: UserPreferences,
+): PreferenceSection[] {
+	const local = new Set(changedPreferenceSections(baseline, draft));
+	return changedPreferenceSections(baseline, latest).filter((section) => local.has(section));
+}
 function Field({ label, children }: { readonly label: string; readonly children: ReactNode }) {
 	return (
 		<fieldset className="dus-field">
 			<legend>{label}</legend>
 			{children}
 		</fieldset>
-	);
-}
-
-function GettingStarted({ t, onOpen }: { readonly t: Translate; readonly onOpen: (tab: SettingsTab) => void }) {
-	const oauth = useCodingOAuthStatusQuery();
-	const pricing = usePricingQuery();
-	const gateway = useGatewayStatusQuery();
-	const [gatewaySkipped, setGatewaySkipped] = useState(readGatewaySkipped);
-	const setGatewayNotNeeded = (value: boolean): void => {
-		setGatewaySkipped(value);
-		try {
-			if (value) localStorage.setItem(ONBOARDING_GATEWAY_SKIP_KEY, "1");
-			else localStorage.removeItem(ONBOARDING_GATEWAY_SKIP_KEY);
-		} catch {
-			// Persistence is optional; the in-memory choice remains useful.
-		}
-	};
-	if (oauth.isPending || pricing.isPending || gateway.isPending) {
-		return (
-			<section className="dus-onboarding" aria-labelledby="dus-onboarding-title">
-				<h3 id="dus-onboarding-title">{t("onboarding.title")}</h3>
-				<p role="status">{t("onboarding.loading")}</p>
-			</section>
-		);
-	}
-	const subscriptionReady = Object.values(oauth.data?.providers ?? {}).some(
-		(provider) => provider?.status === "signed-in",
-	);
-	const pricingReady =
-		pricing.data?.ok === true && (pricing.data.data.catalogUpdatedAt !== null || pricing.data.data.rules.length > 0);
-	const gatewayReady = (gateway.data?.enabled === true && gateway.data.keyAvailable) || gatewaySkipped;
-	const steps = [
-		{ id: "subscription", done: subscriptionReady, tab: "accounts" as const },
-		{ id: "pricing", done: pricingReady, tab: "fees" as const },
-		{ id: "gateway", done: gatewayReady, tab: "gateway" as const },
-	] as const;
-	const completed = steps.filter((step) => step.done).length;
-	if (completed === steps.length) return null;
-	return (
-		<section className="dus-onboarding" aria-labelledby="dus-onboarding-title">
-			<div className="dus-onboarding-heading">
-				<div>
-					<h3 id="dus-onboarding-title">{t("onboarding.title")}</h3>
-					<p>{t("onboarding.intro")}</p>
-				</div>
-				<span role="status">{t("onboarding.progress", { completed, total: steps.length })}</span>
-			</div>
-			<ol className="dus-onboarding-steps">
-				{steps.map((step) => (
-					<li key={step.id} className={step.done ? "is-complete" : ""}>
-						<span className="dus-onboarding-state" aria-hidden="true">
-							{step.done ? "✓" : "○"}
-						</span>
-						<div>
-							<strong>{t(`onboarding.${step.id}.title`)}</strong>
-							<p>{t(`onboarding.${step.id}.hint`)}</p>
-						</div>
-						<div className="dus-onboarding-actions">
-							<button
-								type="button"
-								className="dus-button is-small"
-								onClick={() => {
-									if (step.id === "gateway" && gatewaySkipped) setGatewayNotNeeded(false);
-									onOpen(step.tab);
-								}}
-							>
-								{step.done ? t("onboarding.review") : t("onboarding.start")}
-							</button>
-							{step.id === "gateway" && !gatewayReady ? (
-								<button type="button" className="dus-button is-small" onClick={() => setGatewayNotNeeded(true)}>
-									{t("onboarding.gateway.skip")}
-								</button>
-							) : null}
-						</div>
-					</li>
-				))}
-			</ol>
-		</section>
 	);
 }
 
@@ -646,14 +594,15 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 
 export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) {
 	const t = translator(rawTranslate);
-	const preferences = usePreferencesQuery();
+	const preferences = usePreferencesStateQuery();
 	const accounts = useAccountsQuery();
-	const save = useSavePreferencesMutation();
+	const save = usePatchPreferencesMutation();
 	const [draft, setDraft] = useState<UserPreferences>(() =>
 		defaultUserPreferences(Intl.DateTimeFormat().resolvedOptions().timeZone),
 	);
-	const [initialized, setInitialized] = useState(false);
-	const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("display");
+	const [draftBase, setDraftBase] = useState<PreferenceDraftBase | null>(null);
+	const [conflictLatest, setConflictLatest] = useState<PreferenceDraftBase | null>(null);
+	const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("accounts");
 	const openSettingsTab = useCallback((tab: SettingsTab): void => {
 		setActiveSettingsTab(tab);
 		try {
@@ -681,11 +630,54 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 		return () => window.removeEventListener(SETTINGS_OPEN_EVENT, openHandler);
 	}, [openSettingsTab]);
 	useEffect(() => {
-		if (initialized || preferences.data?.ok !== true) return;
-		setDraft(preferences.data.data);
-		setInitialized(true);
-	}, [initialized, preferences.data]);
+		if (preferences.data?.ok !== true) return;
+		const latest = preferences.data.data;
+		if (draftBase !== null && changedPreferenceSections(draftBase.preferences, draft).length > 0) return;
+		if (draftBase?.revision === latest.revision) return;
+		setDraft(latest.preferences);
+		setDraftBase(latest);
+	}, [draft, draftBase, preferences.data]);
 	const accountList = useMemo(() => (accounts.data?.ok === true ? accounts.data.data.accounts : []), [accounts.data]);
+	const dirtySections = draftBase === null ? [] : changedPreferenceSections(draftBase.preferences, draft);
+	const conflictSections =
+		draftBase === null || conflictLatest === null
+			? []
+			: overlappingPreferenceSections(draftBase.preferences, draft, conflictLatest.preferences);
+	const applySavedSnapshot = (snapshot: PreferenceDraftBase): void => {
+		setDraftBase(snapshot);
+		setDraft(snapshot.preferences);
+		setConflictLatest(null);
+	};
+	const loadConflictSnapshot = (): void => {
+		void preferences.refetch().then((result) => {
+			if (result.data?.ok === true) setConflictLatest(result.data.data);
+		});
+	};
+	const submitPatch = (base: PreferenceDraftBase, value: UserPreferences): void => {
+		const patch = preferencePatch(base.preferences, value);
+		if (Object.keys(patch).length === 0) return;
+		save.mutate(
+			{ patch, expectedRevision: base.revision },
+			{
+				onSuccess: (response) => {
+					if (response.ok === true) applySavedSnapshot(response.data);
+				},
+				onError: (error) => {
+					if (error instanceof Error && "code" in error && error.code === "settings-conflict") {
+						loadConflictSnapshot();
+					}
+				},
+			},
+		);
+	};
+	const reapplyLocalChanges = (): void => {
+		if (draftBase === null || conflictLatest === null) return;
+		const rebased = patchUserPreferences(conflictLatest.preferences, preferencePatch(draftBase.preferences, draft));
+		setDraftBase(conflictLatest);
+		setDraft(rebased);
+		setConflictLatest(null);
+		submitPatch(conflictLatest, rebased);
+	};
 	return (
 		<section
 			className={`dus-settings${draft.display.density === "compact" ? " is-density-compact" : ""}${draft.display.reducedMotion === "always" ? " is-reduced-motion" : draft.display.reducedMotion === "never" ? " allows-motion" : ""}`}
@@ -718,8 +710,6 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 					</button>
 				</div>
 			</div>
-			<GettingStarted t={t} onOpen={openSettingsTab} />
-			<CompatibilityPanel t={t} />
 			<nav className="dus-settings-tabs" aria-label={t("settings.title")}>
 				{SETTINGS_TABS.map((tab) => (
 					<button
@@ -741,18 +731,52 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 						<button
 							type="button"
 							className="dus-button is-primary"
-							disabled={save.isPending}
-							onClick={() => save.mutate(draft)}
+							disabled={save.isPending || draftBase === null || dirtySections.length === 0}
+							onClick={() => {
+								if (draftBase !== null) submitPatch(draftBase, draft);
+							}}
 						>
 							{save.isPending ? t("settings.saving") : t("settings.save")}
 						</button>
 						{save.isSuccess ? <span className="dus-save-state">{t("settings.saved")}</span> : null}
 					</div>
+					{save.error instanceof Error && conflictLatest === null ? (
+						<div className="dus-error-inline" role="alert">
+							{t("settings.patchFailed")}
+							<button type="button" className="dus-button is-small" onClick={loadConflictSnapshot}>
+								{t("settings.reload")}
+							</button>
+						</div>
+					) : null}
+					{conflictLatest === null ? null : (
+						<div className="dus-error-inline" role="alert">
+							<p>
+								{conflictSections.length === 0
+									? t("settings.conflictNoOverlap")
+									: t("settings.conflictFields", {
+											fields: conflictSections
+												.map((section) => t(`settings.section.${section}`))
+												.join(t("settings.conflictSeparator")),
+										})}
+							</p>
+							<button type="button" className="dus-button is-small is-primary" onClick={reapplyLocalChanges}>
+								{t("settings.keepLocal")}
+							</button>
+							<button type="button" className="dus-button is-small" onClick={() => applySavedSnapshot(conflictLatest)}>
+								{t("settings.useLatest")}
+							</button>
+						</div>
+					)}
 				</article>
 			) : null}
-			{activeSettingsTab === "accounts" ? <AccountsTab t={t} /> : null}
+			{activeSettingsTab === "accounts" ? <AccountsTab t={t} onStartConversation={close} /> : null}
 			{activeSettingsTab === "gateway" ? <GatewayTab t={t} /> : null}
-			{activeSettingsTab === "capabilities" ? <CapabilitiesTab t={t} /> : null}
+			{activeSettingsTab === "capabilities" ? (
+				<div className="dus-settings-stack" data-settings-tab="capabilities">
+					<CapabilitiesTab t={t} />
+					<CompatibilityPanel t={t} />
+				</div>
+			) : null}
 			{activeSettingsTab === "providers" ? (
 				<div className="dus-settings-stack" data-settings-tab="providers">
 					<ProviderManagement t={t} onOpenAccounts={() => openSettingsTab("accounts")} />

@@ -5,7 +5,7 @@
  * The server owns every secret; this panel only renders secret-free state.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
 	AccountSummary,
 	CodingOAuthProviderSlug,
@@ -34,6 +34,7 @@ import type { Translate } from "../../locales.js";
 import { useAccountsQuery } from "../../queries.js";
 import { QuotaBars } from "../AccountGrid.js";
 import { SettingsRow } from "../controls.js";
+import { OpenCodeGoConnectionCard } from "./OpenCodeGoConnectionCard.js";
 
 /** Usage Center account provider ids that back each OAuth card (GET snapshots only). */
 const OAUTH_QUOTA_PROVIDER_ID: Record<CodingOAuthProviderSlug, string> = {
@@ -45,6 +46,69 @@ const OAUTH_QUOTA_PROVIDER_ID: Record<CodingOAuthProviderSlug, string> = {
 };
 
 type ProviderStatus = GrokBuildWebAuthStatus | SubscriptionWebAuthStatus;
+type RecoveryKind = "reauthorize" | "storage" | "network" | "retry";
+
+function recoveryKind(error: unknown): RecoveryKind {
+	const message = error instanceof Error ? error.message : "";
+	const code =
+		error !== null && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "";
+	const value = `${code} ${message}`.toLowerCase();
+	if (
+		/invalid[ _-]?(token|grant|credential)|token[ _-]?expired|unauthori[sz]ed|forbidden|access[ _-]?denied|authorization[ _-]?denied/.test(
+			value,
+		)
+	) {
+		return "reauthorize";
+	}
+	if (
+		/atomic|writer|write[ _-]?lock|lock(?:ed)?|storage|database|sqlite|eacces|eperm|read-only|permission|rename|file system/.test(
+			value,
+		)
+	) {
+		return "storage";
+	}
+	if (/network|fetch|timeout|timed out|econn|enotfound|eai_again|socket|connection|offline/.test(value)) {
+		return "network";
+	}
+	return "retry";
+}
+
+function AuthRecoveryNotice({
+	error,
+	provider,
+	methods,
+	onRetryStatus,
+	t,
+}: {
+	readonly error: unknown;
+	readonly provider: CodingOAuthProviderSlug;
+	readonly methods: readonly { id: string; label: string }[];
+	readonly onRetryStatus: () => void;
+	readonly t: Translate;
+}) {
+	const login = useCodingOAuthLoginMutation();
+	const kind = recoveryKind(error);
+	const reauthorize = kind === "reauthorize";
+	return (
+		<div className="dus-error-inline" role="alert" data-oauth-recovery={kind}>
+			<p>{t(`oauth.recovery.${kind}`)}</p>
+			<button
+				type="button"
+				className="dus-button is-small"
+				disabled={login.isPending}
+				onClick={() => {
+					if (reauthorize && methods[0] !== undefined) {
+						login.mutate({ provider, method: methods[0].id, accountMode: "add" });
+						return;
+					}
+					onRetryStatus();
+				}}
+			>
+				{reauthorize ? t("oauth.recovery.reauthorizeAction") : t("oauth.recovery.retryAction")}
+			</button>
+		</div>
+	);
+}
 
 function statusLabel(t: Translate, status: ProviderStatus["status"]): string {
 	switch (status) {
@@ -87,11 +151,15 @@ function ModelPicker({
 	provider,
 	available,
 	selected,
+	methods,
+	onRetryStatus,
 	t,
 }: {
 	readonly provider: CodingOAuthProviderSlug;
 	readonly available: readonly string[];
 	readonly selected: readonly string[];
+	readonly methods: readonly { id: string; label: string }[];
+	readonly onRetryStatus: () => void;
 	readonly t: Translate;
 }) {
 	const save = useCodingOAuthModelsMutation();
@@ -130,6 +198,15 @@ function ModelPicker({
 					{save.isSuccess && !dirty ? <span className="dus-save-state">{t("oauth.modelsSaved")}</span> : null}
 				</div>
 			)}
+			{save.error instanceof Error ? (
+				<AuthRecoveryNotice
+					error={save.error}
+					provider={provider}
+					methods={methods}
+					onRetryStatus={onRetryStatus}
+					t={t}
+				/>
+			) : null}
 		</div>
 	);
 }
@@ -195,17 +272,32 @@ function AccountList({
 	accounts,
 	activeAccountId,
 	methods,
+	onRetryStatus,
 	t,
 }: {
 	readonly provider: CodingOAuthProviderSlug;
 	readonly accounts: readonly AccountSummary[];
 	readonly activeAccountId: string;
 	readonly methods: readonly { id: string; label: string }[];
+	readonly onRetryStatus: () => void;
 	readonly t: Translate;
 }) {
 	const setActive = useCodingOAuthSetActiveAccountMutation();
 	const remove = useCodingOAuthRemoveAccountMutation();
 	const login = useCodingOAuthLoginMutation();
+	const [removing, setRemoving] = useState<AccountSummary | null>(null);
+	const removeTrigger = useRef<HTMLButtonElement | null>(null);
+	const removeCancel = useRef<HTMLButtonElement>(null);
+	const restoreRemoveFocus = useRef(false);
+	useEffect(() => {
+		if (removing !== null) {
+			removeCancel.current?.focus();
+			return;
+		}
+		if (!restoreRemoveFocus.current) return;
+		restoreRemoveFocus.current = false;
+		removeTrigger.current?.focus();
+	}, [removing]);
 	const atCap = accounts.length >= OAUTH_MAX_ACCOUNTS;
 	const mutationError = [setActive.error, remove.error, login.error].find(
 		(value): value is Error => value instanceof Error,
@@ -213,6 +305,7 @@ function AccountList({
 	return (
 		<div className="dus-oauth-accounts">
 			<div className="dus-row-hint">{t("oauth.accountsListHint")}</div>
+			<div className="dus-row-hint">{t("oauth.accountDefaultHint")}</div>
 			<ul className="dus-oauth-account-list">
 				{accounts.map((account) => {
 					const isActive = account.id === activeAccountId;
@@ -238,7 +331,10 @@ function AccountList({
 									type="button"
 									className="dus-button is-danger"
 									disabled={remove.isPending}
-									onClick={() => remove.mutate({ provider, accountId: account.id })}
+									onClick={(event) => {
+										removeTrigger.current = event.currentTarget;
+										setRemoving(account);
+									}}
 								>
 									{t("oauth.accountRemove")}
 								</button>
@@ -247,6 +343,43 @@ function AccountList({
 					);
 				})}
 			</ul>
+			{removing === null ? null : (
+				<div className="dus-oauth-challenge" role="alert">
+					<p>{t("oauth.accountRemoveConfirm", { account: removing.label ?? removing.accountId ?? removing.id })}</p>
+					<div className="dus-inline-actions">
+						<button
+							type="button"
+							className="dus-button is-danger"
+							disabled={remove.isPending}
+							onClick={() =>
+								remove.mutate(
+									{ provider, accountId: removing.id },
+									{
+										onSuccess: () => {
+											restoreRemoveFocus.current = true;
+											setRemoving(null);
+										},
+									},
+								)
+							}
+						>
+							{t("oauth.accountRemoveConfirmAction")}
+						</button>
+						<button
+							ref={removeCancel}
+							type="button"
+							className="dus-button"
+							disabled={remove.isPending}
+							onClick={() => {
+								restoreRemoveFocus.current = true;
+								setRemoving(null);
+							}}
+						>
+							{t("oauth.importCancel")}
+						</button>
+					</div>
+				</div>
+			)}
 			{atCap ? (
 				<div className="dus-row-hint">{t("oauth.accountsAtCap", { max: OAUTH_MAX_ACCOUNTS })}</div>
 			) : (
@@ -265,9 +398,13 @@ function AccountList({
 				</div>
 			)}
 			{mutationError === undefined ? null : (
-				<p className="dus-error-inline" role="alert">
-					{mutationError.message}
-				</p>
+				<AuthRecoveryNotice
+					error={mutationError}
+					provider={provider}
+					methods={methods}
+					onRetryStatus={onRetryStatus}
+					t={t}
+				/>
 			)}
 		</div>
 	);
@@ -301,6 +438,7 @@ function ProviderCard({
 	methods,
 	source,
 	snapshots,
+	onRetryStatus,
 	t,
 }: {
 	readonly provider: CodingOAuthProviderSlug;
@@ -310,10 +448,24 @@ function ProviderCard({
 	readonly methods: readonly { id: string; label: string }[];
 	readonly source: OAuthSourceDiscovery | null;
 	readonly snapshots: readonly AccountSnapshot[];
+	readonly onRetryStatus: () => void;
 	readonly t: Translate;
 }) {
 	const login = useCodingOAuthLoginMutation();
 	const logout = useCodingOAuthLogoutMutation();
+	const [confirmLogout, setConfirmLogout] = useState(false);
+	const logoutTrigger = useRef<HTMLButtonElement>(null);
+	const logoutCancel = useRef<HTMLButtonElement>(null);
+	const restoreLogoutFocus = useRef(false);
+	useEffect(() => {
+		if (confirmLogout) {
+			logoutCancel.current?.focus();
+			return;
+		}
+		if (!restoreLogoutFocus.current) return;
+		restoreLogoutFocus.current = false;
+		logoutTrigger.current?.focus();
+	}, [confirmLogout]);
 	const [expanded, setExpanded] = useState(status.status === "signing-in");
 	useEffect(() => {
 		if (status.status === "signing-in") setExpanded(true);
@@ -337,14 +489,22 @@ function ProviderCard({
 				<div className="dus-oauth-card-body">
 					<p className="dus-row-hint">{note}</p>
 					{error === undefined ? null : (
-						<p className="dus-error-inline" role="alert">
-							{error.message}
-						</p>
+						<AuthRecoveryNotice
+							error={error}
+							provider={provider}
+							methods={methods}
+							onRetryStatus={onRetryStatus}
+							t={t}
+						/>
 					)}
 					{status.status === "error" ? (
-						<p className="dus-error-inline" role="alert">
-							{status.message}
-						</p>
+						<AuthRecoveryNotice
+							error={new Error(status.message)}
+							provider={provider}
+							methods={methods}
+							onRetryStatus={onRetryStatus}
+							t={t}
+						/>
 					) : null}
 					{status.status === "signed-out" || status.status === "error" ? (
 						<div className="dus-inline-actions">
@@ -371,19 +531,63 @@ function ProviderCard({
 								accounts={status.accounts}
 								activeAccountId={status.activeAccountId}
 								methods={methods}
+								onRetryStatus={onRetryStatus}
 								t={t}
 							/>
-							<ModelPicker provider={provider} available={status.available} selected={status.selected} t={t} />
-							<div className="dus-inline-actions">
-								<button
-									type="button"
-									className="dus-button is-danger"
-									disabled={logout.isPending}
-									onClick={() => logout.mutate(provider)}
-								>
-									{t("oauth.logout")}
-								</button>
-							</div>
+							<ModelPicker
+								provider={provider}
+								available={status.available}
+								selected={status.selected}
+								methods={methods}
+								onRetryStatus={onRetryStatus}
+								t={t}
+							/>
+							{confirmLogout ? (
+								<div className="dus-oauth-challenge" role="alert">
+									<p>{t("oauth.logoutConfirmHint")}</p>
+									<div className="dus-inline-actions">
+										<button
+											type="button"
+											className="dus-button is-danger"
+											disabled={logout.isPending}
+											onClick={() =>
+												logout.mutate(provider, {
+													onSuccess: () => {
+														restoreLogoutFocus.current = true;
+														setConfirmLogout(false);
+													},
+												})
+											}
+										>
+											{t("oauth.logoutConfirmAction")}
+										</button>
+										<button
+											ref={logoutCancel}
+											type="button"
+											className="dus-button"
+											disabled={logout.isPending}
+											onClick={() => {
+												restoreLogoutFocus.current = true;
+												setConfirmLogout(false);
+											}}
+										>
+											{t("oauth.importCancel")}
+										</button>
+									</div>
+								</div>
+							) : (
+								<div className="dus-inline-actions">
+									<button
+										ref={logoutTrigger}
+										type="button"
+										className="dus-button is-danger"
+										disabled={logout.isPending}
+										onClick={() => setConfirmLogout(true)}
+									>
+										{t("oauth.logout")}
+									</button>
+								</div>
+							)}
 						</>
 					) : null}
 					{source === null ? null : (
@@ -527,25 +731,33 @@ function CliPullRow({
 	);
 }
 
-export function AccountsTab({ t }: { readonly t: Translate }) {
+export function AccountsTab({
+	t,
+	onStartConversation = () => undefined,
+}: {
+	readonly t: Translate;
+	readonly onStartConversation?: () => void;
+}) {
 	const status = useCodingOAuthStatusQuery();
 	const sources = useOAuthSourcesQuery();
 	const accounts = useAccountsQuery(true);
 	const data = status.data ?? null;
 	const sourceByKind = new Map((sources.data?.sources ?? []).map((source) => [source.kind, source]));
 	const snapshots = accounts.data?.ok === true ? accounts.data.data.accounts : [];
+	const retryStatus = (): void => {
+		void status.refetch();
+	};
 	return (
 		<div className="dus-settings-stack" data-settings-tab="accounts">
 			<p className="dus-settings-hint">{t("oauth.accountsIntro")}</p>
 			{status.error instanceof Error ? (
-				<p className="dus-error-inline" role="alert">
-					{status.error.message}
-				</p>
+				<AuthRecoveryNotice error={status.error} provider="grok" methods={[]} onRetryStatus={retryStatus} t={t} />
 			) : null}
 			{data === null ? (
 				<div className="dus-chart-empty">{t("dashboard.loading")}</div>
 			) : (
 				<>
+					<OpenCodeGoConnectionCard t={t} onStartConversation={onStartConversation} />
 					<ProviderCard
 						provider="grok"
 						title="Grok Build (SuperGrok / X Premium)"
@@ -557,6 +769,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 						]}
 						source={sourceByKind.get("grok") ?? null}
 						snapshots={snapshots}
+						onRetryStatus={retryStatus}
 						t={t}
 					/>
 					{(["codex", "kimi", "claude"] as const).map((slug) => {
@@ -574,6 +787,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 								}))}
 								source={sourceByKind.get(slug) ?? null}
 								snapshots={snapshots}
+								onRetryStatus={retryStatus}
 								t={t}
 							/>
 						);
@@ -590,6 +804,7 @@ export function AccountsTab({ t }: { readonly t: Translate }) {
 							}))}
 							source={null}
 							snapshots={snapshots}
+							onRetryStatus={retryStatus}
 							t={t}
 						/>
 					) : null}
