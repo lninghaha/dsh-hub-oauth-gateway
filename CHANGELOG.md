@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.0
+
 ### Added
 
 - Opt-in **OpenCode Go** chat compatibility on the local gateway (`codingOAuth.gateway.opencodeGo.enabled`, default off): when enabled, `POST /v1/chat/completions` is forwarded to pinned `https://opencode.ai/zen/go/v1/chat/completions` with a sticky `x-opencode-session`, so clients that omit OpenCode session affinity (for example DSH / pi-ai style callers that hit `MissingSessionID`) can still chat through the loopback gateway. Toggle from the Gateway tab, YAML, or `PATCH` `{ "opencodeGoEnabled": true }`; set the gateway Bearer key to your OpenCode API key. No restart required.

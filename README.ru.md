@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.12.0** · ранее `dsh-usage-stats`
+**v1.13.0** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.12.0` and Subscription `0.7.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.0` and Subscription `0.8.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
