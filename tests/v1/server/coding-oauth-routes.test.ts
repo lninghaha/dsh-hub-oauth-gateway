@@ -303,7 +303,13 @@ describe("coding OAuth gateway routes", () => {
 	it("reports the disabled default status without a key leak", async () => {
 		const { status, payload } = await callRoute(mock, GATEWAY_SETTINGS_PATH, "GET");
 		expect(status).toBe(200);
-		expect(payload).toMatchObject({ enabled: false, running: false, bind: "127.0.0.1", port: 18_199 });
+		expect(payload).toMatchObject({
+			enabled: false,
+			running: false,
+			bind: "127.0.0.1",
+			port: 18_199,
+			opencodeGoEnabled: false,
+		});
 		expect(JSON.stringify(payload)).not.toContain("apiKey");
 	});
 
@@ -319,6 +325,19 @@ describe("coding OAuth gateway routes", () => {
 
 		const floatPort = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { port: 18080.5 });
 		expect(floatPort.status).toBe(400);
+	});
+
+	it("accepts opencodeGoEnabled on PATCH and echoes it in status", async () => {
+		const bad = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: "yes" });
+		expect(bad.status).toBe(400);
+
+		const enabled = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: true });
+		expect(enabled.status).toBe(200);
+		expect(enabled.payload).toMatchObject({ opencodeGoEnabled: true });
+
+		const disabled = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: false });
+		expect(disabled.status).toBe(200);
+		expect(disabled.payload).toMatchObject({ opencodeGoEnabled: false });
 	});
 
 	it("persists a port change and reveals/rotates the key with a fresh hint", async () => {

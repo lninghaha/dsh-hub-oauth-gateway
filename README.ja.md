@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.12.0** · 旧称 `dsh-usage-stats`
+**v1.13.0** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.12.0` and Subscription `0.7.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.0` and Subscription `0.8.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -49,6 +49,7 @@
 - **CSV / JSON エクスポート** — フィルタ、日次、または bundle レイアウト；オプションのセッション秘匿；スプレッドシートインジェクション防御。
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **オプションのループバック API ゲートウェイ** — デフォルト off の OpenAI/Anthropic 互換サーバー、自分のツール向け。
+- **オプトインの OpenCode Go 互換** — ゲートウェイが OpenCode Go へチャットをプロキシし、sticky な `x-opencode-session` を注入（クライアントがセッション親和性を送らない場合の `MissingSessionID` を回避）；デフォルト off。
 - **オプション機能** — Codex search / images / usage / Fast と Grok Imagine はデフォルト off；ライブ適用。
 - **オプトインのローカルモニター** — 読み取り専用 CLI 認証スナップショットとクロスツール token スキャン（会話内容は読み取りません）。
 - **二言語 UI** — DSH locale サービス経由の中国語と英語。
@@ -91,6 +92,7 @@ DeepSeek Harness Web に本プラグインを入れた状態で撮影（新規�
 | DSH で SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro を追加 API 請求なしで | 組み込みルートは多くが従量 API key | ローカル OAuth ルートが既存 API-key プロバイダーと共存 |
 | `本轮运行失败` **API key is invalid** / `AUTH` ターン途中 | GUI がすべての `AUTH` をそのバナーにマップ；OAuth access token は期限切れ | コーディング OAuth ルートで proactive refresh と AUTH 対応リトライ |
 | サブスクリプションセッション向け OpenAI/Anthropic 互換ツール | 安全なローカルブリッジがない | オプトインのループバックゲートウェイ（公開リレーではない） |
+| OpenCode Go チャットが `MissingSessionID` / `x-opencode-session` 欠如で失敗 | クライアントが sticky セッションヘッダを送らない | オプトインのゲートウェイ OpenCode Go プロキシが sticky `x-opencode-session` を注入 |
 | Token Monitor 風 CLI 状態を秘密貼り付けなしで | 手動ファイル探索またはチャット貼り付け | オプトイン localMonitor / localUsage、硬化 allowlist パス |
 
 ## クイックスタート
@@ -168,6 +170,8 @@ allowlist 内の公式 CLI OAuth ファイルは読み取り専用で発見。�
 ## ローカル API ゲートウェイ
 
 デフォルト **off**。有効時、独立した `node:http` リスナー（DSH web ポートではない）がループバックで `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages` を提供し、サインイン済み OAuth セッションを再利用。bind は YAML のみ；非ループバック bind には Bearer key が必要。リモートリレーではありません。詳細：[`docs/01-install.md`](docs/01-install.md)。
+
+オプションの **OpenCode Go 互換**（`codingOAuth.gateway.opencodeGo.enabled`、デフォルト off）は Gateway タブでも切り替えられます。オンにすると `POST /v1/chat/completions` を固定の `https://opencode.ai/zen/go/v1/chat/completions` へ転送し、sticky な `x-opencode-session` を注入します。OpenCode のセッション親和性を送らないクライアント（さもなければ `MissingSessionID`）でも、このループバックゲートウェイ経由で会話できます。セッション id 優先順：`x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → 生成 UUID。そのモードではゲートウェイ Bearer key を OpenCode API key にしてください。再起動は不要です。
 
 ## オプション機能
 

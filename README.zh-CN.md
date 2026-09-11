@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.12.0** · 原名 `dsh-usage-stats`
+**v1.13.0** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.12.0` 与 Subscription `0.7.0` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.13.0` 与 Subscription `0.8.0` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
 
 ---
 
@@ -49,6 +49,7 @@
 - **CSV / JSON 导出** —— 过滤、日序列或打包；可选会话脱敏；电子表格公式注入防护。
 - **编码订阅 OAuth** —— Grok Build、Codex、Kimi Code、Claude Code（设备码 / 浏览器 / PKCE 粘贴）；配置 `oauthDevice.copilotClientId` 后可选 GitHub Copilot LLM 路由；多账号存储（最多 8）与可选 `codingOAuth.pool`（`off` | `priority` | `quota_aware`）；Claude Code 导入走 **Import Claude Code**（macOS Keychain `Claude Code-credentials` 或文件回退；preview → commit；覆盖仍需确认）；模型标注 `(OAuth)`；单向 CLI 凭据拉取。
 - **可选回环 API 网关** —— 默认关闭的 OpenAI/Anthropic 兼容服务，仅供本机工具。
+- **可选兼容 OpenCode Go** —— 网关可将聊天请求代理到 OpenCode Go，并注入粘性 `x-opencode-session`（客户端未带会话粘性时避免 `MissingSessionID`）；默认关闭。
 - **可选能力** —— Codex 搜索 / 图像 / 用量 / Fast 与 Grok Imagine 默认关闭，打开后立即生效。
 - **可选本机监控** —— 只读 CLI 认证快照与跨工具 Token 扫描（从不读取对话内容）。
 - **可选供应商状态页探测** —— 白名单公开 Statuspage GET（默认关；无凭据；与用量主路径隔离）。
@@ -92,6 +93,7 @@
 | 想在 DSH 用 SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro，又不想再买 API | 内置路由多为按量 API-key | 本地 OAuth 路由与现有 API-key 供应商共存 |
 | `本轮运行失败` **API key is invalid** / `AUTH` | GUI 把所有 `AUTH` 都显示成这句；OAuth access token 会过期 | 编码 OAuth 路由主动刷新并对 AUTH 重试 |
 | 想用 OpenAI/Anthropic 兼容工具对接订阅会话 | 没有安全的本机桥 | 可选回环网关（不是公网中继） |
+| OpenCode Go 聊天报 `MissingSessionID` / 缺少 `x-opencode-session` | 客户端不发送粘性会话头 | 可选网关 OpenCode Go 代理注入粘性 `x-opencode-session` |
 | 想要 Token Monitor 风格的 CLI 状态，又不想贴密钥 | 手工翻文件或粘贴到聊天 | 可选 localMonitor / localUsage，硬化白名单路径 |
 
 ## 快速开始
@@ -177,6 +179,8 @@ GitHub Copilot LLM 路由（`github-copilot-oauth`）在配置 `oauthDevice.copi
 ## 本地 API 网关
 
 默认**关闭**。启用后在独立 `node:http` 监听器（非 DSH web 端口）上提供 `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages`，复用已登录 OAuth 会话。bind 仅 YAML；非回环 bind 必须有 Bearer key。不是远程中继。细节见 [`docs/01-install.md`](docs/01-install.md)。
+
+可选 **OpenCode Go** 兼容（`codingOAuth.gateway.opencodeGo.enabled`，默认关）也可在 Gateway 标签页打开：开启后 `POST /v1/chat/completions` 会转发到固定的 `https://opencode.ai/zen/go/v1/chat/completions`，并注入粘性 `x-opencode-session`，让未带 OpenCode 会话粘性的客户端（否则常见 `MissingSessionID`）仍可通过本机回环网关聊天。会话 id 优先级：`x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → 生成 UUID。此时请把网关 Bearer key 设为你的 OpenCode API key；无需重启即可切换。
 
 ## 可选能力
 

@@ -171,12 +171,14 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 	const rotate = useGatewayRotateMutation();
 	const [portDraft, setPortDraft] = useState<string | null>(null);
 	const [confirmRotate, setConfirmRotate] = useState(false);
-	const [lastPatch, setLastPatch] = useState<{ enabled?: boolean; port?: number } | null>(null);
+	const [lastPatch, setLastPatch] = useState<{ enabled?: boolean; port?: number; opencodeGoEnabled?: boolean } | null>(
+		null,
+	);
 	const data = status.data ?? null;
 	const portValue = portDraft ?? (data === null ? "" : String(data.port));
 	const portNumber = Number(portValue);
 	const portValid = Number.isInteger(portNumber) && portNumber >= 1024 && portNumber <= 65_535;
-	const runPatch = (next: { enabled?: boolean; port?: number }): void => {
+	const runPatch = (next: { enabled?: boolean; port?: number; opencodeGoEnabled?: boolean }): void => {
 		setLastPatch(next);
 		patch.mutate(next, {
 			onSuccess: () => {
@@ -213,6 +215,18 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 								checked={data.enabled}
 								disabled={patch.isPending}
 								onChange={(enabled) => runPatch({ enabled })}
+							/>
+						}
+					/>
+					<SettingsRow
+						title={t("gateway.opencodeGoEnabled")}
+						hint={t("gateway.opencodeGoHint")}
+						control={
+							<Toggle
+								label={t("gateway.opencodeGoEnabled")}
+								checked={data.opencodeGoEnabled}
+								disabled={patch.isPending || !data.enabled}
+								onChange={(opencodeGoEnabled) => runPatch({ opencodeGoEnabled })}
 							/>
 						}
 					/>

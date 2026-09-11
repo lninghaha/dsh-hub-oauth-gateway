@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.12.0** · ранее `dsh-usage-stats`
+**v1.13.0** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.12.0` and Subscription `0.7.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.0` and Subscription `0.8.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -49,6 +49,7 @@
 - **Экспорт CSV / JSON** — фильтрованный, дневной или bundle-формат; опциональное редактирование session; защита от injection в электронные таблицы.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Опциональный loopback API-шлюз** — по умолчанию выключен OpenAI/Anthropic-совместимый сервер для ваших инструментов.
+- **Опциональная совместимость с OpenCode Go** — шлюз может проксировать chat completions в OpenCode Go и вставлять sticky `x-opencode-session` (избегает `MissingSessionID`, если клиент не шлёт session affinity); по умолчанию выкл.
 - **Опциональные возможности** — Codex search / images / usage / Fast и Grok Imagine по умолчанию выключены; применяются сразу.
 - **Опциональный локальный монитор** — снимки auth CLI только для чтения и сканирование токенов между инструментами (никогда не содержимое разговоров).
 - **Двуязычный UI** — китайский и английский через сервисы locale DSH.
@@ -91,6 +92,7 @@
 | SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro в DSH без отдельного API-счёта | Встроенные маршруты часто используют pay-as-you-go API keys | Локальные OAuth-маршруты сосуществуют с существующими API-key провайдерами |
 | `本轮运行失败` **API key is invalid** / `AUTH` посреди turn | GUI отображает каждый `AUTH` этим баннером; OAuth access tokens истекают | Проактивное обновление и AUTH-aware retry на coding OAuth маршрутах |
 | Нужны OpenAI/Anthropic-совместимые инструменты для subscription-сессий | Нет безопасного локального моста | Опциональный loopback-шлюз (не публичный relay) |
+| Чат OpenCode Go падает с `MissingSessionID` / без `x-opencode-session` | Клиенты не шлют sticky session-заголовки | Opt-in прокси OpenCode Go на шлюзе вставляет sticky `x-opencode-session` |
 | Статус CLI в стиле Token Monitor без вставки секретов | Ручной просмотр файлов или вставка в чат | Опциональные localMonitor / localUsage на жёстко заданных allowlisted путях |
 
 ## Быстрый старт
@@ -168,6 +170,8 @@ Allowlisted официальные CLI OAuth-файлы обнаруживают
 ## Локальный API-шлюз
 
 По умолчанию **выключен**. При включении изолированный `node:http` listener (не порт DSH web) обслуживает `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` и `POST /v1/messages` на loopback, переиспользуя вошедшие OAuth-сессии. Bind только через YAML; non-loopback bind требует Bearer key. Это не remote relay. Подробности: [`docs/01-install.md`](docs/01-install.md).
+
+Опциональная **совместимость с OpenCode Go** (`codingOAuth.gateway.opencodeGo.enabled`, по умолчанию выкл.) также включается на вкладке Gateway. Когда включено, `POST /v1/chat/completions` уходит на зафиксированный `https://opencode.ai/zen/go/v1/chat/completions` со sticky `x-opencode-session`, чтобы клиенты без session affinity OpenCode (иначе часто `MissingSessionID`) могли работать через этот loopback-шлюз. Приоритет session id: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → сгенерированный UUID. Bearer key шлюза должен быть вашим OpenCode API key; переключение без перезапуска.
 
 ## Дополнительные возможности
 

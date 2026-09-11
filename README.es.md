@@ -3,7 +3,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.12.0** · anteriormente `dsh-usage-stats`
+**v1.13.0** · anteriormente `dsh-usage-stats`
 
 **Centro de uso local-first para [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, coste estimado, saldos de cuenta, cuotas de suscripción, tendencias, previsiones, alertas y exportaciones — más OAuth de suscripciones de coding (Grok Build, Codex, Kimi Code, Claude Code), una puerta de enlace API loopback opcional y monitorización local opt-in de auth/uso. **No pegues tokens en el chat.**
 
@@ -17,7 +17,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.12.0` and Subscription `0.7.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.0` and Subscription `0.8.0` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -49,6 +49,7 @@ Historial de releases en [`CHANGELOG.md`](CHANGELOG.md).
 - **Exportación CSV / JSON** — diseños filtrados, diarios o bundle; redacción opcional de sesión; defensa contra inyección en hojas de cálculo.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Puerta de enlace API loopback opcional** — servidor compatible OpenAI/Anthropic apagado por defecto para tus propias herramientas.
+- **Compatibilidad opt-in con OpenCode Go** — la puerta de enlace puede proxyar chat completions a OpenCode Go e inyectar `x-opencode-session` sticky (evita `MissingSessionID` si el cliente omite afinidad de sesión); apagado por defecto.
 - **Capacidades opcionales** — Codex search / images / usage / Fast y Grok Imagine apagados por defecto; aplican en vivo.
 - **Monitor local opt-in** — snapshots read-only de auth CLI y escaneos cross-tool de tokens (nunca contenido de conversación).
 - **UI bilingüe** — chino e inglés mediante servicios de locale de DSH.
@@ -91,6 +92,7 @@ Capturado en DeepSeek Harness Web con este plugin instalado (un historial local 
 | SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro en DSH sin otra factura de API | Las rutas integradas suelen ser pay-as-you-go con API keys | Rutas OAuth locales coexisten con providers API-key existentes |
 | `本轮运行失败` **API key is invalid** / `AUTH` a mitad de turn | La GUI mapea todo `AUTH` a ese banner; los access tokens OAuth expiran | Refresh proactivo y reintento consciente de AUTH en rutas coding OAuth |
 | Quieres herramientas compatibles OpenAI/Anthropic contra sesiones de suscripción | Sin puente local seguro | Puerta de enlace loopback opt-in (no es relay remoto) |
+| El chat de OpenCode Go falla con `MissingSessionID` / falta `x-opencode-session` | Los clientes no envían cabeceras sticky de sesión | El proxy opt-in OpenCode Go del gateway inyecta `x-opencode-session` sticky |
 | Estado CLI estilo Token Monitor sin pegar secretos | Escarbar archivos manualmente o pegar en el chat | localMonitor / localUsage opt-in en rutas allowlisted hardened |
 
 ## Inicio rápido
@@ -168,6 +170,8 @@ Archivos OAuth oficiales de CLI en allowlist se descubren read-only. La sync es 
 ## Puerta de enlace API local
 
 **Apagada** por defecto. Cuando está habilitada, un listener `node:http` aislado (no el puerto web de DSH) sirve `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` y `POST /v1/messages` en loopback, reutilizando sesiones OAuth iniciadas. bind solo vía YAML; bind no-loopback requiere Bearer key. No es relay remoto. Detalles: [`docs/01-install.md`](docs/01-install.md).
+
+La **compatibilidad opt-in con OpenCode Go** (`codingOAuth.gateway.opencodeGo.enabled`, apagada por defecto) también se puede activar en la pestaña Gateway. Cuando está on, `POST /v1/chat/completions` se reenvía a `https://opencode.ai/zen/go/v1/chat/completions` fijado con `x-opencode-session` sticky, para que los clientes que omiten la afinidad de sesión de OpenCode (y verían `MissingSessionID`) sigan funcionando por esta puerta de enlace loopback. Preferencia de session id: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → UUID generado. Pon la Bearer key del gateway como tu OpenCode API key; el interruptor no requiere reinicio.
 
 ## Capacidades opcionales
 

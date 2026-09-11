@@ -20,6 +20,7 @@ export interface GatewayKeyDocument {
 	apiKey: string;
 	enabled?: boolean;
 	port?: number;
+	opencodeGoEnabled?: boolean;
 }
 
 export function gatewayKeyPath(dshHome?: string): string {
@@ -62,6 +63,7 @@ export async function loadGatewayKeyDocument(path: string): Promise<GatewayKeyDo
 			apiKey: document.apiKey,
 			...(typeof document.enabled === "boolean" ? { enabled: document.enabled } : {}),
 			...(typeof port === "number" && Number.isSafeInteger(port) && port >= 1024 && port <= 65_535 ? { port } : {}),
+			...(typeof document.opencodeGoEnabled === "boolean" ? { opencodeGoEnabled: document.opencodeGoEnabled } : {}),
 		};
 	} catch (error) {
 		if (error instanceof OAuthSourceError && error.code === "not_found") return undefined;
@@ -77,6 +79,7 @@ export async function loadOrCreateGatewayApiKey(path: string, configured?: strin
 			apiKey: configured,
 			...(existing?.enabled === undefined ? {} : { enabled: existing.enabled }),
 			...(existing?.port === undefined ? {} : { port: existing.port }),
+			...(existing?.opencodeGoEnabled === undefined ? {} : { opencodeGoEnabled: existing.opencodeGoEnabled }),
 		});
 		return configured;
 	}
@@ -93,6 +96,7 @@ export async function persistGatewayApiKey(path: string, apiKey: string): Promis
 		apiKey,
 		...(existing?.enabled === undefined ? {} : { enabled: existing.enabled }),
 		...(existing?.port === undefined ? {} : { port: existing.port }),
+		...(existing?.opencodeGoEnabled === undefined ? {} : { opencodeGoEnabled: existing.opencodeGoEnabled }),
 	});
 }
 

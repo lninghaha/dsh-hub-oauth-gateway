@@ -543,6 +543,7 @@ export declare const GatewayPublicStatusSchema: z.ZodObject<{
     keyConfigured: z.ZodBoolean;
     keyHint: z.ZodString;
     warning: z.ZodString;
+    opencodeGoEnabled: z.ZodBoolean;
 }, z.core.$strip>;
 export type GatewayPublicStatus = z.infer<typeof GatewayPublicStatusSchema>;
 export declare const GatewayKeyRevealSchema: z.ZodObject<{

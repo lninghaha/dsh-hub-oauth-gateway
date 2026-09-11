@@ -48,6 +48,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             port: z.ZodDefault<z.ZodNumber>;
             apiKey: z.ZodOptional<z.ZodString>;
             rateLimit: z.ZodDefault<z.ZodNumber>;
+            opencodeGo: z.ZodDefault<z.ZodObject<{
+                enabled: z.ZodDefault<z.ZodBoolean>;
+            }, z.core.$strict>>;
         }, z.core.$strict>>;
         ownerRequest: z.ZodOptional<z.ZodObject<{
             loopbackAccessMode: z.ZodOptional<z.ZodEnum<{
@@ -132,6 +135,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             bind: string;
             port: number;
             rateLimit: number;
+            opencodeGo: {
+                enabled: boolean;
+            };
             apiKey?: string | undefined;
         } | undefined;
         ownerRequest?: {
@@ -205,6 +211,9 @@ export declare const RuntimeConfigSchema: z.ZodPreprocess<z.ZodPipe<z.ZodObject<
             bind: string;
             port: number;
             rateLimit: number;
+            opencodeGo: {
+                enabled: boolean;
+            };
             apiKey?: string | undefined;
         } | undefined;
         ownerRequest?: {

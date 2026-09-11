@@ -51,6 +51,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             port: import("zod").ZodDefault<import("zod").ZodNumber>;
             apiKey: import("zod").ZodOptional<import("zod").ZodString>;
             rateLimit: import("zod").ZodDefault<import("zod").ZodNumber>;
+            opencodeGo: import("zod").ZodDefault<import("zod").ZodObject<{
+                enabled: import("zod").ZodDefault<import("zod").ZodBoolean>;
+            }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>>;
         ownerRequest: import("zod").ZodOptional<import("zod").ZodObject<{
             loopbackAccessMode: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -135,6 +138,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             bind: string;
             port: number;
             rateLimit: number;
+            opencodeGo: {
+                enabled: boolean;
+            };
             apiKey?: string | undefined;
         } | undefined;
         ownerRequest?: {
@@ -208,6 +214,9 @@ export declare const Config: import("zod").ZodPreprocess<import("zod").ZodPipe<i
             bind: string;
             port: number;
             rateLimit: number;
+            opencodeGo: {
+                enabled: boolean;
+            };
             apiKey?: string | undefined;
         } | undefined;
         ownerRequest?: {
