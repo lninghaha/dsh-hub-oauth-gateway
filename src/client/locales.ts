@@ -55,6 +55,7 @@ export const zh = {
 	"alert.dailyCost": "今日估算成本（{currency}）",
 	"accounts.emptyGuide": "尚未发现可监控账户。可在设置 → 订阅账号中登录或添加凭据。",
 	"accounts.configure": "前往配置账户",
+	"accounts.manage": "管理订阅账号",
 	"accounts.roiBadge": "订阅 {monthly} · 本月用量 {usage} · 回本 ×{payback}",
 	"breakdown.priced": "{value}% 已定价",
 	"pricing.providerPattern": "供应商模式",
@@ -563,6 +564,7 @@ export const en = {
 	"accounts.emptyGuide":
 		"No monitorable accounts yet. Sign in or add credentials under Settings → Subscription accounts.",
 	"accounts.configure": "Configure accounts",
+	"accounts.manage": "Manage subscription accounts",
 	"accounts.roiBadge": "Plan {monthly} · usage {usage} · payback ×{payback}",
 	"breakdown.priced": "{value}% priced",
 	"pricing.providerPattern": "Provider pattern",

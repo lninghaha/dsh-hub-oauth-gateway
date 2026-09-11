@@ -2,8 +2,9 @@ import { Modal } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { OverviewData, UsageAlert } from "../../shared/contracts.js";
-import type { UsageMetric } from "../../shared/domain.js";
+import type { AccountSnapshot, UsageMetric } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
+import type { AccountFeeRecord } from "../../shared/fees.js";
 import { type DashboardModuleId, defaultUserPreferences, effectiveModules } from "../../shared/preferences.js";
 import { UsageStatsApiError } from "../api.js";
 import { usageUiController, useUsageUi } from "../controller.js";
@@ -34,6 +35,7 @@ import {
 	resolveUsageQuery,
 } from "../range.js";
 import { AccountGrid } from "./AccountGrid.js";
+import { AccountsDashboardSection } from "./AccountsDashboardSection.js";
 import { ActivityHeatmap } from "./ActivityHeatmap.js";
 import { BreakdownTable } from "./BreakdownTable.js";
 import { DashboardSkeleton } from "./DashboardSkeleton.js";
@@ -479,20 +481,18 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 				);
 			case "accounts":
 				return (
-					<section className="dus-section dus-accounts-section" key="accounts">
-						<h3 className="dus-section-title">{t("accounts.title")}</h3>
-						<AccountGrid
-							accounts={accountData}
-							emptyLabel={t("accounts.emptyGuide")}
-							onConfigureAccounts={openAccountsSettings}
-							selectedProviderId={selectedProvider}
-							onSelect={setProvider}
-							fees={feeRecords}
-							monthEstimatedCost={monthCostAmount}
-							baseCurrency={preferences.display.baseCurrency}
-							t={t}
-						/>
-					</section>
+					<AccountsDashboardSection
+						key="accounts"
+						accounts={accountData}
+						emptyLabel={t("accounts.emptyGuide")}
+						onConfigureAccounts={openAccountsSettings}
+						selectedProviderId={selectedProvider}
+						onSelect={setProvider}
+						fees={feeRecords}
+						monthEstimatedCost={monthCostAmount}
+						baseCurrency={preferences.display.baseCurrency}
+						t={t}
+					/>
 				);
 			case "local":
 				return <LocalMonitorSection t={t} key="local" />;
@@ -691,3 +691,5 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 		</div>
 	);
 }
+
+export { AccountsDashboardSection };

@@ -7,6 +7,12 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.1
+
+### Added
+
+- Persistent "Manage subscription accounts" (管理订阅账号) entry button in Usage Overlay's Accounts tab header, ensuring users can always jump directly to Settings → Subscription accounts (`accounts` tab) even when accounts are already populated.
+
 ## 1.13.0
 
 ### Added
