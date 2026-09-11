@@ -139,7 +139,7 @@ codingOAuth:
 
 ## Local API gateway
 
-Default off. Enabling starts an isolated loopback `node:http` server (separate from the DSH web port). Optional `codingOAuth.gateway.opencodeGo.enabled` (also on the Gateway tab, default off) forwards `POST /v1/chat/completions` to pinned `https://opencode.ai/zen/go/v1/chat/completions` with sticky `x-opencode-session`; set the gateway Bearer key to your OpenCode API key for that mode:
+Default off. Enabling starts an isolated loopback `node:http` server (separate from the DSH web port):
 
 ```yaml
 codingOAuth:
@@ -147,7 +147,11 @@ codingOAuth:
     enabled: true
     bind: 127.0.0.1
     port: 18080
+    opencodeGo:
+      enabled: false
 ```
+
+Optional **OpenCode Go** compatibility (`codingOAuth.gateway.opencodeGo.enabled`, also on the Gateway tab, default off): when on, `POST /v1/chat/completions` is forwarded to pinned `https://opencode.ai/zen/go/v1/chat/completions` with sticky `x-opencode-session`, so clients that omit OpenCode session affinity (and would otherwise see `MissingSessionID`) keep working through this loopback gateway. Session id preference: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → generated UUID. Set the gateway Bearer key to your OpenCode API key for that mode; no restart required.
 
 Or use **Settings → Gateway**. Endpoints: `/healthz`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/v1/messages`. Bearer key lives in an owner-only gateway document (`0600`). Bind is YAML-only; non-loopback bind requires a key. Not a public relay.
 
