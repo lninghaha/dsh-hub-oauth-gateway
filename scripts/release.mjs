@@ -137,6 +137,8 @@ const expectedAllowlist = [
 	".github/CODE_OF_CONDUCT.md",
 	".github/SECURITY.md",
 	"docs/00-project-rules.md",
+	"docs/repair-candidate.md",
+	"docs/repair-verification.md",
 	"docs/01-install.md",
 	"docs/oauth-provenance.md",
 	"docs/02-architecture.md",
