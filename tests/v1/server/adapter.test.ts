@@ -68,6 +68,10 @@ describe("createCodingOAuthAdapter", () => {
 				requestImagePixelBudget: 2048 * 2048,
 				requestImageMaxBytes: 1024 * 1024,
 			});
+			// DSH 0.1.5 reads this map during resolveModel; absence throws on .get.
+			const modelErrors = (profile as { modelErrors?: Map<string, string> }).modelErrors;
+			expect(modelErrors).toBeInstanceOf(Map);
+			expect((modelErrors as Map<string, string>).get("missing-example-model")).toBeUndefined();
 		}
 
 		const auth = inner.config.auth as {
@@ -100,11 +104,19 @@ describe("createCodingOAuthAdapter", () => {
 		const grokOnly = createGrokBuildAdapter(grok, () => undefined) as unknown as {
 			config: { profiles(): ReadonlyMap<string, unknown> };
 		};
-		expect(grokOnly.config.profiles().get(GROK_BUILD_ROUTE)).toMatchObject({
+		const grokProfile = grokOnly.config.profiles().get(GROK_BUILD_ROUTE) as {
+			maxRequestImageBytes: number;
+			requestImagePixelBudget: number;
+			requestImageMaxBytes: number;
+			modelErrors?: Map<string, string>;
+		};
+		expect(grokProfile).toMatchObject({
 			maxRequestImageBytes: 20 * 1024 * 1024,
 			requestImagePixelBudget: 2048 * 2048,
 			requestImageMaxBytes: 1024 * 1024,
 		});
+		expect(grokProfile.modelErrors).toBeInstanceOf(Map);
+		expect((grokProfile.modelErrors as Map<string, string>).get("missing-example-model")).toBeUndefined();
 	});
 
 	it("uses five retries with exponential delays capped at 80 seconds", async () => {

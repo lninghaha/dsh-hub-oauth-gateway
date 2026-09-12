@@ -14,6 +14,10 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 - 整合账户入口与高级能力，修正用量空状态；外部网关采用前缀路由、独立上游凭据和迁移预览。
 - [使用、迁移、回退和验证边界](docs/repair-candidate.md)。
 
+### Fixed
+
+- 初始化 coding-OAuth provider 的 `modelErrors`，避免 DSH 0.1.5 在模型解析阶段对缺失的 map 调用 `.get`。
+
 ## 1.13.1
 
 ### Added
@@ -29,7 +33,6 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 ### Documentation
 
 - Document OpenCode Go compatibility in README locales, install/configuration, and architecture notes (session header priority, default-off behavior, and that this is not a public relay).
-
 ## 1.12.0
 
 ### Added

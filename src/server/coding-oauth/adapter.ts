@@ -139,7 +139,7 @@ function profile(
 	piProvider: ResolvedPiAiProviderProfile["piProvider"],
 	retryPolicy?: RetryPolicyConfig | undefined,
 	headers?: Record<string, string> | undefined,
-): ResolvedPiAiProviderProfile {
+): ResolvedPiAiProviderProfile & { modelErrors: Map<string, string> } {
 	return {
 		provider,
 		displayName,
@@ -149,6 +149,8 @@ function profile(
 			"dsh-coding-subscription-oauth retryPolicy",
 		),
 		configuredMaxTokens: new Map(),
+		// Host dsh-llm-pi-ai 0.1.5+ calls modelErrors.get during resolveModel.
+		modelErrors: new Map(),
 		...REQUEST_IMAGE_POLICY,
 		...(headers === undefined ? {} : { headers }),
 		piProvider,
