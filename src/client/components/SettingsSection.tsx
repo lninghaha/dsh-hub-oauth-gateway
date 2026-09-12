@@ -1,14 +1,14 @@
 import type { SettingsSectionOwnerProps } from "@deepseek-ai/dsh-client-ui-settings/client";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PreferencesSnapshotSchema } from "../../shared/contracts.js";
+import { acknowledgePreferenceSave, preferenceOperations, rebasePreferences } from "../../shared/preference-draft.js";
 import {
 	applyPresetToPreferences,
 	type DashboardModuleId,
 	defaultUserPreferences,
-	patchUserPreferences,
 	resetModulesToPreset,
 	type UserPreferences,
-	type UserPreferencesPatch,
 } from "../../shared/preferences.js";
 import { SETTINGS_OPEN_EVENT, SETTINGS_TAB_STORAGE_KEY, usageUiController } from "../controller.js";
 import { type Translate, translator } from "../locales.js";
@@ -23,6 +23,7 @@ import {
 	useUnsetCredentialMutation,
 } from "../queries.js";
 import { SETTINGS_TABS } from "../settings-tabs.js";
+import { hasUnsavedChanges, useUnsavedChanges } from "../unsaved.js";
 import { CompatibilityPanel } from "./CompatibilityPanel.js";
 import { SelectPill, SettingsRow, TextInput, Toggle } from "./controls.js";
 import { FeesEditor } from "./FeesEditor.js";
@@ -32,8 +33,10 @@ import { CapabilitiesTab } from "./oauth/CapabilitiesTab.js";
 import { GatewayTab } from "./oauth/GatewayTab.js";
 import { PricingEditor } from "./PricingEditor.js";
 import { ProviderManagement } from "./ProviderManagement.js";
+import { UsageSettingsOverview } from "./UsageSettingsOverview.js";
 
-type UsageSettingsProps = SettingsSectionOwnerProps & PropsLocale<"usage-stats">;
+type UsageSettingsProps = SettingsSectionOwnerProps &
+	PropsLocale<"usage-stats"> & { surface?: "usage" | "accounts"; initialTab?: SettingsTab };
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 type PreferenceSection = "display" | "providers" | "privacy" | "alerts";
 
@@ -55,22 +58,6 @@ export function changedPreferenceSections(baseline: UserPreferences, draft: User
 	return PREFERENCE_SECTIONS.filter((section) => !equalPreferenceSection(baseline[section], draft[section]));
 }
 
-export function preferencePatch(baseline: UserPreferences, draft: UserPreferences): UserPreferencesPatch {
-	const patch: UserPreferencesPatch = {};
-	for (const section of changedPreferenceSections(baseline, draft)) {
-		patch[section] = draft[section];
-	}
-	return patch;
-}
-
-function overlappingPreferenceSections(
-	baseline: UserPreferences,
-	draft: UserPreferences,
-	latest: UserPreferences,
-): PreferenceSection[] {
-	const local = new Set(changedPreferenceSections(baseline, draft));
-	return changedPreferenceSections(baseline, latest).filter((section) => local.has(section));
-}
 function Field({ label, children }: { readonly label: string; readonly children: ReactNode }) {
 	return (
 		<fieldset className="dus-field">
@@ -592,8 +579,10 @@ export function CredentialEditor({ t }: { readonly t: Translate }) {
 	);
 }
 
-export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) {
+export function SettingsSection({ close, t: rawTranslate, surface = "usage", initialTab }: UsageSettingsProps) {
 	const t = translator(rawTranslate);
+	const sectionRef = useRef<HTMLElement>(null);
+	const confirmLeave = useUnsavedChanges(sectionRef, t("settings.unsavedConfirm"));
 	const preferences = usePreferencesStateQuery();
 	const accounts = useAccountsQuery();
 	const save = usePatchPreferencesMutation();
@@ -601,39 +590,54 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 		defaultUserPreferences(Intl.DateTimeFormat().resolvedOptions().timeZone),
 	);
 	const [draftBase, setDraftBase] = useState<PreferenceDraftBase | null>(null);
+	const draftRef = useRef(draft);
+	draftRef.current = draft;
+	const savingRef = useRef(false);
 	const [conflictLatest, setConflictLatest] = useState<PreferenceDraftBase | null>(null);
-	const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("accounts");
-	const openSettingsTab = useCallback((tab: SettingsTab): void => {
-		setActiveSettingsTab(tab);
-		try {
-			sessionStorage.setItem(SETTINGS_TAB_STORAGE_KEY, tab);
-		} catch {
-			// Storage is an optional convenience; navigation must still work.
-		}
-	}, []);
-	useEffect(() => {
-		try {
-			const stored = sessionStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
-			if (stored !== null && (SETTINGS_TABS as readonly string[]).includes(stored)) {
-				setActiveSettingsTab(stored as SettingsTab);
+	const tabs = useMemo(
+		() =>
+			SETTINGS_TABS.filter((tab) =>
+				surface === "accounts"
+					? ["accounts", "providers", "capabilities", "gateway"].includes(tab)
+					: ["overview", "display", "fees"].includes(tab),
+			),
+		[surface],
+	);
+	const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(
+		initialTab ?? (surface === "accounts" ? "accounts" : "overview"),
+	);
+	const openSettingsTab = useCallback(
+		(tab: SettingsTab): void => {
+			if (hasUnsavedChanges(sectionRef.current) && !window.confirm(t("settings.unsavedConfirm"))) return;
+			if (draftBase !== null) setDraft(draftBase.preferences);
+			if (!tabs.includes(tab)) {
+				usageUiController.requestSettingsTab(tab);
+				return;
 			}
-		} catch {
-			// ignore
-		}
+			setActiveSettingsTab(tab);
+			try {
+				sessionStorage.setItem(`${SETTINGS_TAB_STORAGE_KEY}:${surface}`, tab);
+			} catch {
+				// Storage is an optional convenience; navigation must still work.
+			}
+		},
+		[surface, tabs, draftBase, t],
+	);
+	useEffect(() => {
 		const openHandler = (event: Event): void => {
 			const tab = (event as CustomEvent<{ tab?: string }>).detail?.tab;
-			if (tab !== undefined && (SETTINGS_TABS as readonly string[]).includes(tab)) {
+			if (tab !== undefined && (tabs as readonly string[]).includes(tab)) {
 				openSettingsTab(tab as SettingsTab);
 			}
 		};
 		window.addEventListener(SETTINGS_OPEN_EVENT, openHandler);
 		return () => window.removeEventListener(SETTINGS_OPEN_EVENT, openHandler);
-	}, [openSettingsTab]);
+	}, [openSettingsTab, tabs]);
 	useEffect(() => {
 		if (preferences.data?.ok !== true) return;
 		const latest = preferences.data.data;
 		if (draftBase !== null && changedPreferenceSections(draftBase.preferences, draft).length > 0) return;
-		if (draftBase?.revision === latest.revision) return;
+		if (savingRef.current || (draftBase !== null && draftBase.revision >= latest.revision)) return;
 		setDraft(latest.preferences);
 		setDraftBase(latest);
 	}, [draft, draftBase, preferences.data]);
@@ -642,29 +646,33 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 	const conflictSections =
 		draftBase === null || conflictLatest === null
 			? []
-			: overlappingPreferenceSections(draftBase.preferences, draft, conflictLatest.preferences);
-	const applySavedSnapshot = (snapshot: PreferenceDraftBase): void => {
-		setDraftBase(snapshot);
-		setDraft(snapshot.preferences);
-		setConflictLatest(null);
-	};
+			: rebasePreferences(draftBase.preferences, draft, conflictLatest.preferences).conflicts;
 	const loadConflictSnapshot = (): void => {
 		void preferences.refetch().then((result) => {
 			if (result.data?.ok === true) setConflictLatest(result.data.data);
 		});
 	};
 	const submitPatch = (base: PreferenceDraftBase, value: UserPreferences): void => {
-		const patch = preferencePatch(base.preferences, value);
-		if (Object.keys(patch).length === 0) return;
+		const operations = preferenceOperations(base.preferences, value);
+		if (operations.length === 0 || savingRef.current) return;
+		savingRef.current = true;
 		save.mutate(
-			{ patch, expectedRevision: base.revision },
+			{ operations, expectedRevision: base.revision },
 			{
 				onSuccess: (response) => {
-					if (response.ok === true) applySavedSnapshot(response.data);
+					savingRef.current = false;
+					if (response.ok === true) {
+						setDraftBase(response.data);
+						setDraft(acknowledgePreferenceSave(value, draftRef.current, response.data.preferences));
+						setConflictLatest(null);
+					}
 				},
 				onError: (error) => {
+					savingRef.current = false;
 					if (error instanceof Error && "code" in error && error.code === "settings-conflict") {
-						loadConflictSnapshot();
+						const latest = PreferencesSnapshotSchema.safeParse("latest" in error ? error.latest : undefined);
+						if (latest.success) setConflictLatest(latest.data);
+						else loadConflictSnapshot();
 					}
 				},
 			},
@@ -672,7 +680,7 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 	};
 	const reapplyLocalChanges = (): void => {
 		if (draftBase === null || conflictLatest === null) return;
-		const rebased = patchUserPreferences(conflictLatest.preferences, preferencePatch(draftBase.preferences, draft));
+		const rebased = rebasePreferences(draftBase.preferences, draft, conflictLatest.preferences).preferences;
 		setDraftBase(conflictLatest);
 		setDraft(rebased);
 		setConflictLatest(null);
@@ -680,49 +688,61 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 	};
 	return (
 		<section
+			ref={sectionRef}
+			data-surface={surface}
+			data-unsaved={dirtySections.length > 0 ? "true" : undefined}
 			className={`dus-settings${draft.display.density === "compact" ? " is-density-compact" : ""}${draft.display.reducedMotion === "always" ? " is-reduced-motion" : draft.display.reducedMotion === "never" ? " allows-motion" : ""}`}
 		>
 			<div className="dus-settings-heading">
 				<div>
-					<h2>{t("settings.title")}</h2>
-					<p>{t("settings.intro")}</p>
+					<h2>{t(surface === "accounts" ? "settings.accountsTitle" : "settings.title")}</h2>
+					<p>{t(surface === "accounts" ? "settings.accountsIntro" : "settings.intro")}</p>
 				</div>
-				<div className="dus-settings-heading-actions">
-					<button
-						type="button"
-						className="dus-button is-small"
-						onClick={() => {
-							close();
-							usageUiController.openPeek();
-						}}
-					>
-						{t("settings.openPeek")}
-					</button>
-					<button
-						type="button"
-						className="dus-button is-small"
-						onClick={() => {
-							close();
-							usageUiController.openDashboard();
-						}}
-					>
-						{t("settings.preview")}
-					</button>
-				</div>
+				{surface === "usage" ? (
+					<div className="dus-settings-heading-actions">
+						<button
+							type="button"
+							className="dus-button is-small"
+							onClick={() => {
+								if (!confirmLeave()) return;
+								close();
+								usageUiController.openPeek();
+							}}
+						>
+							{t("settings.openPeek")}
+						</button>
+						<button
+							type="button"
+							className="dus-button is-small"
+							onClick={() => {
+								close();
+								usageUiController.openDashboard();
+							}}
+						>
+							{t("settings.preview")}
+						</button>
+					</div>
+				) : null}
 			</div>
-			<nav className="dus-settings-tabs" aria-label={t("settings.title")}>
-				{SETTINGS_TABS.map((tab) => (
-					<button
-						key={tab}
-						type="button"
-						className={`dus-tab${activeSettingsTab === tab ? " is-active" : ""}`}
-						aria-current={activeSettingsTab === tab ? "page" : undefined}
-						onClick={() => openSettingsTab(tab)}
-					>
-						{t(`settings.tab.${tab}`)}
-					</button>
-				))}
+			<nav
+				className="dus-settings-tabs"
+				aria-label={t(surface === "accounts" ? "settings.accountsTitle" : "settings.title")}
+			>
+				{tabs
+					.filter((tab) => tab !== "capabilities" || activeSettingsTab === "capabilities")
+					.map((tab) => (
+						<button
+							key={tab}
+							type="button"
+							className={`dus-tab${activeSettingsTab === tab ? " is-active" : ""}`}
+							aria-current={activeSettingsTab === tab ? "page" : undefined}
+							onClick={() => openSettingsTab(tab)}
+						>
+							{t(`settings.tab.${tab}`)}
+						</button>
+					))}
 			</nav>
+			{activeSettingsTab === "overview" ? <UsageSettingsOverview t={t} /> : null}
 			{activeSettingsTab === "display" ? (
 				<article className="dus-settings-card" data-settings-tab="display">
 					<h3>{t("settings.display")}</h3>
@@ -738,7 +758,9 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 						>
 							{save.isPending ? t("settings.saving") : t("settings.save")}
 						</button>
-						{save.isSuccess ? <span className="dus-save-state">{t("settings.saved")}</span> : null}
+						{save.isSuccess && dirtySections.length === 0 ? (
+							<span className="dus-save-state">{t("settings.saved")}</span>
+						) : null}
 					</div>
 					{save.error instanceof Error && conflictLatest === null ? (
 						<div className="dus-error-inline" role="alert">
@@ -755,14 +777,27 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 									? t("settings.conflictNoOverlap")
 									: t("settings.conflictFields", {
 											fields: conflictSections
-												.map((section) => t(`settings.section.${section}`))
+												.map(
+													(path) =>
+														`${t(`settings.section.${path.split(".")[0] as PreferenceSection}`)}: ${path.split(".").slice(1).join(".")}`,
+												)
 												.join(t("settings.conflictSeparator")),
 										})}
 							</p>
 							<button type="button" className="dus-button is-small is-primary" onClick={reapplyLocalChanges}>
 								{t("settings.keepLocal")}
 							</button>
-							<button type="button" className="dus-button is-small" onClick={() => applySavedSnapshot(conflictLatest)}>
+							<button
+								type="button"
+								className="dus-button is-small"
+								onClick={() => {
+									if (draftBase === null) return;
+									const merged = rebasePreferences(draftBase.preferences, draft, conflictLatest.preferences, "latest");
+									setDraftBase(conflictLatest);
+									setDraft(merged.preferences);
+									setConflictLatest(null);
+								}}
+							>
 								{t("settings.useLatest")}
 							</button>
 						</div>
@@ -791,4 +826,8 @@ export function SettingsSection({ close, t: rawTranslate }: UsageSettingsProps) 
 			) : null}
 		</section>
 	);
+}
+
+export function AccountSettingsSection(props: Omit<UsageSettingsProps, "surface">) {
+	return <SettingsSection {...props} surface="accounts" />;
 }

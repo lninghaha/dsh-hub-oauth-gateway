@@ -2,9 +2,8 @@ import { Modal } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { PropsLocale } from "@deepseek-ai/dsh-client-ui-slots";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { OverviewData, UsageAlert } from "../../shared/contracts.js";
-import type { AccountSnapshot, UsageMetric } from "../../shared/domain.js";
+import type { UsageMetric } from "../../shared/domain.js";
 import { totalTokens } from "../../shared/domain.js";
-import type { AccountFeeRecord } from "../../shared/fees.js";
 import { type DashboardModuleId, defaultUserPreferences, effectiveModules } from "../../shared/preferences.js";
 import { UsageStatsApiError } from "../api.js";
 import { usageUiController, useUsageUi } from "../controller.js";
@@ -34,7 +33,6 @@ import {
 	filtersFromPreferences,
 	resolveUsageQuery,
 } from "../range.js";
-import { AccountGrid } from "./AccountGrid.js";
 import { AccountsDashboardSection } from "./AccountsDashboardSection.js";
 import { ActivityHeatmap } from "./ActivityHeatmap.js";
 import { BreakdownTable } from "./BreakdownTable.js";
@@ -75,7 +73,7 @@ function KpiCard({
 	);
 }
 
-function OverviewCards({ data, t }: { readonly data: OverviewData; readonly t: Translate }) {
+export function OverviewCards({ data, t }: { readonly data: OverviewData; readonly t: Translate }) {
 	const currentTokens = totalTokens(data.current);
 	const previousTokens = data.previous === null ? null : totalTokens(data.previous);
 	return (
@@ -150,7 +148,7 @@ function localizeAlertTitle(alert: UsageAlert, t: Translate): string {
 	return alert.title;
 }
 
-function AlertList({
+export function AlertList({
 	alerts,
 	title,
 	t,
@@ -425,7 +423,6 @@ export function UsageOverlay({ t: rawTranslate }: UsageOverlayProps) {
 		setFilters((current) => ({ ...current, providerIds: next === null ? [] : [next] }));
 	};
 	const openAccountsSettings = (): void => {
-		usageUiController.close();
 		usageUiController.requestSettingsTab("accounts");
 	};
 	const exportFilteredCsv = exportUrl(query, "csv", dimension, "filtered");

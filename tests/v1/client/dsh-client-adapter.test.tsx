@@ -64,7 +64,7 @@ describe("DshClientAdapter", () => {
 		act(() => new DshClientAdapter().install(context));
 		const trigger = screen.getByRole("button", { name: en["recovery.open"] });
 		fireEvent.click(trigger);
-		const dialog = screen.getByRole("dialog", { name: en["recovery.title"] });
+		const dialog = screen.getByRole("dialog", { name: en["settings.title"] });
 		expect(dialog.getAttribute("aria-modal")).toBe("true");
 		expect(screen.getByRole("button", { name: "settings-action" })).toBeTruthy();
 		const close = screen.getByRole("button", { name: en["action.close"] });

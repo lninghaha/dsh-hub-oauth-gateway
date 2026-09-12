@@ -136,6 +136,17 @@ export declare const UserPreferencesPatchSchema: z.ZodObject<{
     alerts: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, z.core.$strict>;
 export type UserPreferencesPatch = z.infer<typeof UserPreferencesPatchSchema>;
+export declare const PreferencePathOperationSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    op: z.ZodLiteral<"set">;
+    path: z.ZodArray<z.ZodString>;
+    value: z.ZodUnknown;
+}, z.core.$strict>, z.ZodObject<{
+    op: z.ZodLiteral<"unset">;
+    path: z.ZodArray<z.ZodString>;
+}, z.core.$strict>], "op">;
+export type PreferencePathOperation = z.infer<typeof PreferencePathOperationSchema>;
+/** 旧 section patch 保持原契约；新编辑器用路径操作避免覆盖未编辑字段。 */
+export declare function applyPreferenceOperations(current: UserPreferences, operations: readonly PreferencePathOperation[]): UserPreferences;
 export declare function patchUserPreferences(current: UserPreferences, patch: UserPreferencesPatch): UserPreferences;
 export declare function defaultUserPreferences(timeZone?: string): UserPreferences;
 export declare function effectiveModules(preferences: UserPreferences): DashboardModuleId[];

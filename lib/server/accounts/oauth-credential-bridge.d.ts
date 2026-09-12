@@ -33,10 +33,12 @@ export interface OAuthQuotaAccountRow {
     readonly windows: readonly QuotaWindow[];
     /** Present only on some host/account shapes; AuthDocument ids never appear here. */
     readonly id?: string;
+    /** 只有凭据来源明确声明的关联才用于单账户调度；profileId 不是 OAuth 身份。 */
+    readonly oauthAccountId?: string;
+    readonly oauthProviderId?: string;
 }
 /**
- * Resolve quota windows for one pool member. Prefer a direct profile/row/provider
- * id match; otherwise use the Usage Center OAuth row for the store provider.
+ * 供应商快照不能充当每个池成员的独立配额。未知关联回到现有未知配额策略。
  */
 export declare function resolveQuotaWindowsForPoolAccount(accounts: readonly OAuthQuotaAccountRow[], accountId: string, context?: {
     providerId: string;

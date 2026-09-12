@@ -86,4 +86,22 @@ describe("pricing and preferences repositories", () => {
 		repository.save(changed, now);
 		expect(repository.load().display.preset).toBe("cost");
 	});
+
+	it("applies path changes atomically and retains the legacy section patch API", () => {
+		const repository = new PreferencesRepository(database);
+		const base = repository.snapshot("UTC");
+		const saved = repository.patch(base.revision, [
+			{ op: "set", path: ["providers", "aliases", "provider-a"], value: "A" },
+			{ op: "set", path: ["privacy", "redactExports"], value: false },
+		]);
+		expect(saved?.preferences.providers.aliases).toEqual({ "provider-a": "A" });
+		expect(repository.patch(base.revision, { display: { density: "compact" } })).toBeUndefined();
+		expect(() =>
+			repository.patch(saved!.revision, [{ op: "set", path: ["display", "timeZone"], value: "invalid-zone" }]),
+		).toThrow();
+		expect(repository.snapshot()).toEqual(saved);
+		expect(
+			repository.patch(saved!.revision, { display: { density: "compact" } })?.preferences.privacy.redactExports,
+		).toBe(false);
+	});
 });

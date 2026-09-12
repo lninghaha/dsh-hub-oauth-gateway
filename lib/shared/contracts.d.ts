@@ -166,7 +166,7 @@ export declare const PreferencesSnapshotSchema: z.ZodObject<{
     }, z.core.$strict>;
     revision: z.ZodNumber;
 }, z.core.$strict>;
-export declare const PreferencesPatchRequestSchema: z.ZodObject<{
+export declare const PreferencesPatchRequestSchema: z.ZodUnion<readonly [z.ZodObject<{
     patch: z.ZodObject<{
         display: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         providers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -174,7 +174,18 @@ export declare const PreferencesPatchRequestSchema: z.ZodObject<{
         alerts: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strict>;
     expectedRevision: z.ZodNumber;
-}, z.core.$strict>;
+}, z.core.$strict>, z.ZodObject<{
+    operations: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+        op: z.ZodLiteral<"set">;
+        path: z.ZodArray<z.ZodString>;
+        value: z.ZodUnknown;
+    }, z.core.$strict>, z.ZodObject<{
+        op: z.ZodLiteral<"unset">;
+        path: z.ZodArray<z.ZodString>;
+    }, z.core.$strict>], "op">>;
+    expectedRevision: z.ZodNumber;
+}, z.core.$strict>]>;
+export type PreferencesPatchRequest = z.infer<typeof PreferencesPatchRequestSchema>;
 export declare const CostEstimateSchema: z.ZodObject<{
     amount: z.ZodNullable<z.ZodNumber>;
     currency: z.ZodString;

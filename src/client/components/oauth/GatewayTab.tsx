@@ -8,6 +8,7 @@ import {
 } from "../../coding-oauth-api.js";
 import type { Translate } from "../../locales.js";
 import { SettingsRow, Toggle } from "../controls.js";
+import { type GoGatewayRoute, GoGatewayRouteView } from "./GoGatewayRouteView.js";
 
 const RANDOM_PORT_MIN = 18_100;
 const RANDOM_PORT_MAX = 18_999;
@@ -171,14 +172,16 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 	const rotate = useGatewayRotateMutation();
 	const [portDraft, setPortDraft] = useState<string | null>(null);
 	const [confirmRotate, setConfirmRotate] = useState(false);
-	const [lastPatch, setLastPatch] = useState<{ enabled?: boolean; port?: number; opencodeGoEnabled?: boolean } | null>(
-		null,
-	);
+	const [lastPatch, setLastPatch] = useState<{
+		enabled?: boolean;
+		port?: number;
+		opencodeGoRoute?: GoGatewayRoute | null;
+	} | null>(null);
 	const data = status.data ?? null;
 	const portValue = portDraft ?? (data === null ? "" : String(data.port));
 	const portNumber = Number(portValue);
 	const portValid = Number.isInteger(portNumber) && portNumber >= 1024 && portNumber <= 65_535;
-	const runPatch = (next: { enabled?: boolean; port?: number; opencodeGoEnabled?: boolean }): void => {
+	const runPatch = (next: { enabled?: boolean; port?: number; opencodeGoRoute?: GoGatewayRoute | null }): void => {
 		setLastPatch(next);
 		patch.mutate(next, {
 			onSuccess: () => {
@@ -218,17 +221,13 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 							/>
 						}
 					/>
-					<SettingsRow
-						title={t("gateway.opencodeGoEnabled")}
-						hint={t("gateway.opencodeGoHint")}
-						control={
-							<Toggle
-								label={t("gateway.opencodeGoEnabled")}
-								checked={data.opencodeGoEnabled}
-								disabled={patch.isPending || !data.enabled}
-								onChange={(opencodeGoEnabled) => runPatch({ opencodeGoEnabled })}
-							/>
-						}
+					<GoGatewayRouteView
+						route={data.opencodeGoRoute}
+						preview={data.opencodeGoPreview}
+						migration={data.opencodeGoMigration}
+						busy={patch.isPending}
+						onApply={(opencodeGoRoute) => runPatch({ opencodeGoRoute })}
+						t={(key) => t(`gateway.go.${key}`)}
 					/>
 					<Retry
 						error={patch.error}
@@ -328,7 +327,7 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 					<GatewaySnippets
 						bind={data.bind}
 						port={data.port}
-						model={data.model}
+						model={data.models.find((id) => !id.startsWith("opencode-go/")) ?? null}
 						keyAvailable={data.keyAvailable}
 						apiKey={revealedKey}
 						t={t}

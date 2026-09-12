@@ -1,4 +1,7 @@
 <!-- banner -->
+
+> Repair candidate / 修复候选：1.13.2-rc.1。See [usage, migration and rollback](docs/repair-candidate.md). This candidate is not a public registry release.
+
 <div align="center">
 
 # dsh-hub-oauth-gateway
@@ -53,7 +56,7 @@ Release history lives in [`CHANGELOG.md`](CHANGELOG.md).
 - **CSV / JSON export** — filtered, daily, or bundle layouts; optional session redaction; spreadsheet-injection defense.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain `Claude Code-credentials` or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Optional loopback API gateway** — default-off OpenAI/Anthropic-compatible server for your own tools.
-- **Opt-in OpenCode Go compatibility** — gateway can proxy chat completions to OpenCode Go and inject sticky `x-opencode-session` (avoids `MissingSessionID` when clients omit session affinity); default off.
+- **OpenCode Go** — Connect OpenCode Go in **Accounts & Models** and use the existing DSH model route without enabling Gateway. External tools use explicitly configured `opencode-go/<model-id>` routes and the matching protocol, with a stable conversation header. The local gateway key and upstream credential are separate; missing session IDs are rejected. Review the migration preview before replacing the old global mode.
 - **Optional capabilities** — Codex search / images / usage / Fast and Grok Imagine default off; apply live.
 - **Opt-in local monitor** — read-only CLI auth snapshots and cross-tool token scans (never conversation content).
 - **Opt-in vendor status probes** — allowlisted public Statuspage GETs (default off; no credentials; isolated from Usage).
@@ -97,7 +100,7 @@ Captured against DeepSeek Harness Web with this plugin installed (empty local hi
 | SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro in DSH without another API bill | Built-in routes are often pay-as-you-go API keys | Local OAuth routes coexist with existing API-key providers |
 | `本轮运行失败` **API key is invalid** / `AUTH` mid-turn | GUI maps every `AUTH` to that banner; OAuth access tokens expire | Proactive refresh and AUTH-aware retry on coding OAuth routes |
 | Want OpenAI/Anthropic-compatible tools against subscription sessions | No safe local bridge | Opt-in loopback gateway (not a public relay) |
-| OpenCode Go chat fails with `MissingSessionID` / missing `x-opencode-session` | Clients do not send sticky session headers | Opt-in gateway OpenCode Go proxy injects sticky `x-opencode-session` |
+| OpenCode Go: `MissingSessionID` | Missing stable conversation ID | DSH: use Accounts & Models; external tools: provide `x-opencode-session`. See [migration](docs/repair-candidate.md). |
 | Token Monitor-style CLI status without pasting secrets | Manual file digging or chat paste | Opt-in localMonitor / localUsage on hardened allowlisted paths |
 
 ## Quick start
@@ -184,7 +187,7 @@ Allowlisted official CLI OAuth files are discovered read-only. Sync is an explic
 
 Default **off**. When enabled, an isolated `node:http` listener (not the DSH web port) serves `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /v1/messages` on loopback, reusing signed-in OAuth sessions. Bind stays YAML-only; non-loopback bind requires a Bearer key. This is not a remote relay. Details: [`docs/01-install.md`](docs/01-install.md).
 
-Optional **OpenCode Go** compatibility (`codingOAuth.gateway.opencodeGo.enabled`, default off) can also be toggled on the Gateway tab. When on, `POST /v1/chat/completions` is forwarded to pinned `https://opencode.ai/zen/go/v1/chat/completions` with a sticky `x-opencode-session` so tools that omit OpenCode session affinity (and would otherwise see `MissingSessionID`) keep working through this loopback gateway. Session id preference: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → generated UUID. Set the gateway Bearer key to your OpenCode API key for that mode; the toggle does not require a restart.
+Connect OpenCode Go in **Accounts & Models** and use the existing DSH model route without enabling Gateway. External tools use explicitly configured `opencode-go/<model-id>` routes and the matching protocol, with a stable conversation header. The local gateway key and upstream credential are separate; missing session IDs are rejected. Review the migration preview before replacing the old global mode. [Migration / 迁移](docs/repair-candidate.md).
 
 ## Optional capabilities
 

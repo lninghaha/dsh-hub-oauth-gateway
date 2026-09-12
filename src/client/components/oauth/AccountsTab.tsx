@@ -1,3 +1,5 @@
+import { AccountReauthorization } from "./AccountReauthorization.js";
+import { CapabilitiesTab } from "./CapabilitiesTab.js";
 /**
  * Accounts tab for the integrated coding-subscription OAuth settings:
  * per-provider sign-in cards (Grok PKCE/device, Codex/Kimi/Claude subscription
@@ -76,7 +78,6 @@ function recoveryKind(error: unknown): RecoveryKind {
 function AuthRecoveryNotice({
 	error,
 	provider,
-	methods,
 	onRetryStatus,
 	t,
 }: {
@@ -86,7 +87,6 @@ function AuthRecoveryNotice({
 	readonly onRetryStatus: () => void;
 	readonly t: Translate;
 }) {
-	const login = useCodingOAuthLoginMutation();
 	const kind = recoveryKind(error);
 	const reauthorize = kind === "reauthorize";
 	return (
@@ -95,16 +95,12 @@ function AuthRecoveryNotice({
 			<button
 				type="button"
 				className="dus-button is-small"
-				disabled={login.isPending}
+				data-provider={provider}
 				onClick={() => {
-					if (reauthorize && methods[0] !== undefined) {
-						login.mutate({ provider, method: methods[0].id, accountMode: "add" });
-						return;
-					}
 					onRetryStatus();
 				}}
 			>
-				{reauthorize ? t("oauth.recovery.reauthorizeAction") : t("oauth.recovery.retryAction")}
+				{reauthorize ? t("oauth.recovery.manageAccount") : t("oauth.recovery.retryAction")}
 			</button>
 		</div>
 	);
@@ -151,6 +147,7 @@ function ModelPicker({
 	provider,
 	available,
 	selected,
+	selectionMode = "selected",
 	methods,
 	onRetryStatus,
 	t,
@@ -158,23 +155,54 @@ function ModelPicker({
 	readonly provider: CodingOAuthProviderSlug;
 	readonly available: readonly string[];
 	readonly selected: readonly string[];
+	readonly selectionMode?: "default" | "selected";
 	readonly methods: readonly { id: string; label: string }[];
 	readonly onRetryStatus: () => void;
 	readonly t: Translate;
 }) {
 	const save = useCodingOAuthModelsMutation();
 	const [draft, setDraft] = useState<readonly string[]>(selected);
+	const [mode, setMode] = useState(selectionMode);
+	const draftRef = useRef({ draft, mode });
+	draftRef.current = { draft, mode };
 	const [dirty, setDirty] = useState(false);
 	useEffect(() => {
-		if (!dirty) setDraft(selected);
-	}, [selected, dirty]);
+		if (!dirty) {
+			setDraft(selected);
+			setMode(selectionMode);
+		}
+	}, [selected, dirty, selectionMode]);
 	const toggle = (modelId: string): void => {
 		setDirty(true);
+		setMode("selected");
 		setDraft((current) => (current.includes(modelId) ? current.filter((id) => id !== modelId) : [...current, modelId]));
 	};
 	return (
-		<div className="dus-oauth-models">
+		<div className="dus-oauth-models" data-unsaved={dirty ? "true" : undefined}>
 			<div className="dus-row-hint">{t("oauth.modelsHint")}</div>
+			<div className="dus-inline-actions">
+				<button
+					type="button"
+					onClick={() => {
+						setDraft([]);
+						setMode("selected");
+						setDirty(true);
+					}}
+				>
+					{t("oauth.modelsHideAll")}
+				</button>
+				<button
+					type="button"
+					onClick={() => {
+						setDraft(available);
+						setMode("default");
+						setDirty(true);
+					}}
+				>
+					{t("oauth.modelsDefault")}
+				</button>
+			</div>
+			{selected.length === 0 ? <p>{t("oauth.modelsHidden")}</p> : null}
 			{available.length === 0 ? (
 				<div className="dus-row-hint">{t("oauth.modelsEmpty")}</div>
 			) : (
@@ -191,7 +219,13 @@ function ModelPicker({
 						type="button"
 						className="dus-button is-primary"
 						disabled={save.isPending || !dirty}
-						onClick={() => save.mutate({ provider, selected: draft }, { onSuccess: () => setDirty(false) })}
+						onClick={() => {
+							const sent = { draft, mode };
+							save.mutate(
+								{ provider, selected: draft, selectionMode: mode },
+								{ onSuccess: () => setDirty(JSON.stringify(draftRef.current) !== JSON.stringify(sent)) },
+							);
+						}}
 					>
 						{t("oauth.modelsSave")}
 					</button>
@@ -327,6 +361,25 @@ function AccountList({
 										{t("oauth.accountSetDefault")}
 									</button>
 								)}
+								<AccountReauthorization
+									account={account.label ?? account.accountId ?? account.id}
+									methods={methods}
+									disabled={login.isPending}
+									labels={{
+										action: t("oauth.recovery.reauthorizeAction"),
+										hint: t("oauth.reauthorizeHint"),
+										cancel: t("oauth.importCancel"),
+									}}
+									onConfirm={(method) =>
+										login.mutateAsync({
+											provider,
+											method,
+											accountMode: "reauthorize",
+											targetAccountId: account.id,
+											confirmOverwrite: true,
+										})
+									}
+								/>
 								<button
 									type="button"
 									className="dus-button is-danger"
@@ -420,12 +473,17 @@ function OAuthCardUsageBars({
 	readonly t: Translate;
 }) {
 	const providerId = OAUTH_QUOTA_PROVIDER_ID[provider];
-	const match = snapshots.find((account) => account.providerId === providerId && account.windows.length > 0);
-	if (match === undefined) return null;
+	const matches = snapshots.filter((account) => account.providerId === providerId && account.windows.length > 0);
+	if (matches.length === 0) return null;
 	return (
 		<div className="dus-oauth-card-usage" data-oauth-usage={provider}>
-			<div className="dus-row-hint">{t("oauth.usageCachedHint")}</div>
-			<QuotaBars windows={match.windows} limit={3} />
+			<p className="dus-row-hint">{t("oauth.usageProviderScope")}</p>
+			{matches.map((account) => (
+				<div key={account.profileId}>
+					<span>{account.displayName}</span>
+					<QuotaBars windows={account.windows} limit={account.windows.length} />
+				</div>
+			))}
 		</div>
 	);
 }
@@ -434,7 +492,7 @@ function ProviderCard({
 	provider,
 	title,
 	note,
-	status,
+	status: observed,
 	methods,
 	source,
 	snapshots,
@@ -451,8 +509,13 @@ function ProviderCard({
 	readonly onRetryStatus: () => void;
 	readonly t: Translate;
 }) {
+	const lastConnected = useRef<Extract<ProviderStatus, { status: "signed-in" }>>();
+	if (observed.status === "signed-in") lastConnected.current = observed;
+	if (observed.status === "signed-out") lastConnected.current = undefined;
+	const status = observed.status === "error" && lastConnected.current ? lastConnected.current : observed;
 	const login = useCodingOAuthLoginMutation();
 	const logout = useCodingOAuthLogoutMutation();
+	const [advancedOpen, setAdvancedOpen] = useState(false);
 	const [confirmLogout, setConfirmLogout] = useState(false);
 	const logoutTrigger = useRef<HTMLButtonElement>(null);
 	const logoutCancel = useRef<HTMLButtonElement>(null);
@@ -470,16 +533,24 @@ function ProviderCard({
 	useEffect(() => {
 		if (status.status === "signing-in") setExpanded(true);
 	}, [status.status]);
-	const error = [login.error, logout.error].find((value): value is Error => value instanceof Error);
+	const error = [
+		login.error,
+		logout.error,
+		observed.operationError
+			? new Error(observed.operationError)
+			: observed.status === "error"
+				? new Error(observed.message)
+				: undefined,
+	].find((value): value is Error => value instanceof Error);
 	const expiresAt = status.status === "signed-in" && "expiresAt" in status ? status.expiresAt : undefined;
 	const expiryLabel = formatExpiry(t, expiresAt);
 	return (
 		<article className="dus-oauth-card" data-oauth-provider={provider}>
 			<header className="dus-oauth-card-head">
 				<button type="button" className="dus-oauth-card-toggle" onClick={() => setExpanded((value) => !value)}>
-					<span className={`dus-state-dot ${stateDot(status.status)}`} aria-hidden="true" />
+					<span className={`dus-state-dot ${stateDot(observed.status)}`} aria-hidden="true" />
 					<strong>{title}</strong>
-					<span className="dus-row-hint">{statusLabel(t, status.status)}</span>
+					<span className="dus-row-hint">{statusLabel(t, observed.status)}</span>
 					<span className="dus-oauth-chevron" aria-hidden="true">
 						{expanded ? "−" : "+"}
 					</span>
@@ -497,16 +568,8 @@ function ProviderCard({
 							t={t}
 						/>
 					)}
-					{status.status === "error" ? (
-						<AuthRecoveryNotice
-							error={new Error(status.message)}
-							provider={provider}
-							methods={methods}
-							onRetryStatus={onRetryStatus}
-							t={t}
-						/>
-					) : null}
-					{status.status === "signed-out" || status.status === "error" ? (
+
+					{status.status === "signed-out" ? (
 						<div className="dus-inline-actions">
 							{methods.map((method) => (
 								<button
@@ -538,6 +601,7 @@ function ProviderCard({
 								provider={provider}
 								available={status.available}
 								selected={status.selected}
+								selectionMode={status.selectionMode ?? "selected"}
 								methods={methods}
 								onRetryStatus={onRetryStatus}
 								t={t}
@@ -589,6 +653,14 @@ function ProviderCard({
 								</div>
 							)}
 						</>
+					) : null}
+					{provider === "grok" || provider === "codex" ? (
+						<details onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
+							<summary>{t("settings.tab.capabilities")}</summary>
+							{advancedOpen ? (
+								<CapabilitiesTab t={t} scope={provider} connected={status.status === "signed-in"} />
+							) : null}
+						</details>
 					) : null}
 					{source === null ? null : (
 						<div className="dus-oauth-card-pull">

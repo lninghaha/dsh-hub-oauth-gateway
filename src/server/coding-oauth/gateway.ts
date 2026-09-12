@@ -12,10 +12,10 @@ import {
 	maskGatewayApiKey,
 	persistGatewayKeyDocument,
 } from "./gateway-auth.js";
-import { createSessionGatewayBackend, type GatewayBackend } from "./gateway-backend.js";
+import { createSessionGatewayBackend, type GatewayBackend, GatewayRequestError } from "./gateway-backend.js";
 import { assertGatewayPort, type GatewayConfig, resolveGatewayConfig } from "./gateway-config.js";
+import { type GatewayGoRoute, parseGatewayGoRoute } from "./gateway-go-routing.js";
 import { closeGateway, createGatewayHttpServer, listenGateway } from "./gateway-http.js";
-import { createOpencodeGoSessionMap } from "./gateway-opencode-go.js";
 import type { OAuthProviderSession } from "./oauth-session.js";
 import type { GrokBuildSession } from "./session.js";
 
@@ -23,6 +23,8 @@ export const GATEWAY_TOS_WARNING =
 	"local API gateway is enabled; exposing a subscription as a local API can violate provider ToS and consumes your quota";
 
 export interface StartGatewayOptions {
+	getGoPreview?: () => GatewayGoRoute | null;
+	resolveGoCredential?: (ref: string) => Promise<string | undefined>;
 	config?: Partial<GatewayConfig>;
 	dshHome?: string;
 	backend?: GatewayBackend;
@@ -43,15 +45,26 @@ export interface GatewayPublicStatus {
 	bind: string;
 	port: number;
 	model: string | null;
-	models: string[];
-	keyAvailable: boolean;
 	keyConfigured: boolean;
+	keyAvailable: boolean;
 	keyHint: string;
+	models: string[];
 	warning: string;
 	opencodeGoEnabled: boolean;
+	opencodeGoRoute?: GatewayGoRoute | null;
+	opencodeGoPreview?: GatewayGoRoute | null;
+	opencodeGoMigration?: "required" | "none";
+}
+
+export interface GatewaySettingsPatch {
+	enabled?: boolean;
+	port?: number;
+	opencodeGoEnabled?: boolean;
+	opencodeGoRoute?: GatewayGoRoute | null;
 }
 
 export interface CodingOAuthGatewayController {
+	applySettings(patch: GatewaySettingsPatch): Promise<GatewayPublicStatus>;
 	status(): Promise<GatewayPublicStatus>;
 	startIfEnabled(): Promise<StartedGateway | undefined>;
 	setEnabled(enabled: boolean): Promise<GatewayPublicStatus>;
@@ -75,11 +88,11 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 		if (options.grok === undefined) throw new Error("gateway requires a backend or Grok session");
 		return createSessionGatewayBackend(options.grok, options.subscriptions ?? []);
 	};
+	let goRoute: GatewayGoRoute | null = null;
 	let server: Server | undefined;
 	let apiKey = yaml.apiKey ?? "";
 	let port = yaml.port;
 	let opencodeGoEnabled = yaml.opencodeGo.enabled;
-	const sessionMap = createOpencodeGoSessionMap();
 	let lock: Promise<void> = Promise.resolve();
 
 	const withLock = async <T>(work: () => Promise<T>): Promise<T> => {
@@ -103,30 +116,34 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 		await closeGateway(current).catch(() => undefined);
 	};
 
-	const activeConfig = (): GatewayConfig => ({ ...yaml, port });
-	const availableModels = async (): Promise<string[]> => {
-		try {
-			return (await backend().listModels()).map((item) => item.id);
-		} catch {
-			return [];
-		}
-	};
+	const activeConfig = (): GatewayConfig => ({ ...yaml, port, opencodeGo: { enabled: opencodeGoEnabled } });
 
 	const snapshot = async (enabled?: boolean): Promise<GatewayPublicStatus> => {
-		const models = await availableModels();
-		const keyAvailable = apiKey.length > 0;
+		let models: string[] = [];
+		try {
+			models = (await backend().listModels()).map((model) => model.id);
+		} catch {
+			// Status stays usable when no provider credential can currently list models.
+		}
+		models = [
+			...models.filter((id) => !id.startsWith("opencode-go/")),
+			...(goRoute?.models.map((model) => "opencode-go/" + model.id) ?? []),
+		];
 		return {
 			enabled: enabled ?? (await desiredEnabled()),
 			running: server !== undefined,
 			bind: yaml.bind,
 			port,
 			model: models[0] ?? null,
+			keyConfigured: apiKey.length > 0,
+			keyAvailable: apiKey.length > 0,
+			keyHint: apiKey.length === 0 ? "" : maskGatewayApiKey(apiKey),
 			models,
-			keyAvailable,
-			keyConfigured: keyAvailable,
-			keyHint: keyAvailable ? maskGatewayApiKey(apiKey) : "",
 			warning: GATEWAY_TOS_WARNING,
-			opencodeGoEnabled,
+			opencodeGoEnabled: goRoute !== null,
+			opencodeGoRoute: goRoute,
+			opencodeGoPreview: options.getGoPreview?.() ?? null,
+			opencodeGoMigration: opencodeGoEnabled ? "required" : "none",
 		};
 	};
 
@@ -135,14 +152,15 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 		port?: number;
 		apiKey?: string;
 		opencodeGoEnabled?: boolean;
+		opencodeGoRoute?: GatewayGoRoute | null;
 	}): Promise<void> => {
 		const document = await loadGatewayKeyDocument(path);
 		const nextKey = next.apiKey ?? (apiKey.length === 0 ? document?.apiKey : apiKey);
 		if (nextKey === undefined || nextKey.length === 0) throw new Error("gateway api key is missing");
-		apiKey = nextKey;
+
 		const nextEnabled = next.enabled ?? document?.enabled;
 		const nextPort = next.port ?? document?.port ?? port;
-		port = nextPort;
+
 		const nextOpencodeGo = next.opencodeGoEnabled ?? document?.opencodeGoEnabled;
 		await persistGatewayKeyDocument(path, {
 			version: 1,
@@ -150,7 +168,13 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 			...(nextEnabled === undefined ? {} : { enabled: nextEnabled }),
 			port: nextPort,
 			...(nextOpencodeGo === undefined ? {} : { opencodeGoEnabled: nextOpencodeGo }),
+			opencodeGoRoute:
+				next.opencodeGoRoute !== undefined ? next.opencodeGoRoute : (document?.opencodeGoRoute ?? goRoute),
 		});
+		apiKey = nextKey;
+		port = nextPort;
+		if (nextOpencodeGo !== undefined) opencodeGoEnabled = nextOpencodeGo;
+		if (next.opencodeGoRoute !== undefined) goRoute = next.opencodeGoRoute;
 	};
 
 	const listen = async (): Promise<StartedGateway> => {
@@ -160,9 +184,8 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 			config,
 			apiKey,
 			backend: backend(),
-			sessionMap,
-			isOpencodeGoEnabled: () => opencodeGoEnabled,
-			getUpstreamApiKey: () => "",
+			getOpencodeGoRoute: () => goRoute,
+			resolveGoCredential: options.resolveGoCredential ?? (async () => undefined),
 		});
 		try {
 			await listenGateway(http, config);
@@ -185,14 +208,71 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 		return document?.opencodeGoEnabled ?? yaml.opencodeGo.enabled;
 	};
 
-	const hydrateOpencodeGo = async (): Promise<void> => {
-		opencodeGoEnabled = await desiredOpencodeGoEnabled();
-	};
-
 	const hydratePort = async (): Promise<void> => {
 		const document = await loadGatewayKeyDocument(path);
 		if (document?.port !== undefined) port = document.port;
 	};
+
+	const hydrateOpencodeGo = async (): Promise<void> => {
+		opencodeGoEnabled = await desiredOpencodeGoEnabled();
+		goRoute = (await loadGatewayKeyDocument(path))?.opencodeGoRoute ?? null;
+	};
+
+	const applySettings = (patch: GatewaySettingsPatch): Promise<GatewayPublicStatus> =>
+		withLock(async () => {
+			if (patch.enabled !== undefined && typeof patch.enabled !== "boolean")
+				throw new GatewayRequestError(400, "invalid_enabled", "enabled must be a boolean");
+			if (patch.opencodeGoEnabled !== undefined && typeof patch.opencodeGoEnabled !== "boolean")
+				throw new GatewayRequestError(400, "invalid_go_mode", "opencodeGoEnabled must be a boolean");
+			if (patch.opencodeGoEnabled === true)
+				throw new GatewayRequestError(
+					409,
+					"go_migration_required",
+					"Review and apply the explicit opencode-go/<model> route",
+				);
+			let wantedPort: number | undefined;
+			try {
+				wantedPort = patch.port === undefined ? undefined : assertGatewayPort(patch.port);
+			} catch (error) {
+				throw new GatewayRequestError(400, "invalid_port", error instanceof Error ? error.message : "Invalid port");
+			}
+			const wantedRoute = patch.opencodeGoRoute === undefined ? undefined : parseGatewayGoRoute(patch.opencodeGoRoute);
+			if (wantedRoute && !(await options.resolveGoCredential?.(wantedRoute.credentialRef)))
+				throw new GatewayRequestError(
+					409,
+					"go_credential_missing",
+					"The selected Go credential reference is unavailable",
+				);
+			await hydratePort();
+			await hydrateOpencodeGo();
+			const document = await loadGatewayKeyDocument(path);
+			const previous = {
+				port,
+				opencodeGoRoute: goRoute,
+				opencodeGoEnabled,
+				enabled: await desiredEnabled(),
+				apiKey: document?.apiKey ?? apiKey,
+			};
+			const wasRunning = server !== undefined;
+			const nextEnabled = patch.enabled ?? previous.enabled;
+			await persistState({
+				apiKey: previous.apiKey || generateGatewayApiKey(),
+				enabled: nextEnabled,
+				...(wantedPort === undefined ? {} : { port: wantedPort }),
+				...(wantedRoute === undefined ? {} : { opencodeGoRoute: wantedRoute, opencodeGoEnabled: false }),
+				...(patch.opencodeGoEnabled === false ? { opencodeGoEnabled: false, opencodeGoRoute: null } : {}),
+			});
+			try {
+				if (server && (!nextEnabled || previous.port !== port)) await closeServer();
+				if (nextEnabled && !server) await listen();
+			} catch (error) {
+				await closeServer();
+				await persistState({ ...previous, apiKey: previous.apiKey || apiKey });
+				if (wasRunning) await listen();
+				throw error;
+			}
+			return snapshot();
+		});
 
 	return {
 		async status() {
@@ -217,49 +297,11 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 				}
 			});
 		},
-		setEnabled(enabled) {
-			return withLock(async () => {
-				await hydratePort();
-				await hydrateOpencodeGo();
-				if (apiKey.length === 0) apiKey = await loadOrCreateGatewayApiKey(path, yaml.apiKey);
-				await persistState({ enabled });
-				if (enabled && server === undefined) {
-					try {
-						await listen();
-					} catch {
-						// status.running stays false; caller sees the public snapshot.
-					}
-				}
-				if (!enabled) await closeServer();
-				return snapshot(enabled);
-			});
-		},
-		setPort(nextPort) {
-			return withLock(async () => {
-				await hydratePort();
-				await hydrateOpencodeGo();
-				const wanted = assertGatewayPort(nextPort);
-				if (apiKey.length === 0) apiKey = await loadOrCreateGatewayApiKey(path, yaml.apiKey);
-				const previous = port;
-				const shouldRun = server !== undefined;
-				await persistState({ port: wanted });
-				if (!shouldRun) return snapshot();
-				await closeServer();
-				try {
-					await listen();
-					return snapshot();
-				} catch (error) {
-					port = previous;
-					await persistState({ port: previous });
-					try {
-						await listen();
-					} catch {
-						// previous port may also fail; status.running reflects reality
-					}
-					throw error;
-				}
-			});
-		},
+
+		applySettings,
+		setEnabled: (enabled) => applySettings({ enabled }),
+		setPort: (port) => applySettings({ port }),
+		setOpencodeGoEnabled: (opencodeGoEnabled) => applySettings({ opencodeGoEnabled }),
 		revealKey() {
 			return withLock(async () => {
 				if (apiKey.length === 0) apiKey = await loadOrCreateGatewayApiKey(path, yaml.apiKey);
@@ -286,15 +328,6 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 					}
 				}
 				return { apiKey: next, keyHint: maskGatewayApiKey(next) };
-			});
-		},
-		setOpencodeGoEnabled(enabled) {
-			return withLock(async () => {
-				await hydratePort();
-				if (apiKey.length === 0) apiKey = await loadOrCreateGatewayApiKey(path, yaml.apiKey);
-				opencodeGoEnabled = enabled;
-				await persistState({ opencodeGoEnabled: enabled });
-				return snapshot();
 			});
 		},
 		stop() {

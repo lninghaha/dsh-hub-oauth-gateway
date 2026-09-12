@@ -27,7 +27,9 @@ export function apply(ctx: ClientContext): void {
 		return () => window.removeEventListener("usage-stats:open-dashboard", openDashboard);
 	}, "usage-stats: shared coding OAuth entry");
 
-	new DshClientAdapter().install(ctx);
+	const adapter = new DshClientAdapter();
+	adapter.install(ctx);
+	adapter.installAccountEntry(ctx);
 }
 
 export { DshClientAdapter } from "./DshClientAdapter.js";

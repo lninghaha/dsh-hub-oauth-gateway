@@ -5,7 +5,6 @@
 
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { writeFileAtomic } from "@deepseek-ai/dsh-atomic-write";
 import { resolveDshHome } from "@deepseek-ai/dsh-home-paths";
 import type {
 	Api,
@@ -18,14 +17,16 @@ import type {
 	Provider,
 } from "@earendil-works/pi-ai";
 import { createModels } from "@earendil-works/pi-ai";
+import { ModelCacheQueue, writeModelCache } from "./model-cache.js";
 import type { OAuthProviderDefinition } from "./oauth-providers.js";
 import { currentPoolAccountOverride } from "./quota-pool.js";
 import { type LoginPersistOptions, OAuthCredentialFileStore, oauthCredentialPath } from "./store.js";
 
-const MODELS_CACHE_VERSION = 1;
+const MODELS_CACHE_VERSION = 2;
 
 interface ModelsCacheDocument {
 	version: typeof MODELS_CACHE_VERSION;
+	selectionMode: "default" | "selected";
 	selected: string[];
 }
 
@@ -47,8 +48,10 @@ function parseCache(text: string): string[] | undefined {
 	}
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
 	const document = value as Record<string, unknown>;
-	if (document.version !== MODELS_CACHE_VERSION) return undefined;
+	if (document["version"] !== 1 && document["version"] !== MODELS_CACHE_VERSION) return undefined;
 	const selected = parseIdList(document.selected);
+	if (document["version"] === MODELS_CACHE_VERSION)
+		return document["selectionMode"] === "selected" ? selected : undefined;
 	return selected.length === 0 ? undefined : selected;
 }
 
@@ -67,6 +70,7 @@ export class OAuthProviderSession {
 	private readonly catalog: readonly Model<Api>[];
 	private readonly cacheFile: string;
 	private selectedIds: string[] | undefined;
+	private readonly cacheQueue = new ModelCacheQueue();
 	private readonly onCatalogChange: (() => void) | undefined;
 	private readonly onCredentialChange: (() => void) | undefined;
 
@@ -102,7 +106,7 @@ export class OAuthProviderSession {
 	}
 
 	visibleModels(): Model<Api>[] {
-		if (this.selectedIds === undefined || this.selectedIds.length === 0) return this.availableModels();
+		if (this.selectedIds === undefined) return this.availableModels();
 		const byId = new Map(this.catalog.map((model) => [model.id, model]));
 		return this.selectedIds.flatMap((id) => {
 			const model = byId.get(id);
@@ -122,12 +126,13 @@ export class OAuthProviderSession {
 		}
 	}
 
-	async setSelectedModels(ids: readonly string[]): Promise<void> {
-		const available = new Set(this.catalog.map((model) => model.id));
-		const selected = [...new Set(ids.filter((id) => available.has(id)))];
-		this.selectedIds = selected.length === 0 ? undefined : selected;
-		await this.writeCache();
-		this.onCatalogChange?.();
+	async setSelectedModels(ids: readonly string[] | undefined): Promise<void> {
+		const selected = ids === undefined ? undefined : [...new Set(ids.filter((id) => id.length > 0))];
+		await this.cacheQueue.run(async () => {
+			await this.writeCache(selected);
+			this.selectedIds = selected;
+			this.onCatalogChange?.();
+		});
 	}
 
 	async status(): Promise<OAuthProviderStatus> {
@@ -178,28 +183,27 @@ export class OAuthProviderSession {
 	}
 
 	async logout(): Promise<void> {
-		try {
-			await this.models.logout(this.definition.nativeProviderId);
-			this.selectedIds = undefined;
-			await mkdir(dirname(this.cacheFile), { recursive: true, mode: 0o700 });
-			await rm(this.cacheFile, { force: true });
-		} finally {
-			// Credential deletion may succeed before cache cleanup fails. Always
-			// refresh discovery so an open selector cannot retain stale models.
-			this.onCatalogChange?.();
-			this.onCredentialChange?.();
-		}
+		return this.cacheQueue.run(async () => {
+			try {
+				await this.models.logout(this.definition.nativeProviderId);
+				this.selectedIds = undefined;
+				await mkdir(dirname(this.cacheFile), { recursive: true, mode: 0o700 });
+				await rm(this.cacheFile, { force: true });
+			} finally {
+				// Credential deletion may succeed before cache cleanup fails. Always
+				// refresh discovery so an open selector cannot retain stale models.
+				this.onCatalogChange?.();
+				this.onCredentialChange?.();
+			}
+		});
 	}
 
-	private async writeCache(): Promise<void> {
+	private async writeCache(selected: string[] | undefined): Promise<void> {
 		const document: ModelsCacheDocument = {
 			version: MODELS_CACHE_VERSION,
-			selected: this.selectedIds === undefined ? [] : [...this.selectedIds],
+			selected: selected === undefined ? [] : [...selected],
+			selectionMode: selected === undefined ? "default" : "selected",
 		};
-		await mkdir(dirname(this.cacheFile), { recursive: true, mode: 0o700 });
-		await writeFileAtomic(this.cacheFile, `${JSON.stringify(document)}\n`, {
-			mode: 0o600,
-			dirMode: 0o700,
-		});
+		await writeModelCache(this.cacheFile, document);
 	}
 }

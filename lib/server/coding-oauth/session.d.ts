@@ -13,6 +13,7 @@ export declare class GrokBuildSession {
     private liveIds;
     private liveModels;
     private selectedIds;
+    private readonly cacheQueue;
     private source;
     private listingError;
     private readonly cacheFile;
@@ -33,7 +34,7 @@ export declare class GrokBuildSession {
     refreshLiveCatalog(signal?: AbortSignal): Promise<void>;
     /** Notify listeners that the stored OAuth credential changed (login / import / logout). */
     notifyCredentialChange(): void;
-    setSelectedModels(ids: readonly string[]): Promise<void>;
+    setSelectedModels(ids: readonly string[] | undefined): Promise<void>;
     /**
      * Backdate the stored token's expiry so the next `getAuth()` refreshes.
      * Called after an upstream 401 rejected a locally-valid token.

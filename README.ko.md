@@ -1,4 +1,7 @@
 <!-- banner -->
+
+> Repair candidate / 修复候选：1.13.2-rc.1。See [usage, migration and rollback](docs/repair-candidate.md). This candidate is not a public registry release.
+
 <div align="center">
 
 # dsh-hub-oauth-gateway
@@ -49,7 +52,7 @@
 - **CSV / JSON 내보내기** — 필터, 일별 또는 bundle 레이아웃; 선택적 세션 마스킹; 스프레드시트 인젝션 방어.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **선택적 루프백 API 게이트웨이** — 기본 off OpenAI/Anthropic 호환 서버, 자신의 도구용.
-- **옵트인 OpenCode Go 호환** — 게이트웨이가 OpenCode Go로 채팅을 프록시하고 sticky `x-opencode-session`을 주입(클라이언트가 세션 친화성을 보내지 않을 때 `MissingSessionID` 방지); 기본 off.
+- **OpenCode Go** — **계정 및 모델**에서 OpenCode Go를 연결하면 게이트웨이 없이 DSH에서 사용할 수 있습니다. 외부 도구는 명시적인 `opencode-go/<model-id>`, 해당 프로토콜 및 안정적인 대화 ID를 사용합니다. 로컬 키와 업스트림 자격 증명은 분리됩니다. 대화 ID가 없으면 오류를 반환하며, 기존 전역 모드는 마이그레이션 미리보기에서 변경합니다.
 - **선택적 기능** — Codex search / images / usage / Fast와 Grok Imagine 기본 off; live 적용.
 - **옵트인 로컬 모니터** — 읽기 전용 CLI 인증 스냅샷과 크로스툴 token 스캔(대화 내용은 읽지 않음).
 - **이중 언어 UI** — DSH locale 서비스를 통한 중국어와 영어.
@@ -92,7 +95,7 @@ DeepSeek Harness Web에 이 플러그인을 설치한 뒤 촬영했습니다(새
 | DSH에서 SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro를 추가 API 요금 없이 | 내장 경로는 종종 종량제 API key | 로컬 OAuth 경로가 기존 API-key 프로바이더와 공존 |
 | `本轮运行失败` **API key is invalid** / `AUTH` 턴 중 | GUI가 모든 `AUTH`를 해당 배너에 매핑; OAuth access token 만료 | 코딩 OAuth 경로에서 proactive refresh와 AUTH 인식 재시도 |
 | 구독 세션에 OpenAI/Anthropic 호환 도구 원함 | 안전한 로컬 브리지 없음 | 옵트인 루프백 게이트웨이(공개 릴레이 아님) |
-| OpenCode Go 채팅이 `MissingSessionID` / `x-opencode-session` 누락으로 실패 | 클라이언트가 sticky 세션 헤더를 보내지 않음 | 옵트인 게이트웨이 OpenCode Go 프록시가 sticky `x-opencode-session` 주입 |
+| OpenCode Go: `MissingSessionID` | Missing stable conversation ID | DSH: use Accounts & Models; external tools: provide `x-opencode-session`. See [migration](docs/repair-candidate.md). |
 | Token Monitor 스타일 CLI 상태를 비밀 붙여넣기 없이 | 수동 파일 탐색 또는 채팅 붙여넣기 | 옵트인 localMonitor / localUsage, hardened allowlist 경로 |
 
 ## 빠른 시작
@@ -171,7 +174,7 @@ allowlist 내 공식 CLI OAuth 파일은 읽기 전용으로 발견. 동기화�
 
 기본 **off**. 활성화 시 격리된 `node:http` 리스너(DSH web 포트 아님)가 루프백에서 `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, `POST /v1/messages` 제공, 로그인된 OAuth 세션 재사용. bind는 YAML 전용; 비루프백 bind에는 Bearer key 필요. 원격 릴레이가 아님. 자세히: [`docs/01-install.md`](docs/01-install.md).
 
-선택적 **OpenCode Go 호환**(`codingOAuth.gateway.opencodeGo.enabled`, 기본 off)은 Gateway 탭에서도 켤 수 있습니다. 켜면 `POST /v1/chat/completions`를 고정 URL `https://opencode.ai/zen/go/v1/chat/completions`로 전달하고 sticky `x-opencode-session`을 주입하여, OpenCode 세션 친화성을 보내지 않는 클라이언트(아니면 `MissingSessionID`)도 이 루프백 게이트웨이로 대화할 수 있습니다. 세션 id 우선순위: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → 생성 UUID. 해당 모드에서는 게이트웨이 Bearer key를 OpenCode API key로 설정하세요. 재시작 없이 전환됩니다.
+**계정 및 모델**에서 OpenCode Go를 연결하면 게이트웨이 없이 DSH에서 사용할 수 있습니다. 외부 도구는 명시적인 `opencode-go/<model-id>`, 해당 프로토콜 및 안정적인 대화 ID를 사용합니다. 로컬 키와 업스트림 자격 증명은 분리됩니다. 대화 ID가 없으면 오류를 반환하며, 기존 전역 모드는 마이그레이션 미리보기에서 변경합니다. [Migration / 迁移](docs/repair-candidate.md).
 
 ## 선택적 기능
 

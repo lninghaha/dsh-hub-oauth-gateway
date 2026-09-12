@@ -45,6 +45,7 @@ export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSche
 export declare const LoginAccountModeSchema: z.ZodEnum<{
     add: "add";
     "overwrite-active": "overwrite-active";
+    reauthorize: "reauthorize";
 }>;
 export type LoginAccountMode = z.infer<typeof LoginAccountModeSchema>;
 /** Secret-free row for Settings account lists. Never includes tokens. */
@@ -71,7 +72,7 @@ export declare const CatalogSourceSchema: z.ZodEnum<{
     cache: "cache";
 }>;
 export type CatalogSource = z.infer<typeof CatalogSourceSchema>;
-export declare const GrokBuildWebAuthStatusSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+export declare const GrokBuildWebAuthStatusSchema: z.ZodIntersection<z.ZodDiscriminatedUnion<[z.ZodObject<{
     status: z.ZodLiteral<"signed-out">;
     grokImportAvailable: z.ZodBoolean;
 }, z.core.$strip>, z.ZodObject<{
@@ -88,6 +89,10 @@ export declare const GrokBuildWebAuthStatusSchema: z.ZodDiscriminatedUnion<[z.Zo
     models: z.ZodArray<z.ZodString>;
     available: z.ZodArray<z.ZodString>;
     selected: z.ZodArray<z.ZodString>;
+    selectionMode: z.ZodOptional<z.ZodEnum<{
+        default: "default";
+        selected: "selected";
+    }>>;
     catalogSource: z.ZodEnum<{
         fallback: "fallback";
         live: "live";
@@ -106,9 +111,12 @@ export declare const GrokBuildWebAuthStatusSchema: z.ZodDiscriminatedUnion<[z.Zo
     status: z.ZodLiteral<"error">;
     message: z.ZodString;
     grokImportAvailable: z.ZodBoolean;
-}, z.core.$strip>], "status">;
+}, z.core.$strip>], "status">, z.ZodObject<{
+    operationError: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>>;
 export type GrokBuildWebAuthStatus = z.infer<typeof GrokBuildWebAuthStatusSchema>;
 export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObject<{
+    operationError: z.ZodOptional<z.ZodString>;
     provider: z.ZodEnum<{
         copilot: "copilot";
         kimi: "kimi";
@@ -128,6 +136,10 @@ export declare const SubscriptionWebAuthStatusSchema: z.ZodIntersection<z.ZodObj
     models: z.ZodArray<z.ZodString>;
     available: z.ZodArray<z.ZodString>;
     selected: z.ZodArray<z.ZodString>;
+    selectionMode: z.ZodOptional<z.ZodEnum<{
+        default: "default";
+        selected: "selected";
+    }>>;
 }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
     status: z.ZodLiteral<"signed-out">;
 }, z.core.$strip>, z.ZodObject<{
@@ -194,7 +206,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
         standalone: "standalone";
     }>;
     providers: z.ZodObject<{
-        grok: z.ZodDiscriminatedUnion<[z.ZodObject<{
+        grok: z.ZodIntersection<z.ZodDiscriminatedUnion<[z.ZodObject<{
             status: z.ZodLiteral<"signed-out">;
             grokImportAvailable: z.ZodBoolean;
         }, z.core.$strip>, z.ZodObject<{
@@ -211,6 +223,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             models: z.ZodArray<z.ZodString>;
             available: z.ZodArray<z.ZodString>;
             selected: z.ZodArray<z.ZodString>;
+            selectionMode: z.ZodOptional<z.ZodEnum<{
+                default: "default";
+                selected: "selected";
+            }>>;
             catalogSource: z.ZodEnum<{
                 fallback: "fallback";
                 live: "live";
@@ -229,8 +245,11 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             status: z.ZodLiteral<"error">;
             message: z.ZodString;
             grokImportAvailable: z.ZodBoolean;
-        }, z.core.$strip>], "status">;
+        }, z.core.$strip>], "status">, z.ZodObject<{
+            operationError: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
         codex: z.ZodIntersection<z.ZodObject<{
+            operationError: z.ZodOptional<z.ZodString>;
             provider: z.ZodEnum<{
                 copilot: "copilot";
                 kimi: "kimi";
@@ -250,6 +269,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             models: z.ZodArray<z.ZodString>;
             available: z.ZodArray<z.ZodString>;
             selected: z.ZodArray<z.ZodString>;
+            selectionMode: z.ZodOptional<z.ZodEnum<{
+                default: "default";
+                selected: "selected";
+            }>>;
         }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
             status: z.ZodLiteral<"signed-out">;
         }, z.core.$strip>, z.ZodObject<{
@@ -275,6 +298,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             message: z.ZodString;
         }, z.core.$strip>], "status">>;
         kimi: z.ZodIntersection<z.ZodObject<{
+            operationError: z.ZodOptional<z.ZodString>;
             provider: z.ZodEnum<{
                 copilot: "copilot";
                 kimi: "kimi";
@@ -294,6 +318,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             models: z.ZodArray<z.ZodString>;
             available: z.ZodArray<z.ZodString>;
             selected: z.ZodArray<z.ZodString>;
+            selectionMode: z.ZodOptional<z.ZodEnum<{
+                default: "default";
+                selected: "selected";
+            }>>;
         }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
             status: z.ZodLiteral<"signed-out">;
         }, z.core.$strip>, z.ZodObject<{
@@ -319,6 +347,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             message: z.ZodString;
         }, z.core.$strip>], "status">>;
         claude: z.ZodIntersection<z.ZodObject<{
+            operationError: z.ZodOptional<z.ZodString>;
             provider: z.ZodEnum<{
                 copilot: "copilot";
                 kimi: "kimi";
@@ -338,6 +367,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             models: z.ZodArray<z.ZodString>;
             available: z.ZodArray<z.ZodString>;
             selected: z.ZodArray<z.ZodString>;
+            selectionMode: z.ZodOptional<z.ZodEnum<{
+                default: "default";
+                selected: "selected";
+            }>>;
         }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
             status: z.ZodLiteral<"signed-out">;
         }, z.core.$strip>, z.ZodObject<{
@@ -363,6 +396,7 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             message: z.ZodString;
         }, z.core.$strip>], "status">>;
         copilot: z.ZodOptional<z.ZodIntersection<z.ZodObject<{
+            operationError: z.ZodOptional<z.ZodString>;
             provider: z.ZodEnum<{
                 copilot: "copilot";
                 kimi: "kimi";
@@ -382,6 +416,10 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             models: z.ZodArray<z.ZodString>;
             available: z.ZodArray<z.ZodString>;
             selected: z.ZodArray<z.ZodString>;
+            selectionMode: z.ZodOptional<z.ZodEnum<{
+                default: "default";
+                selected: "selected";
+            }>>;
         }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
             status: z.ZodLiteral<"signed-out">;
         }, z.core.$strip>, z.ZodObject<{
@@ -433,6 +471,8 @@ export declare const CodingOAuthWebStatusSchema: z.ZodObject<{
             failed: "failed";
             cancelled: "cancelled";
         }>>;
+        pending: z.ZodOptional<z.ZodBoolean>;
+        configurationConflict: z.ZodOptional<z.ZodBoolean>;
         updatedAt: z.ZodNullable<z.ZodNumber>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
@@ -497,6 +537,8 @@ export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
             failed: "failed";
             cancelled: "cancelled";
         }>>;
+        pending: z.ZodOptional<z.ZodBoolean>;
+        configurationConflict: z.ZodOptional<z.ZodBoolean>;
         updatedAt: z.ZodNullable<z.ZodNumber>;
     }, z.core.$strip>;
 }, z.core.$strip>;
@@ -555,6 +597,8 @@ export declare const OpenCodeGoModelsResponseSchema: z.ZodObject<{
                 failed: "failed";
                 cancelled: "cancelled";
             }>>;
+            pending: z.ZodOptional<z.ZodBoolean>;
+            configurationConflict: z.ZodOptional<z.ZodBoolean>;
             updatedAt: z.ZodNullable<z.ZodNumber>;
         }, z.core.$strip>;
     }, z.core.$strip>;
@@ -697,6 +741,32 @@ export declare const GatewayPublicStatusSchema: z.ZodObject<{
     keyHint: z.ZodString;
     warning: z.ZodString;
     opencodeGoEnabled: z.ZodBoolean;
+    opencodeGoRoute: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        credentialRef: z.ZodString;
+        models: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            protocol: z.ZodEnum<{
+                "openai-completions": "openai-completions";
+                "openai-responses": "openai-responses";
+                "anthropic-messages": "anthropic-messages";
+            }>;
+        }, z.core.$strip>>;
+    }, z.core.$strip>>>;
+    opencodeGoPreview: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        credentialRef: z.ZodString;
+        models: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            protocol: z.ZodEnum<{
+                "openai-completions": "openai-completions";
+                "openai-responses": "openai-responses";
+                "anthropic-messages": "anthropic-messages";
+            }>;
+        }, z.core.$strip>>;
+    }, z.core.$strip>>>;
+    opencodeGoMigration: z.ZodOptional<z.ZodEnum<{
+        none: "none";
+        required: "required";
+    }>>;
 }, z.core.$strip>;
 export type GatewayPublicStatus = z.infer<typeof GatewayPublicStatusSchema>;
 export declare const GatewayKeyRevealSchema: z.ZodObject<{

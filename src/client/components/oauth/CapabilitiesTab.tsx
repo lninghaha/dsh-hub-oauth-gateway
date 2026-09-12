@@ -21,8 +21,16 @@ import {
 import type { Translate } from "../../locales.js";
 import { SettingsRow, Toggle } from "../controls.js";
 
-function CodexSpeedControl({ enabled, t }: { readonly enabled: boolean; readonly t: Translate }) {
-	const hint = codexSpeedHint(enabled, enabled);
+function CodexSpeedControl({
+	enabled,
+	ready,
+	t,
+}: {
+	readonly enabled: boolean;
+	readonly ready: boolean;
+	readonly t: Translate;
+}) {
+	const hint = codexSpeedHint(enabled, ready);
 	if (hint === "hidden") return null;
 	return (
 		<div className="dus-oauth-speed" data-codex-speed={hint}>
@@ -46,11 +54,19 @@ function CodexSpeedControl({ enabled, t }: { readonly enabled: boolean; readonly
 	);
 }
 
-export function CapabilitiesTab({ t }: { readonly t: Translate }) {
+export function CapabilitiesTab({
+	t,
+	scope,
+	connected = true,
+}: {
+	readonly t: Translate;
+	readonly scope?: "codex" | "grok";
+	readonly connected?: boolean;
+}) {
 	const snapshot = useCapabilitiesQuery();
 	const patch = useCapabilitiesPatchMutation();
 	const [conflict, setConflict] = useState(false);
-	const imagine = useImagineCredentialQuery();
+	const imagine = useImagineCredentialQuery(scope !== "codex");
 	const data = snapshot.data ?? null;
 	const write = (value: CapabilitySettingsPatch): void => {
 		if (data === null) return;
@@ -70,6 +86,7 @@ export function CapabilitiesTab({ t }: { readonly t: Translate }) {
 	return (
 		<div className="dus-settings-stack" data-settings-tab="capabilities">
 			<p className="dus-settings-hint">{t("capabilities.intro")}</p>
+			{scope === "codex" && !connected ? <p role="status">{t("capabilities.accountRequired")}</p> : null}
 			{snapshot.error instanceof Error ? (
 				<p className="dus-error-inline" role="alert">
 					{snapshot.error.message}
@@ -86,7 +103,11 @@ export function CapabilitiesTab({ t }: { readonly t: Translate }) {
 						</p>
 					) : null}
 					{patch.isSuccess ? <p className="dus-save-state">{t("capabilities.saved")}</p> : null}
-					{CAPABILITY_FLAG_DEFS.map((flag) => (
+					{CAPABILITY_FLAG_DEFS.filter(
+						(flag) =>
+							scope === undefined ||
+							(scope === "grok" ? flag.key.startsWith("grokImagine") : flag.key.startsWith("codex")),
+					).map((flag) => (
 						<div key={flag.key}>
 							<SettingsRow
 								title={t(flag.labelKey)}
@@ -100,95 +121,105 @@ export function CapabilitiesTab({ t }: { readonly t: Translate }) {
 									/>
 								}
 							/>
-							{flag.key === "codexFast" ? <CodexSpeedControl enabled={data.value.codexFast} t={t} /> : null}
+							{flag.key === "codexFast" ? (
+								<CodexSpeedControl enabled={data.value.codexFast} ready={connected} t={t} />
+							) : null}
 						</div>
 					))}
-					<SettingsRow
-						title={t("capabilities.searchResults")}
-						control={
-							<input
-								className="dus-input dus-input-narrow"
-								type="number"
-								min={CAPABILITY_LIMIT_BOUNDS.searchResults.min}
-								max={CAPABILITY_LIMIT_BOUNDS.searchResults.max}
-								step={1}
-								value={data.value.searchResults}
-								aria-label={t("capabilities.searchResults")}
-								disabled={!data.writable || patch.isPending}
-								onChange={(event) => {
-									const next = Math.trunc(Number(event.target.value));
-									if (
-										Number.isInteger(next) &&
-										next >= CAPABILITY_LIMIT_BOUNDS.searchResults.min &&
-										next <= CAPABILITY_LIMIT_BOUNDS.searchResults.max
-									) {
-										write({ searchResults: next });
-									}
-								}}
+					{scope !== "grok" ? (
+						<>
+							<SettingsRow
+								title={t("capabilities.searchResults")}
+								control={
+									<input
+										className="dus-input dus-input-narrow"
+										type="number"
+										min={CAPABILITY_LIMIT_BOUNDS.searchResults.min}
+										max={CAPABILITY_LIMIT_BOUNDS.searchResults.max}
+										step={1}
+										value={data.value.searchResults}
+										aria-label={t("capabilities.searchResults")}
+										disabled={!data.writable || patch.isPending}
+										onChange={(event) => {
+											const next = Math.trunc(Number(event.target.value));
+											if (
+												Number.isInteger(next) &&
+												next >= CAPABILITY_LIMIT_BOUNDS.searchResults.min &&
+												next <= CAPABILITY_LIMIT_BOUNDS.searchResults.max
+											) {
+												write({ searchResults: next });
+											}
+										}}
+									/>
+								}
 							/>
-						}
-					/>
-					<SettingsRow
-						title={t("capabilities.imageCount")}
-						control={
-							<input
-								className="dus-input dus-input-narrow"
-								type="number"
-								min={CAPABILITY_LIMIT_BOUNDS.imageCount.min}
-								max={CAPABILITY_LIMIT_BOUNDS.imageCount.max}
-								step={1}
-								value={data.value.imageCount}
-								aria-label={t("capabilities.imageCount")}
-								disabled={!data.writable || patch.isPending}
-								onChange={(event) => {
-									const next = Math.trunc(Number(event.target.value));
-									if (
-										Number.isInteger(next) &&
-										next >= CAPABILITY_LIMIT_BOUNDS.imageCount.min &&
-										next <= CAPABILITY_LIMIT_BOUNDS.imageCount.max
-									) {
-										write({ imageCount: next });
-									}
-								}}
+							<SettingsRow
+								title={t("capabilities.imageCount")}
+								control={
+									<input
+										className="dus-input dus-input-narrow"
+										type="number"
+										min={CAPABILITY_LIMIT_BOUNDS.imageCount.min}
+										max={CAPABILITY_LIMIT_BOUNDS.imageCount.max}
+										step={1}
+										value={data.value.imageCount}
+										aria-label={t("capabilities.imageCount")}
+										disabled={!data.writable || patch.isPending}
+										onChange={(event) => {
+											const next = Math.trunc(Number(event.target.value));
+											if (
+												Number.isInteger(next) &&
+												next >= CAPABILITY_LIMIT_BOUNDS.imageCount.min &&
+												next <= CAPABILITY_LIMIT_BOUNDS.imageCount.max
+											) {
+												write({ imageCount: next });
+											}
+										}}
+									/>
+								}
 							/>
-						}
-					/>
-					<SettingsRow
-						title={t("capabilities.videoTtl")}
-						hint={t("capabilities.videoTtlHint")}
-						control={
-							<input
-								className="dus-input dus-input-narrow"
-								type="number"
-								min={CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.min}
-								max={CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.max}
-								step={1}
-								value={Math.round(data.value.videoArtifactTtlMs / 3_600_000)}
-								aria-label={t("capabilities.videoTtl")}
-								disabled={!data.writable || patch.isPending}
-								onChange={(event) => {
-									const hours = Math.trunc(Number(event.target.value));
-									if (
-										Number.isInteger(hours) &&
-										hours >= CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.min &&
-										hours <= CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.max
-									) {
-										write({ videoArtifactTtlMs: hours * 3_600_000 });
-									}
-								}}
+						</>
+					) : null}
+					{scope !== "codex" ? (
+						<>
+							<SettingsRow
+								title={t("capabilities.videoTtl")}
+								hint={t("capabilities.videoTtlHint")}
+								control={
+									<input
+										className="dus-input dus-input-narrow"
+										type="number"
+										min={CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.min}
+										max={CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.max}
+										step={1}
+										value={Math.round(data.value.videoArtifactTtlMs / 3_600_000)}
+										aria-label={t("capabilities.videoTtl")}
+										disabled={!data.writable || patch.isPending}
+										onChange={(event) => {
+											const hours = Math.trunc(Number(event.target.value));
+											if (
+												Number.isInteger(hours) &&
+												hours >= CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.min &&
+												hours <= CAPABILITY_LIMIT_BOUNDS.videoArtifactTtlHours.max
+											) {
+												write({ videoArtifactTtlMs: hours * 3_600_000 });
+											}
+										}}
+									/>
+								}
 							/>
-						}
-					/>
-					<SettingsRow
-						title={t("capabilities.imagineCredential")}
-						hint={
-							imagine.data === undefined
-								? t("dashboard.loading")
-								: imagine.data.configured
-									? t("capabilities.imagineConfigured", { source: imagine.data.source })
-									: t("capabilities.imagineMissing")
-						}
-					/>
+							<SettingsRow
+								title={t("capabilities.imagineCredential")}
+								hint={
+									imagine.data === undefined
+										? t("dashboard.loading")
+										: imagine.data.configured
+											? t("capabilities.imagineConfigured", { source: imagine.data.source })
+											: t("capabilities.imagineMissing")
+								}
+							/>
+						</>
+					) : null}
 					{patch.error instanceof Error && !conflict ? (
 						<p className="dus-error-inline" role="alert">
 							{patch.error.message}

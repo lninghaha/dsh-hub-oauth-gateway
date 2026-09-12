@@ -60,7 +60,7 @@ dsh plugin --profile web add "$PWD"
 - When upgrading the combined installation, make sure `dsh-coding-oauth-core@0.1.2` is available from the npm registry first. Core is a shared npm dependency, not a separate DSH plugin, so operators do **not** run `dsh plugin add` for it. Hub and Subscription pin registry `0.1.2` (helpers: `http-json` / `grok-errors` / `kimi-errors` / `gateway-protocol`). Keep `vendor/dsh-coding-oauth-core` as the editable source for the next core release.
 - Upgrade Hub to `1.13.1` and Subscription to `0.8.1` before restarting. This pair aligns request authentication, image limits, opaque replay, retry handling, optional-service lifecycles, and the shared `undici@7.29.0` dispatcher runtime with DSH `0.1.1-rc.2`. AuthDocument v1 credential files migrate in place to v2 under lock; no database, Gateway, route, adapter, or model ID migration is required.
 - Host boundary note (no operator migration): usage inventory reads `sessionPersistence` via either legacy `readFrom` or the `0.1.5+` `open`/`read`/`close` handle dialect. Client classic-script inject no longer requires `@deepseek-ai/dsh-client-runtime` (absent on `0.1.5-rc.1`).
-- Install Hub `1.13.1` and Subscription `0.8.1` into the same **web profile**, then restart the existing DSH Web process once. Hub owns the full UI; Subscription becomes the compact status entry.
+- Install Hub `1.13.1` and Subscription `0.8.1` into the same **web profile**, then restart the existing DSH Web process once. The active runtime owner provides one Accounts & Models entry; Subscription restores its independent entry if Hub exits.
 - The Cordis id `usage-stats`, the `usage-stats-v1.sqlite` history, OAuth credential files, and Gateway configuration are preserved. Do not remove the old storage or credentials as part of an upgrade. The old `dsh-usage-stats` entry must be removed only when replacing it with this package, never in addition to it.
 - For rollback, restore the previous plugin tarball/version and restart once; keep the profile and data files. Check the Settings compatibility diagnostic before changing configuration.
 - DSH Web remains loopback-only. Remote Settings requires an SSH tunnel or a trusted HTTPS reverse proxy with the owner proof and CSRF proof described below; an upgrade is not permission to bind DSH or the Gateway to `0.0.0.0`.
@@ -151,7 +151,7 @@ codingOAuth:
       enabled: false
 ```
 
-Optional **OpenCode Go** compatibility (`codingOAuth.gateway.opencodeGo.enabled`, also on the Gateway tab, default off): when on, `POST /v1/chat/completions` is forwarded to pinned `https://opencode.ai/zen/go/v1/chat/completions` with sticky `x-opencode-session`, so clients that omit OpenCode session affinity (and would otherwise see `MissingSessionID`) keep working through this loopback gateway. Session id preference: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → generated UUID. Set the gateway Bearer key to your OpenCode API key for that mode; no restart required.
+Connect Go from Accounts & Models for direct DSH use. External tools use explicit prefixed routes, matching protocols and stable session headers; local and upstream keys stay separate. See [migration and rollback](repair-candidate.md).
 
 Or use **Settings → Gateway**. Endpoints: `/healthz`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/v1/messages`. Bearer key lives in an owner-only gateway document (`0600`). Bind is YAML-only; non-loopback bind requires a key. Not a public relay.
 

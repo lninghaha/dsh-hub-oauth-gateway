@@ -329,13 +329,13 @@ describe("coding OAuth gateway routes", () => {
 		expect(floatPort.status).toBe(400);
 	});
 
-	it("accepts opencodeGoEnabled on PATCH and echoes it in status", async () => {
+	it("requires migration instead of re-enabling global forwarding", async () => {
 		const bad = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: "yes" });
 		expect(bad.status).toBe(400);
 
 		const enabled = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: true });
-		expect(enabled.status).toBe(200);
-		expect(enabled.payload).toMatchObject({ opencodeGoEnabled: true });
+		expect(enabled.status).toBe(409);
+		expect(enabled.payload).toMatchObject({ error: expect.stringContaining("opencode-go/<model>") });
 
 		const disabled = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: false });
 		expect(disabled.status).toBe(200);

@@ -182,7 +182,6 @@ function ProviderCard({
 	const refresh = useRefreshMutation();
 	const next = nextStepKey(provider);
 	const showAccountsCta = supportsOAuthFlow(provider);
-	const canEditCredentials = provider.connection !== "unsupported";
 	const canRefresh =
 		provider.accountProviderId !== null && provider.capabilities.canRefresh && provider.connection !== "unsupported";
 	const supportsDeviceAuth = provider.accountProviderId === "copilot";
@@ -219,7 +218,7 @@ function ProviderCard({
 				<div className="dus-provider-credentials">
 					<span className="dus-provider-credentials-title">{t("providers.credentialsTitle")}</span>
 					{provider.credentials.map((meta) => (
-						<CredentialRow key={meta.ref} meta={meta} editable={meta.writable && canEditCredentials} t={t} />
+						<CredentialRow key={meta.ref} meta={meta} editable={meta.writable} t={t} />
 					))}
 				</div>
 			)}

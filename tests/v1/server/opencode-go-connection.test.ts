@@ -38,6 +38,35 @@ const callStatus = () => ({
 });
 
 describe("OpenCode Go connection controller", () => {
+	it("preserves existing model capabilities and user overrides when applying a model", async () => {
+		const existing = {
+			id: "deepseek-v4.1-flash",
+			name: "Custom label",
+			contextWindow: 90000,
+			input: ["text"],
+			reasoningEfforts: ["high"],
+			compat: { supportsStore: false },
+		};
+		const other = { id: "other-model", input: ["text", "image"], compat: { supportsDeveloperRole: false } };
+		const f = fixture({ models: [existing, other] });
+		f.values.set("OPENCODE_GO_API_KEY", "fixture-secret");
+		const controller = createOpenCodeGoConnectionController({
+			credentials: f.credentials,
+			settings: f.settings,
+			callStatus,
+		});
+		await controller.applyConfiguration({
+			credentialRef: "OPENCODE_GO_API_KEY",
+			model: { id: existing.id, name: "Directory label", contextWindow: 100000 },
+			expectedRevision: 4,
+			confirmConflicts: false,
+		});
+		expect(f.mutate).toHaveBeenCalledWith(
+			"llm-pi-ai",
+			expect.arrayContaining([{ op: "set", path: ["providers", "opencode-go", "models"], value: [existing, other] }]),
+			4,
+		);
+	});
 	it("saves a credential without returning its value and reads only the official model directory", async () => {
 		const f = fixture();
 		const fetchImpl = vi.fn(async () => Response.json({ data: [{ id: "deepseek-v4.1-flash" }] }));
@@ -89,7 +118,7 @@ describe("OpenCode Go connection controller", () => {
 			expect.arrayContaining([
 				{ op: "set", path: ["providers", "opencode-go", "api"], value: OPENCODE_GO_API },
 				{ op: "set", path: ["providers", "opencode-go", "baseURL"], value: OPENCODE_GO_BASE_URL },
-				{ op: "set", path: ["providers", "opencode-go", "headers"], value: { "x-safe": "keep" } },
+				{ op: "unset", path: ["providers", "opencode-go", "headers", "x-opencode-session"] },
 			]),
 			4,
 		);
@@ -106,4 +135,59 @@ describe("OpenCode Go connection controller", () => {
 		});
 		expect((await controller.status()).credential.requiresChoice).toBe(true);
 	});
+});
+
+it("requires the selected model protocol and preserves the rest of the route", async () => {
+	const f = fixture({
+		apiKeyEnv: "OPENCODE_GO_API_KEY",
+		api: "openai-completions",
+		baseURL: OPENCODE_GO_BASE_URL,
+		models: [],
+	});
+	f.values.set("OPENCODE_GO_API_KEY", "fixture");
+	const c = createOpenCodeGoConnectionController({ credentials: f.credentials, settings: f.settings, callStatus });
+	await expect(
+		c.applyConfiguration({
+			credentialRef: "OPENCODE_GO_API_KEY",
+			model: { id: "gpt-5.6-luna" },
+			expectedRevision: 4,
+			confirmConflicts: true,
+		}),
+	).rejects.toMatchObject({ code: "model-protocol-mismatch" });
+	await expect(
+		c.applyConfiguration({
+			credentialRef: "OPENCODE_GO_API_KEY",
+			model: { id: "gpt-5.6-luna" },
+			api: "openai-responses",
+			expectedRevision: 4,
+			confirmConflicts: false,
+		}),
+	).rejects.toMatchObject({ code: "configuration-conflict" });
+	await c.applyConfiguration({
+		credentialRef: "OPENCODE_GO_API_KEY",
+		model: { id: "gpt-5.6-luna" },
+		api: "openai-responses",
+		expectedRevision: 4,
+		confirmConflicts: true,
+	});
+	expect(f.mutate).toHaveBeenCalledWith(
+		"llm-pi-ai",
+		expect.arrayContaining([{ op: "set", path: ["providers", "opencode-go", "api"], value: "openai-responses" }]),
+		4,
+	);
+});
+it("does not break existing models when switching protocol", async () => {
+	const f = fixture({ models: [{ id: "deepseek-v4.1-flash" }] });
+	f.values.set("OPENCODE_GO_API_KEY", "fixture");
+	const c = createOpenCodeGoConnectionController({ credentials: f.credentials, settings: f.settings, callStatus });
+	await expect(
+		c.applyConfiguration({
+			credentialRef: "OPENCODE_GO_API_KEY",
+			model: { id: "minimax-m3" },
+			api: "anthropic-messages",
+			expectedRevision: 4,
+			confirmConflicts: true,
+		}),
+	).rejects.toMatchObject({ code: "model-protocol-mismatch" });
+	expect(f.mutate).not.toHaveBeenCalled();
 });

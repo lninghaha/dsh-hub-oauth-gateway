@@ -1,5 +1,7 @@
 import {
+	applyPreferenceOperations,
 	defaultUserPreferences,
+	type PreferencePathOperation,
 	patchUserPreferences,
 	type UserPreferences,
 	type UserPreferencesPatch,
@@ -52,11 +54,17 @@ export class PreferencesRepository {
 		return value;
 	}
 
-	patch(expectedRevision: number, patch: UserPreferencesPatch, updatedAt = Date.now()): PreferenceSnapshot | undefined {
+	patch(
+		expectedRevision: number,
+		patch: UserPreferencesPatch | readonly PreferencePathOperation[],
+		updatedAt = Date.now(),
+	): PreferenceSnapshot | undefined {
 		return this.#database.transaction(() => {
 			const current = this.snapshot();
 			if (current.revision !== expectedRevision) return undefined;
-			const preferences = patchUserPreferences(current.preferences, patch);
+			const preferences = Array.isArray(patch)
+				? applyPreferenceOperations(current.preferences, patch)
+				: patchUserPreferences(current.preferences, patch as UserPreferencesPatch);
 			const revision = current.revision + 1;
 			this.write(preferences, revision, updatedAt);
 			return { preferences, revision };

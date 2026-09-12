@@ -127,6 +127,7 @@ const gatewayFixture = {
 	bind: "127.0.0.1",
 	port: 18_080,
 	model: "grok-4",
+	models: ["grok-4"],
 	keyAvailable: true,
 	keyHint: "****abcd",
 	warning: "local API gateway warning",
@@ -290,8 +291,8 @@ describe("coding OAuth settings tabs", () => {
 		expect(document.querySelector('[data-oauth-provider="claude"]')).toBeTruthy();
 		fireEvent.click(card?.querySelector(".dus-oauth-card-toggle") as Element);
 		expect(screen.getByText(en["oauth.recovery.reauthorize"])).toBeTruthy();
-		fireEvent.click(screen.getByRole("button", { name: en["oauth.recovery.reauthorizeAction"] }));
-		expect(oauthMocks.login).toHaveBeenCalledWith({ provider: "codex", method: "device", accountMode: "add" });
+		expect(screen.queryByRole("button", { name: en["oauth.recovery.reauthorizeAction"] })).toBeNull();
+		expect(oauthMocks.login).not.toHaveBeenCalled();
 
 		(statusFixture.providers.codex as { message?: string }).message = "atomic writer lock";
 		view.rerender(

@@ -1,4 +1,7 @@
 <!-- banner -->
+
+> Repair candidate / 修复候选：1.13.2-rc.1。See [usage, migration and rollback](docs/repair-candidate.md). This candidate is not a public registry release.
+
 <div align="center">
 
 # dsh-hub-oauth-gateway
@@ -49,7 +52,7 @@ Historial de releases en [`CHANGELOG.md`](CHANGELOG.md).
 - **Exportación CSV / JSON** — diseños filtrados, diarios o bundle; redacción opcional de sesión; defensa contra inyección en hojas de cálculo.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Puerta de enlace API loopback opcional** — servidor compatible OpenAI/Anthropic apagado por defecto para tus propias herramientas.
-- **Compatibilidad opt-in con OpenCode Go** — la puerta de enlace puede proxyar chat completions a OpenCode Go e inyectar `x-opencode-session` sticky (evita `MissingSessionID` si el cliente omite afinidad de sesión); apagado por defecto.
+- **OpenCode Go** — Conecta OpenCode Go en **Cuentas y modelos** para usarlo en DSH sin activar Gateway. Las herramientas externas usan rutas explícitas `opencode-go/<model-id>`, el protocolo correspondiente y un identificador estable de conversación. La clave local y las credenciales del proveedor están separadas. La ausencia del identificador produce un error; revisa la migración antes de cambiar el antiguo modo global.
 - **Capacidades opcionales** — Codex search / images / usage / Fast y Grok Imagine apagados por defecto; aplican en vivo.
 - **Monitor local opt-in** — snapshots read-only de auth CLI y escaneos cross-tool de tokens (nunca contenido de conversación).
 - **UI bilingüe** — chino e inglés mediante servicios de locale de DSH.
@@ -92,7 +95,7 @@ Capturado en DeepSeek Harness Web con este plugin instalado (un historial local 
 | SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro en DSH sin otra factura de API | Las rutas integradas suelen ser pay-as-you-go con API keys | Rutas OAuth locales coexisten con providers API-key existentes |
 | `本轮运行失败` **API key is invalid** / `AUTH` a mitad de turn | La GUI mapea todo `AUTH` a ese banner; los access tokens OAuth expiran | Refresh proactivo y reintento consciente de AUTH en rutas coding OAuth |
 | Quieres herramientas compatibles OpenAI/Anthropic contra sesiones de suscripción | Sin puente local seguro | Puerta de enlace loopback opt-in (no es relay remoto) |
-| El chat de OpenCode Go falla con `MissingSessionID` / falta `x-opencode-session` | Los clientes no envían cabeceras sticky de sesión | El proxy opt-in OpenCode Go del gateway inyecta `x-opencode-session` sticky |
+| OpenCode Go: `MissingSessionID` | Missing stable conversation ID | DSH: use Accounts & Models; external tools: provide `x-opencode-session`. See [migration](docs/repair-candidate.md). |
 | Estado CLI estilo Token Monitor sin pegar secretos | Escarbar archivos manualmente o pegar en el chat | localMonitor / localUsage opt-in en rutas allowlisted hardened |
 
 ## Inicio rápido
@@ -171,7 +174,7 @@ Archivos OAuth oficiales de CLI en allowlist se descubren read-only. La sync es 
 
 **Apagada** por defecto. Cuando está habilitada, un listener `node:http` aislado (no el puerto web de DSH) sirve `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` y `POST /v1/messages` en loopback, reutilizando sesiones OAuth iniciadas. bind solo vía YAML; bind no-loopback requiere Bearer key. No es relay remoto. Detalles: [`docs/01-install.md`](docs/01-install.md).
 
-La **compatibilidad opt-in con OpenCode Go** (`codingOAuth.gateway.opencodeGo.enabled`, apagada por defecto) también se puede activar en la pestaña Gateway. Cuando está on, `POST /v1/chat/completions` se reenvía a `https://opencode.ai/zen/go/v1/chat/completions` fijado con `x-opencode-session` sticky, para que los clientes que omiten la afinidad de sesión de OpenCode (y verían `MissingSessionID`) sigan funcionando por esta puerta de enlace loopback. Preferencia de session id: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → UUID generado. Pon la Bearer key del gateway como tu OpenCode API key; el interruptor no requiere reinicio.
+Conecta OpenCode Go en **Cuentas y modelos** para usarlo en DSH sin activar Gateway. Las herramientas externas usan rutas explícitas `opencode-go/<model-id>`, el protocolo correspondiente y un identificador estable de conversación. La clave local y las credenciales del proveedor están separadas. La ausencia del identificador produce un error; revisa la migración antes de cambiar el antiguo modo global. [Migration / 迁移](docs/repair-candidate.md).
 
 ## Capacidades opcionales
 

@@ -137,30 +137,48 @@ describe("v1 API router", () => {
 			const pending = routes.get(path)?.(input.value, response as unknown as ServerResponse);
 			input.emitBody();
 			await pending;
-			return { status: response.status, body: JSON.parse(response.body) as { data?: unknown; error?: { code: string } } };
+			return {
+				status: response.status,
+				body: JSON.parse(response.body) as { data?: unknown; error?: { code: string } },
+			};
 		};
 		const initial = await call("GET", API_PATHS.settingsState);
 		expect(initial.status).toBe(200);
 		const state = initial.body.data as { preferences: ReturnType<typeof defaultUserPreferences>; revision: number };
 		expect(state.revision).toBe(0);
 
-		const patched = await call("PATCH", API_PATHS.settings, { expectedRevision: state.revision, patch: { display: { density: "compact" } } });
+		const patched = await call("PATCH", API_PATHS.settings, {
+			expectedRevision: state.revision,
+			patch: { display: { density: "compact" } },
+		});
 		expect(patched.status).toBe(200);
-		const afterPatch = patched.body.data as { preferences: ReturnType<typeof defaultUserPreferences>; revision: number };
+		const afterPatch = patched.body.data as {
+			preferences: ReturnType<typeof defaultUserPreferences>;
+			revision: number;
+		};
 		expect(afterPatch.preferences.display.density).toBe("compact");
 		expect(afterPatch.preferences.providers).toEqual(state.preferences.providers);
 		expect(afterPatch.revision).toBeGreaterThan(state.revision);
 
-		const conflict = await call("PATCH", API_PATHS.settings, { expectedRevision: state.revision, patch: { providers: { hidden: ["x"] } } });
+		const conflict = await call("PATCH", API_PATHS.settings, {
+			expectedRevision: state.revision,
+			patch: { providers: { hidden: ["x"] } },
+		});
 		expect(conflict.status).toBe(409);
 		expect(conflict.body.error?.code).toBe("settings-conflict");
 
-		const legacy = await call("PUT", API_PATHS.settings, { ...afterPatch.preferences, privacy: { ...afterPatch.preferences.privacy, redactExports: false } });
+		const legacy = await call("PUT", API_PATHS.settings, {
+			...afterPatch.preferences,
+			privacy: { ...afterPatch.preferences.privacy, redactExports: false },
+		});
 		expect(legacy.status).toBe(200);
 		const beforePricing = (await call("GET", API_PATHS.settingsState)).body.data as { revision: number };
 		const pricing = await call("PUT", API_PATHS.pricing, { baseCurrency: "EUR", rules: [] });
 		expect(pricing.status).toBe(200);
-		const afterPricing = (await call("GET", API_PATHS.settingsState)).body.data as { preferences: ReturnType<typeof defaultUserPreferences>; revision: number };
+		const afterPricing = (await call("GET", API_PATHS.settingsState)).body.data as {
+			preferences: ReturnType<typeof defaultUserPreferences>;
+			revision: number;
+		};
 		expect(afterPricing.revision).toBeGreaterThan(beforePricing.revision);
 		expect(afterPricing.preferences.providers).toEqual(state.preferences.providers);
 	});

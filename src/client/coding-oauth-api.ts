@@ -1,3 +1,5 @@
+import type { GoApi } from "../shared/opencode-go-protocol.js";
+import type { GoGatewayRoute } from "./components/oauth/GoGatewayRouteView.js";
 /**
  * Fetch layer + react-query hooks for the integrated coding-subscription
  * OAuth routes. Unlike the usage-stats API these endpoints answer with bare
@@ -103,6 +105,8 @@ export function useOpenCodeGoConnectionQuery(enabled = true) {
 		{
 			queryKey: [CODING_OAUTH_KEY, "opencode-go"],
 			queryFn: () => callCodingOAuth(CODING_OAUTH_PATHS.opencodeGo, OpenCodeGoConnectionStatusSchema),
+			staleTime: 0,
+			refetchOnMount: "always",
 			enabled,
 			retry: 1,
 		},
@@ -132,7 +136,10 @@ export function useOpenCodeGoCredentialMutation() {
 					{ action: "credential", credentialRef, ...(apiKey === undefined ? {} : { apiKey }) },
 					OpenCodeGoConnectionStatusSchema,
 				),
-			onSuccess: invalidateCodingOAuthQueries,
+			onSuccess: async (response) => {
+				usageQueryClient.setQueryData([CODING_OAUTH_KEY, "opencode-go"], response);
+				await invalidateCodingOAuthQueries();
+			},
 		},
 		usageQueryClient,
 	);
@@ -146,18 +153,23 @@ export function useOpenCodeGoApplyMutation() {
 				model,
 				expectedRevision,
 				confirmConflicts,
+				api,
 			}: {
 				credentialRef: string;
 				model: OpenCodeGoModel;
 				expectedRevision: number;
 				confirmConflicts: boolean;
+				api?: GoApi;
 			}) =>
 				postCodingOAuth(
 					CODING_OAUTH_PATHS.opencodeGo,
-					{ action: "apply", credentialRef, model, expectedRevision, confirmConflicts },
+					{ action: "apply", credentialRef, model, expectedRevision, confirmConflicts, ...(api ? { api } : {}) },
 					OpenCodeGoConnectionStatusSchema,
 				),
-			onSuccess: invalidateCodingOAuthQueries,
+			onSuccess: async (response) => {
+				usageQueryClient.setQueryData([CODING_OAUTH_KEY, "opencode-go"], response);
+				await invalidateCodingOAuthQueries();
+			},
 		},
 		usageQueryClient,
 	);
@@ -170,11 +182,13 @@ export function useCodingOAuthLoginMutation() {
 				provider,
 				method,
 				accountMode,
+				targetAccountId,
 				confirmOverwrite,
 			}: {
 				provider: CodingOAuthProviderSlug;
 				method?: string;
-				accountMode?: "add" | "overwrite-active";
+				accountMode?: "add" | "overwrite-active" | "reauthorize";
+				targetAccountId?: string;
 				confirmOverwrite?: boolean;
 			}) =>
 				postCodingOAuth(
@@ -183,6 +197,7 @@ export function useCodingOAuthLoginMutation() {
 						provider,
 						...(method === undefined ? {} : { method }),
 						...(accountMode === undefined ? {} : { accountMode }),
+						...(targetAccountId === undefined ? {} : { targetAccountId }),
 						...(confirmOverwrite === undefined ? {} : { confirmOverwrite }),
 					},
 					LoginChallengeSchema,
@@ -234,8 +249,16 @@ export function useCodingOAuthLogoutMutation() {
 export function useCodingOAuthModelsMutation() {
 	return useMutation(
 		{
-			mutationFn: ({ provider, selected }: { provider: CodingOAuthProviderSlug; selected: readonly string[] }) =>
-				postCodingOAuth(CODING_OAUTH_PATHS.models, { provider, selected }, CodingOAuthWebStatusSchema),
+			mutationFn: ({
+				provider,
+				selected,
+				selectionMode,
+			}: {
+				provider: CodingOAuthProviderSlug;
+				selected: readonly string[];
+				selectionMode?: "default" | "selected";
+			}) =>
+				postCodingOAuth(CODING_OAUTH_PATHS.models, { provider, selected, selectionMode }, CodingOAuthWebStatusSchema),
 			onSuccess: invalidateCodingOAuthQueries,
 		},
 		usageQueryClient,
@@ -332,6 +355,7 @@ export function useGatewayPatchMutation() {
 				enabled?: boolean;
 				port?: number;
 				opencodeGoEnabled?: boolean;
+				opencodeGoRoute?: GoGatewayRoute | null;
 			}): Promise<GatewayPublicStatus> =>
 				callCodingOAuth(CODING_OAUTH_PATHS.gateway, GatewayPublicStatusSchema, {
 					method: "PATCH",

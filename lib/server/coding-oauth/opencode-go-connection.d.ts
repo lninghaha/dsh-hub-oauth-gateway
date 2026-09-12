@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { type CredentialProvider } from "@deepseek-ai/dsh-credentials";
+import { type GoApi } from "../../shared/opencode-go-protocol.js";
 import type { OpenCodeGoStatus } from "./opencode-go-header.js";
 import type { OwnerRequestPolicy } from "./web-origin.js";
 export declare const OPENCODE_GO_CONNECTION_PATH = "/plugins/dsh-grok-build/opencode-go";
@@ -65,6 +66,7 @@ export interface OpenCodeGoConnectionController {
         readonly apiKey?: string;
     }): Promise<OpenCodeGoConnectionStatus>;
     applyConfiguration(input: {
+        readonly api?: GoApi;
         readonly credentialRef: string;
         readonly model: OpenCodeGoModel;
         readonly expectedRevision: number;
@@ -75,6 +77,7 @@ interface ControllerOptions {
     readonly credentials: CredentialProvider;
     readonly settings: OpenCodeGoSettingsProvider;
     readonly callStatus: () => OpenCodeGoStatus;
+    onConfigurationChange?: () => void;
     readonly fetchImpl?: typeof fetch;
 }
 export declare function createOpenCodeGoConnectionController(options: ControllerOptions): OpenCodeGoConnectionController;

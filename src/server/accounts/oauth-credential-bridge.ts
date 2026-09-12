@@ -56,26 +56,23 @@ export interface OAuthQuotaAccountRow {
 	readonly windows: readonly QuotaWindow[];
 	/** Present only on some host/account shapes; AuthDocument ids never appear here. */
 	readonly id?: string;
+	/** 只有凭据来源明确声明的关联才用于单账户调度；profileId 不是 OAuth 身份。 */
+	readonly oauthAccountId?: string;
+	readonly oauthProviderId?: string;
 }
 
 /**
- * Resolve quota windows for one pool member. Prefer a direct profile/row/provider
- * id match; otherwise use the Usage Center OAuth row for the store provider.
+ * 供应商快照不能充当每个池成员的独立配额。未知关联回到现有未知配额策略。
  */
 export function resolveQuotaWindowsForPoolAccount(
 	accounts: readonly OAuthQuotaAccountRow[],
 	accountId: string,
 	context?: { providerId: string },
 ): readonly QuotaWindow[] | undefined {
-	const direct =
-		accounts.find((account) => account.profileId === accountId) ??
-		accounts.find((account) => account.id === accountId) ??
-		accounts.find((account) => account.providerId === accountId);
-	if (direct !== undefined) return direct.windows;
-	const quotaAccountId =
-		context?.providerId === undefined ? undefined : oauthQuotaAccountIdForStoreProvider(context.providerId);
-	if (quotaAccountId === undefined) return undefined;
-	return accounts.find((account) => account.providerId === quotaAccountId)?.windows;
+	if (context === undefined) return undefined;
+	return accounts.find(
+		(account) => account.oauthAccountId === accountId && account.oauthProviderId === context.providerId,
+	)?.windows;
 }
 
 export interface OAuthTokenSource {

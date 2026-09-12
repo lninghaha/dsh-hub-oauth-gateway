@@ -3,16 +3,44 @@ import type {} from "@deepseek-ai/dsh-client-locale/client";
 import type { TranslateNS } from "@deepseek-ai/dsh-client-ui-slots";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { CODING_OAUTH_PATHS, CodingOAuthWebStatusSchema } from "../shared/coding-oauth.js";
+import { registerAccountEntry } from "./account-entry-owner.js";
+import { callCodingOAuth } from "./coding-oauth-api.js";
 import { FloatingHud } from "./components/FloatingHud.js";
-import { SettingsSection } from "./components/SettingsSection.js";
+import { AccountSettingsSection, SettingsSection } from "./components/SettingsSection.js";
 import { SidebarAction } from "./components/SidebarAction.js";
 import { UsageOverlay } from "./components/UsageOverlay.js";
+import { SETTINGS_OPEN_EVENT, usageUiController } from "./controller.js";
 import { LOCALE_NAMESPACE, type Translate } from "./locales.js";
+import type { SettingsTabId } from "./settings-tabs.js";
 
-function FallbackEntry({ t }: { readonly t: Translate }) {
+function FallbackEntry({
+	t,
+	accountsOnly = false,
+	hideTrigger = false,
+}: {
+	readonly t: Translate;
+	readonly accountsOnly?: boolean;
+	readonly hideTrigger?: boolean;
+}) {
+	const [targetTab, setTargetTab] = useState<SettingsTabId>(accountsOnly ? "accounts" : "overview");
+	const previousSurface = useRef<"closed" | "peek" | "dashboard">("closed");
 	const [open, setOpen] = useState(false);
 	const trigger = useRef<HTMLButtonElement>(null);
 	const dialog = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const openTarget = (event: Event) => {
+			const tab = (event as CustomEvent<{ tab?: SettingsTabId }>).detail?.tab;
+			if (!tab || ["accounts", "providers", "capabilities", "gateway"].includes(tab) !== accountsOnly) return;
+			if (document.querySelector(`.dus-settings[data-surface="${accountsOnly ? "accounts" : "usage"}"]`)) return;
+			previousSurface.current = usageUiController.getSnapshot().surface;
+			usageUiController.close();
+			setTargetTab(tab);
+			setOpen(true);
+		};
+		window.addEventListener(SETTINGS_OPEN_EVENT, openTarget);
+		return () => window.removeEventListener(SETTINGS_OPEN_EVENT, openTarget);
+	}, [accountsOnly]);
 	const closeButton = useRef<HTMLButtonElement>(null);
 	useEffect(() => {
 		if (!open) return;
@@ -28,10 +56,12 @@ function FallbackEntry({ t }: { readonly t: Translate }) {
 		const onKeyDown = (event: KeyboardEvent): void => {
 			if (event.key === "Escape") {
 				event.preventDefault();
+				event.stopImmediatePropagation();
 				setOpen(false);
 				return;
 			}
 			if (event.key !== "Tab") return;
+			event.stopImmediatePropagation();
 			const focusable = [
 				...root.querySelectorAll<HTMLElement>(
 					'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -51,26 +81,31 @@ function FallbackEntry({ t }: { readonly t: Translate }) {
 				first?.focus();
 			}
 		};
-		document.addEventListener("keydown", onKeyDown);
+		document.addEventListener("keydown", onKeyDown, true);
 		return () => {
-			document.removeEventListener("keydown", onKeyDown);
+			document.removeEventListener("keydown", onKeyDown, true);
 			for (const state of inertState) {
 				if (!state.inert) state.element.removeAttribute("inert");
 			}
 			trigger.current?.focus();
+			if (previousSurface.current === "peek") usageUiController.openPeek();
+			if (previousSurface.current === "dashboard") usageUiController.openDashboard();
+			previousSurface.current = "closed";
 		};
 	}, [open]);
 	return (
 		<div className="dus-recovery-entry">
 			<button
 				ref={trigger}
+				hidden={hideTrigger}
+				style={{ display: hideTrigger ? "none" : undefined }}
 				type="button"
 				className="dus-button dus-recovery-button"
 				aria-expanded={open}
 				aria-controls="dus-recovery-dialog"
 				onClick={() => setOpen(true)}
 			>
-				{t("recovery.open")}
+				{t(accountsOnly ? "settings.accountsTitle" : "recovery.open")}
 			</button>
 			{open ? (
 				<div
@@ -84,14 +119,27 @@ function FallbackEntry({ t }: { readonly t: Translate }) {
 					<div className="dus-recovery-shell">
 						<div className="dus-settings-heading">
 							<div>
-								<h2 id="dus-recovery-title">{t("recovery.title")}</h2>
-								<p>{t("recovery.message")}</p>
+								<h2
+									id="dus-recovery-title"
+									style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)" }}
+								>
+									{t(accountsOnly ? "settings.accountsTitle" : "settings.title")}
+								</h2>
+								{hideTrigger ? null : <p>{t("recovery.message")}</p>}
 							</div>
 							<button ref={closeButton} type="button" className="dus-button is-small" onClick={() => setOpen(false)}>
 								{t("action.close")}
 							</button>
 						</div>
-						<SettingsSection close={() => setOpen(false)} t={t as unknown as TranslateNS<"usage-stats">} />
+						<SettingsSection
+							surface={accountsOnly ? "accounts" : "usage"}
+							initialTab={targetTab}
+							close={() => {
+								previousSurface.current = "closed";
+								setOpen(false);
+							}}
+							t={t as unknown as TranslateNS<"usage-stats">}
+						/>
 					</div>
 				</div>
 			) : null}
@@ -176,7 +224,7 @@ function registerSlots(ctx: ClientContext, slots: SlotsApi): () => void {
  */
 export class DshClientAdapter {
 	install(ctx: ClientContext): void {
-		let disposeFallback = this.mountFallback(ctx);
+		const bridge = this.mountBridge(ctx);
 		let disposeSlots = (): void => undefined;
 		let slotsInstalled = false;
 		let stopped = false;
@@ -184,8 +232,7 @@ export class DshClientAdapter {
 			const slots = slotsOf(slotCtx);
 			if (slots === undefined) return;
 			if (slotsInstalled) return;
-			disposeFallback();
-			disposeFallback = () => undefined;
+			bridge.setVisible(false);
 			disposeSlots = registerSlots(slotCtx as ClientContext, slots);
 			slotsInstalled = true;
 			let active = true;
@@ -195,13 +242,13 @@ export class DshClientAdapter {
 				disposeSlots();
 				disposeSlots = () => undefined;
 				slotsInstalled = false;
-				if (!stopped) disposeFallback = this.mountFallback(ctx);
+				if (!stopped) bridge.setVisible(true);
 			};
 		};
 		ctx.effect(() => () => {
 			stopped = true;
 			disposeSlots();
-			disposeFallback();
+			bridge.dispose();
 		});
 		if (slotsOf(ctx) !== undefined) {
 			activateSlots(ctx);
@@ -210,16 +257,71 @@ export class DshClientAdapter {
 		ctx.inject(["slots"], activateSlots);
 	}
 
-	private mountFallback(ctx: ClientContext): () => void {
-		if (typeof document === "undefined") return () => undefined;
+	installAccountEntry(ctx: ClientContext): void {
+		const stop = registerAccountEntry(ctx, {
+			role: "hub",
+			readOwner: async () => (await callCodingOAuth(CODING_OAUTH_PATHS.status, CodingOAuthWebStatusSchema)).uiOwner,
+			mount: (failed) => {
+				const bridge = this.mountBridge(ctx, true);
+				let disposed = false;
+				const child = ctx.inject(["slots"], (scope) => {
+					const slots = slotsOf(scope);
+					if (!slots) return;
+					scope.effect(() =>
+						slots.inject("settings.section", () => {
+							try {
+								const release = slots.register(
+									{
+										name: "settings.section",
+										id: "coding-accounts",
+										order: 17,
+										label: () => ctx.locale.bind(LOCALE_NAMESPACE)("settings.accountsTitle"),
+										locale: LOCALE_NAMESPACE,
+									},
+									AccountSettingsSection,
+								);
+								bridge.setVisible(false);
+								return () => {
+									release();
+									if (!disposed) bridge.setVisible(true);
+								};
+							} catch {
+								queueMicrotask(failed);
+								return undefined;
+							}
+						}),
+					);
+				});
+				void Promise.resolve(child).catch(failed);
+				return () => {
+					disposed = true;
+					child.dispose();
+					bridge.dispose();
+				};
+			},
+		});
+		ctx.effect(() => stop, "usage-stats: accounts entry lifecycle");
+	}
+	private mountBridge(
+		ctx: ClientContext,
+		accountsOnly = false,
+	): { setVisible: (visible: boolean) => void; dispose: () => void } {
+		if (typeof document === "undefined") return { setVisible: () => undefined, dispose: () => undefined };
 		const host = document.createElement("div");
 		host.className = "dus-recovery-root";
 		document.body.append(host);
 		const root = createRoot(host);
-		root.render(<FallbackEntry t={ctx.locale.bind(LOCALE_NAMESPACE)} />);
-		return () => {
-			root.unmount();
-			host.remove();
+		const setVisible = (visible: boolean) =>
+			root.render(
+				<FallbackEntry t={ctx.locale.bind(LOCALE_NAMESPACE)} accountsOnly={accountsOnly} hideTrigger={!visible} />,
+			);
+		setVisible(true);
+		return {
+			setVisible,
+			dispose: () => {
+				root.unmount();
+				host.remove();
+			},
 		};
 	}
 }

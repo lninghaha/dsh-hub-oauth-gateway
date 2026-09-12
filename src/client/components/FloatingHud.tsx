@@ -54,7 +54,7 @@ function hasQuotaSignal(account: AccountSnapshot): boolean {
 function pickHudAccounts(accounts: readonly AccountSnapshot[], preferences: UserPreferences): AccountSnapshot[] {
 	const hidden = new Set(preferences.providers.hidden);
 	const order = preferences.providers.order;
-	const visible = accounts.filter((account) => !hidden.has(account.providerId));
+	const visible = accounts.filter((account) => account.status !== "not-configured" && !hidden.has(account.providerId));
 	const ranked = [...visible].sort((left, right) => {
 		const leftQuota = hasQuotaSignal(left) ? 0 : 1;
 		const rightQuota = hasQuotaSignal(right) ? 0 : 1;

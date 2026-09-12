@@ -7,6 +7,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.2-rc.1 (candidate)
+
+- 修复设置草稿冲突、空模型集合持久化、多账户默认与定向重新授权。
+- Go 连接复用凭据引用、保留模型配置并明确协议及流终态；兼容层保持真实会话关联。
+- 整合账户入口与高级能力，修正用量空状态；外部网关采用前缀路由、独立上游凭据和迁移预览。
+- [使用、迁移、回退和验证边界](docs/repair-candidate.md)。
+
 ## 1.13.1
 
 ### Added

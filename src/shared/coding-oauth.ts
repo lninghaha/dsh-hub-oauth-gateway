@@ -62,7 +62,7 @@ export const CODING_OAUTH_PATHS = Object.freeze({
 export const CodingOAuthProviderSlugSchema = z.enum(["grok", "codex", "kimi", "claude", "copilot"]);
 export type CodingOAuthProviderSlug = z.infer<typeof CodingOAuthProviderSlugSchema>;
 
-export const LoginAccountModeSchema = z.enum(["add", "overwrite-active"]);
+export const LoginAccountModeSchema = z.enum(["add", "overwrite-active", "reauthorize"]);
 export type LoginAccountMode = z.infer<typeof LoginAccountModeSchema>;
 
 /** Secret-free row for Settings account lists. Never includes tokens. */
@@ -83,31 +83,35 @@ export type SubscriptionLoginMethod = z.infer<typeof SubscriptionLoginMethodSche
 export const CatalogSourceSchema = z.enum(["live", "cache", "fallback"]);
 export type CatalogSource = z.infer<typeof CatalogSourceSchema>;
 
-export const GrokBuildWebAuthStatusSchema = z.discriminatedUnion("status", [
-	z.object({ status: z.literal("signed-out"), grokImportAvailable: z.boolean() }),
-	z.object({
-		status: z.literal("signing-in"),
-		method: GrokBuildLoginMethodSchema,
-		url: z.string().optional(),
-		userCode: z.string().optional(),
-		grokImportAvailable: z.boolean(),
-	}),
-	z.object({
-		status: z.literal("signed-in"),
-		models: z.array(z.string()),
-		available: z.array(z.string()),
-		selected: z.array(z.string()),
-		catalogSource: CatalogSourceSchema,
-		catalogError: z.string().optional(),
-		grokImportAvailable: z.boolean(),
-		accounts: z.array(AccountSummarySchema),
-		activeAccountId: z.string().min(1).max(128),
-	}),
-	z.object({ status: z.literal("error"), message: z.string(), grokImportAvailable: z.boolean() }),
-]);
+export const GrokBuildWebAuthStatusSchema = z
+	.discriminatedUnion("status", [
+		z.object({ status: z.literal("signed-out"), grokImportAvailable: z.boolean() }),
+		z.object({
+			status: z.literal("signing-in"),
+			method: GrokBuildLoginMethodSchema,
+			url: z.string().optional(),
+			userCode: z.string().optional(),
+			grokImportAvailable: z.boolean(),
+		}),
+		z.object({
+			status: z.literal("signed-in"),
+			models: z.array(z.string()),
+			available: z.array(z.string()),
+			selected: z.array(z.string()),
+			selectionMode: z.enum(["default", "selected"]).optional(),
+			catalogSource: CatalogSourceSchema,
+			catalogError: z.string().optional(),
+			grokImportAvailable: z.boolean(),
+			accounts: z.array(AccountSummarySchema),
+			activeAccountId: z.string().min(1).max(128),
+		}),
+		z.object({ status: z.literal("error"), message: z.string(), grokImportAvailable: z.boolean() }),
+	])
+	.and(z.object({ operationError: z.string().optional() }));
 export type GrokBuildWebAuthStatus = z.infer<typeof GrokBuildWebAuthStatusSchema>;
 
 const SubscriptionStatusBase = z.object({
+	operationError: z.string().optional(),
 	provider: z.enum(["codex", "kimi", "claude", "copilot"]),
 	route: z.string(),
 	displayName: z.string(),
@@ -116,6 +120,7 @@ const SubscriptionStatusBase = z.object({
 	models: z.array(z.string()),
 	available: z.array(z.string()),
 	selected: z.array(z.string()),
+	selectionMode: z.enum(["default", "selected"]).optional(),
 });
 
 export const SubscriptionWebAuthStatusSchema = z.intersection(
@@ -162,6 +167,8 @@ export const CodingOAuthWebStatusSchema = z.object({
 			lastCall: z.enum(["no-call", "success", "failure", "missing-session"]),
 			httpStatus: z.enum(["no-call", "accepted", "rejected", "network-error"]).optional(),
 			streamStatus: z.enum(["no-call", "completed", "failed", "cancelled", "missing-session"]).optional(),
+			pending: z.boolean().optional(),
+			configurationConflict: z.boolean().optional(),
 			updatedAt: z.number().nullable(),
 		})
 		.default({ active: false, lastCall: "no-call", updatedAt: null }),
@@ -206,6 +213,8 @@ export const OpenCodeGoConnectionStatusSchema = z.object({
 		lastCall: z.enum(["no-call", "success", "failure", "missing-session"]),
 		httpStatus: z.enum(["no-call", "accepted", "rejected", "network-error"]).optional(),
 		streamStatus: z.enum(["no-call", "completed", "failed", "cancelled", "missing-session"]).optional(),
+		pending: z.boolean().optional(),
+		configurationConflict: z.boolean().optional(),
 		updatedAt: z.number().nullable(),
 	}),
 });
@@ -289,6 +298,31 @@ export const GatewayPublicStatusSchema = z.object({
 	keyHint: z.string(),
 	warning: z.string(),
 	opencodeGoEnabled: z.boolean(),
+	opencodeGoRoute: z
+		.object({
+			credentialRef: z.string(),
+			models: z.array(
+				z.object({
+					id: z.string(),
+					protocol: z.enum(["openai-completions", "openai-responses", "anthropic-messages"]),
+				}),
+			),
+		})
+		.nullable()
+		.optional(),
+	opencodeGoPreview: z
+		.object({
+			credentialRef: z.string(),
+			models: z.array(
+				z.object({
+					id: z.string(),
+					protocol: z.enum(["openai-completions", "openai-responses", "anthropic-messages"]),
+				}),
+			),
+		})
+		.nullable()
+		.optional(),
+	opencodeGoMigration: z.enum(["none", "required"]).optional(),
 });
 export type GatewayPublicStatus = z.infer<typeof GatewayPublicStatusSchema>;
 

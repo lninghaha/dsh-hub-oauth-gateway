@@ -1,4 +1,7 @@
 <!-- banner -->
+
+> Repair candidate / 修复候选：1.13.2-rc.1。See [usage, migration and rollback](docs/repair-candidate.md). This candidate is not a public registry release.
+
 <div align="center">
 
 # dsh-hub-oauth-gateway
@@ -49,7 +52,7 @@
 - **Экспорт CSV / JSON** — фильтрованный, дневной или bundle-формат; опциональное редактирование session; защита от injection в электронные таблицы.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Опциональный loopback API-шлюз** — по умолчанию выключен OpenAI/Anthropic-совместимый сервер для ваших инструментов.
-- **Опциональная совместимость с OpenCode Go** — шлюз может проксировать chat completions в OpenCode Go и вставлять sticky `x-opencode-session` (избегает `MissingSessionID`, если клиент не шлёт session affinity); по умолчанию выкл.
+- **OpenCode Go** — Подключите OpenCode Go в разделе **Учётные записи и модели**, чтобы использовать его в DSH без шлюза. Внешние инструменты используют явные маршруты `opencode-go/<model-id>`, соответствующий протокол и постоянный идентификатор беседы. Локальный ключ отделён от учётных данных провайдера. Запрос без идентификатора отклоняется; старый глобальный режим меняется после просмотра миграции.
 - **Опциональные возможности** — Codex search / images / usage / Fast и Grok Imagine по умолчанию выключены; применяются сразу.
 - **Опциональный локальный монитор** — снимки auth CLI только для чтения и сканирование токенов между инструментами (никогда не содержимое разговоров).
 - **Двуязычный UI** — китайский и английский через сервисы locale DSH.
@@ -92,7 +95,7 @@
 | SuperGrok / ChatGPT Plus / Kimi Code / Claude Pro в DSH без отдельного API-счёта | Встроенные маршруты часто используют pay-as-you-go API keys | Локальные OAuth-маршруты сосуществуют с существующими API-key провайдерами |
 | `本轮运行失败` **API key is invalid** / `AUTH` посреди turn | GUI отображает каждый `AUTH` этим баннером; OAuth access tokens истекают | Проактивное обновление и AUTH-aware retry на coding OAuth маршрутах |
 | Нужны OpenAI/Anthropic-совместимые инструменты для subscription-сессий | Нет безопасного локального моста | Опциональный loopback-шлюз (не публичный relay) |
-| Чат OpenCode Go падает с `MissingSessionID` / без `x-opencode-session` | Клиенты не шлют sticky session-заголовки | Opt-in прокси OpenCode Go на шлюзе вставляет sticky `x-opencode-session` |
+| OpenCode Go: `MissingSessionID` | Missing stable conversation ID | DSH: use Accounts & Models; external tools: provide `x-opencode-session`. See [migration](docs/repair-candidate.md). |
 | Статус CLI в стиле Token Monitor без вставки секретов | Ручной просмотр файлов или вставка в чат | Опциональные localMonitor / localUsage на жёстко заданных allowlisted путях |
 
 ## Быстрый старт
@@ -171,7 +174,7 @@ Allowlisted официальные CLI OAuth-файлы обнаруживают
 
 По умолчанию **выключен**. При включении изолированный `node:http` listener (не порт DSH web) обслуживает `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses` и `POST /v1/messages` на loopback, переиспользуя вошедшие OAuth-сессии. Bind только через YAML; non-loopback bind требует Bearer key. Это не remote relay. Подробности: [`docs/01-install.md`](docs/01-install.md).
 
-Опциональная **совместимость с OpenCode Go** (`codingOAuth.gateway.opencodeGo.enabled`, по умолчанию выкл.) также включается на вкладке Gateway. Когда включено, `POST /v1/chat/completions` уходит на зафиксированный `https://opencode.ai/zen/go/v1/chat/completions` со sticky `x-opencode-session`, чтобы клиенты без session affinity OpenCode (иначе часто `MissingSessionID`) могли работать через этот loopback-шлюз. Приоритет session id: `x-deepseek-harness-session-id` → `x-opencode-session` → `x-session-id` → body `session_id` → сгенерированный UUID. Bearer key шлюза должен быть вашим OpenCode API key; переключение без перезапуска.
+Подключите OpenCode Go в разделе **Учётные записи и модели**, чтобы использовать его в DSH без шлюза. Внешние инструменты используют явные маршруты `opencode-go/<model-id>`, соответствующий протокол и постоянный идентификатор беседы. Локальный ключ отделён от учётных данных провайдера. Запрос без идентификатора отклоняется; старый глобальный режим меняется после просмотра миграции. [Migration / 迁移](docs/repair-candidate.md).
 
 ## Дополнительные возможности
 

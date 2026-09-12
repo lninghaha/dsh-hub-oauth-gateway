@@ -158,8 +158,8 @@ describe("selectAccount", () => {
 	});
 });
 
-describe("AccountPoolController provider-scoped quota fallback", () => {
-	it("marks AuthDocument accounts quota_full_fallback via Usage Center codex row", async () => {
+describe("AccountPoolController quota identity isolation", () => {
+	it("does not assign a provider summary to every account", async () => {
 		const directory = await mkdtemp(join(tmpdir(), "hub-oauth-pool-quota-"));
 		temporaryDirectories.add(directory);
 		await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -203,6 +203,16 @@ describe("AccountPoolController provider-scoped quota fallback", () => {
 		const picks = await controller.candidates(store, CODEX_PI_PROVIDER, undefined);
 		expect(picks).toHaveLength(2);
 		expect(picks.map((pick) => pick.accountId).sort()).toEqual(["acct-chatgpt-aaaa", "acct-chatgpt-bbbb"]);
-		expect(picks.every((pick) => pick.reason === "quota_full_fallback")).toBe(true);
+		expect(picks.every((pick) => pick.reason !== "quota_full_fallback")).toBe(true);
 	});
+});
+
+it("requires both the explicit account and OAuth provider for a quota match", () => {
+	const windows = [window({ id: "weekly", usedRatio: 0.8 })];
+	const rows = [
+		{ providerId: "codex", profileId: "", oauthAccountId: "a", oauthProviderId: CODEX_PI_PROVIDER, windows },
+	];
+	expect(resolveQuotaWindowsForPoolAccount(rows, "a", { providerId: CODEX_PI_PROVIDER })).toEqual(windows);
+	expect(resolveQuotaWindowsForPoolAccount(rows, "b", { providerId: CODEX_PI_PROVIDER })).toBeUndefined();
+	expect(resolveQuotaWindowsForPoolAccount(rows, "a", { providerId: "other" })).toBeUndefined();
 });

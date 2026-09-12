@@ -12,10 +12,11 @@ export async function handleOpenAiResponses(
 	req: IncomingMessage,
 	res: ServerResponse,
 	backend: GatewayBackend,
+	parsed?: Record<string, unknown>,
 ): Promise<void> {
-	const payload = await readGatewayJsonBody(req);
+	const payload = parsed ?? (await readGatewayJsonBody(req));
 	const request = parseOpenAiResponsesRequest(payload);
-	const stream = payload.stream !== false;
+	const stream = payload["stream"] !== false;
 	const id = `resp_gateway_${Date.now().toString(36)}`;
 	if (!stream) {
 		let text = "";

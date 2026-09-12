@@ -17,6 +17,7 @@ export declare class OAuthProviderSession {
     private readonly catalog;
     private readonly cacheFile;
     private selectedIds;
+    private readonly cacheQueue;
     private readonly onCatalogChange;
     private readonly onCredentialChange;
     constructor(definition: OAuthProviderDefinition, onCatalogChange?: () => void, store?: OAuthCredentialFileStore, cacheFile?: string, onCredentialChange?: () => void, 
@@ -27,7 +28,7 @@ export declare class OAuthProviderSession {
     visibleModels(): Model<Api>[];
     provider(): Provider;
     loadCachedModels(): Promise<void>;
-    setSelectedModels(ids: readonly string[]): Promise<void>;
+    setSelectedModels(ids: readonly string[] | undefined): Promise<void>;
     status(): Promise<OAuthProviderStatus>;
     login(interaction: AuthInteraction, persist?: LoginPersistOptions): Promise<Credential>;
     notifyCredentialChange(): void;

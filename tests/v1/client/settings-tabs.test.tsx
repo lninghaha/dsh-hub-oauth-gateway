@@ -4,8 +4,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { preferencePatch, SettingsSection } from "../../../src/client/components/SettingsSection.js";
+import { SettingsSection } from "../../../src/client/components/SettingsSection.js";
 import { en } from "../../../src/client/locales.js";
+import {
+	acknowledgePreferenceSave,
+	preferenceOperations,
+	rebasePreferences,
+} from "../../../src/shared/preference-draft.js";
 import { defaultUserPreferences } from "../../../src/shared/preferences.js";
 
 const mocks = vi.hoisted(() => ({
@@ -126,16 +131,31 @@ vi.mock("../../../src/client/components/oauth/CapabilitiesTab.js", () => ({
 	CapabilitiesTab: () => <div data-testid="oauth-capabilities">capabilities-panel</div>,
 }));
 
+vi.mock("../../../src/client/components/UsageSettingsOverview.js", () => ({
+	UsageSettingsOverview: () => <div data-testid="usage-overview">usage-overview</div>,
+}));
+
 function translate(key: string): string {
 	return (en as Record<string, string>)[key] ?? key;
 }
 
-function renderSettings(): ReturnType<typeof render> {
+function renderSettings(
+	surface: "accounts" | "usage" = "usage",
+	initialTab?: "capabilities",
+): ReturnType<typeof render> {
 	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 	const wrap = ({ children }: { children: ReactNode }) => (
 		<QueryClientProvider client={client}>{children}</QueryClientProvider>
 	);
-	return render(<SettingsSection close={vi.fn()} t={translate as never} />, { wrapper: wrap });
+	return render(
+		<SettingsSection
+			close={vi.fn()}
+			t={translate as never}
+			surface={surface}
+			{...(initialTab ? { initialTab } : {})}
+		/>,
+		{ wrapper: wrap },
+	);
 }
 
 describe("settings section tabs", () => {
@@ -161,6 +181,12 @@ describe("settings section tabs", () => {
 		);
 	});
 
+	it("opens usage with statistics and no account setup steps", () => {
+		renderSettings();
+		expect(screen.getByTestId("usage-overview")).toBeTruthy();
+		expect(screen.queryByText("accounts-panel")).toBeNull();
+	});
+
 	it("builds a patch for every edited preference section", () => {
 		const baseline = defaultUserPreferences("UTC");
 		const draft = {
@@ -170,16 +196,25 @@ describe("settings section tabs", () => {
 			privacy: { ...baseline.privacy, redactExports: false },
 			alerts: { ...baseline.alerts, enabled: false },
 		};
-		expect(preferencePatch(baseline, draft)).toEqual({
-			display: draft.display,
-			providers: draft.providers,
-			privacy: draft.privacy,
-			alerts: draft.alerts,
-		});
+		expect(preferenceOperations(baseline, draft)).toEqual([
+			{ op: "set", path: ["display", "density"], value: "compact" },
+			{ op: "set", path: ["providers", "hidden"], value: ["codex"] },
+			{ op: "set", path: ["privacy", "redactExports"], value: false },
+			{ op: "set", path: ["alerts", "enabled"], value: false },
+		]);
 	});
 
-	it("defaults to accounts and keeps diagnostics out of the first view", () => {
-		renderSettings();
+	it("keeping local edits preserves another editor's changes inside the same section", () => {
+		const baseline = defaultUserPreferences("UTC");
+		const draft = { ...baseline, display: { ...baseline.display, timeZone: "Asia/Shanghai" } };
+		const latest = { ...baseline, display: { ...baseline.display, entryMode: "sidebar" as const } };
+		const merged = rebasePreferences(baseline, draft, latest).preferences;
+		expect(merged.display.timeZone).toBe("Asia/Shanghai");
+		expect(merged.display.entryMode).toBe("sidebar");
+	});
+
+	it("opens account management on its separate entry and keeps diagnostics collapsed", () => {
+		renderSettings("accounts");
 		expect(document.querySelector('[data-settings-tab="accounts"]')).toBeTruthy();
 		expect(document.querySelector('[data-settings-tab="display"]')).toBeNull();
 		expect(screen.queryByText(en["compatibility.title"])).toBeNull();
@@ -191,9 +226,8 @@ describe("settings section tabs", () => {
 		expect(screen.getByTestId("provider-management")).toBeTruthy();
 	});
 
-	it("loads diagnostics only from the advanced capabilities tab", () => {
-		renderSettings();
-		fireEvent.click(screen.getByRole("button", { name: en["settings.tab.capabilities"] }));
+	it("keeps the legacy advanced link usable", () => {
+		renderSettings("accounts", "capabilities");
 		expect(screen.getByText(en["compatibility.title"])).toBeTruthy();
 	});
 
@@ -217,7 +251,7 @@ describe("settings section tabs", () => {
 		expect(mocks.patch).toHaveBeenCalledWith(
 			expect.objectContaining({
 				expectedRevision: 0,
-				patch: { display: expect.objectContaining({ density: "compact" }) },
+				operations: [{ op: "set", path: ["display", "density"], value: "compact" }],
 			}),
 		);
 		await waitFor(() => expect(screen.getByRole("alert").textContent).toContain(en["settings.conflictNoOverlap"]));
@@ -228,8 +262,34 @@ describe("settings section tabs", () => {
 		expect(mocks.patch).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				expectedRevision: 4,
-				patch: { display: expect.objectContaining({ density: "compact" }) },
+				operations: [{ op: "set", path: ["display", "density"], value: "compact" }],
 			}),
 		);
+	});
+
+	it("keeps edits typed after submission and merges aliases independently", () => {
+		const base = defaultUserPreferences("UTC");
+		const sent = { ...base, providers: { ...base.providers, aliases: { "provider-a": "A" } } };
+		const typing = { ...sent, privacy: { ...base.privacy, redactExports: false } };
+		const saved = {
+			...sent,
+			providers: { ...sent.providers, aliases: { ...sent.providers.aliases, "provider-b": "B" } },
+		};
+		const draft = acknowledgePreferenceSave(sent, typing, saved);
+		expect(draft.providers.aliases).toEqual({ "provider-a": "A", "provider-b": "B" });
+		expect(draft.privacy.redactExports).toBe(false);
+	});
+	it("reports field conflicts and keeps unrelated local changes when adopting latest", () => {
+		const base = defaultUserPreferences("UTC");
+		const local = {
+			...base,
+			display: { ...base.display, timeZone: "Asia/Shanghai" },
+			privacy: { ...base.privacy, redactExports: false },
+		};
+		const latest = { ...base, display: { ...base.display, timeZone: "Europe/London", entryMode: "sidebar" as const } };
+		const merged = rebasePreferences(base, local, latest, "latest");
+		expect(merged.conflicts).toEqual(["display.timeZone"]);
+		expect(merged.preferences.display).toEqual(latest.display);
+		expect(merged.preferences.privacy.redactExports).toBe(false);
 	});
 });

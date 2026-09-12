@@ -1,4 +1,4 @@
-import { type UserPreferences, type UserPreferencesPatch } from "../../shared/preferences.js";
+import { type PreferencePathOperation, type UserPreferences, type UserPreferencesPatch } from "../../shared/preferences.js";
 import type { UsageDatabase } from "../storage/database.js";
 export interface PreferenceSnapshot {
     readonly preferences: UserPreferences;
@@ -11,7 +11,7 @@ export declare class PreferencesRepository {
     load(fallbackTimeZone?: string): UserPreferences;
     snapshot(fallbackTimeZone?: string): PreferenceSnapshot;
     save(preferences: UserPreferences, updatedAt?: number): UserPreferences;
-    patch(expectedRevision: number, patch: UserPreferencesPatch, updatedAt?: number): PreferenceSnapshot | undefined;
+    patch(expectedRevision: number, patch: UserPreferencesPatch | readonly PreferencePathOperation[], updatedAt?: number): PreferenceSnapshot | undefined;
     private write;
 }
 //# sourceMappingURL=repository.d.ts.map

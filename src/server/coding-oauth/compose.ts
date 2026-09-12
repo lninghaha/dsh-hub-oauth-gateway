@@ -1,3 +1,5 @@
+import { credentialRef } from "@deepseek-ai/dsh-credentials";
+import { gatewayGoPreview } from "./gateway-go-routing.js";
 /**
  * Optional xAI Grok Build bundle with OAuth, account model catalog,
  * and an account section inside dsh Settings.
@@ -76,12 +78,12 @@ import {
 import { enabledOAuthProviderDefinitions } from "./oauth-providers.js";
 import { OAuthProviderSession } from "./oauth-session.js";
 import type { OAuthSourceCredential } from "./oauth-sources.js";
-import { installOpenCodeGoHeaderCompatibility, OpenCodeGoHeaderState } from "./opencode-go-header.js";
 import {
 	createOpenCodeGoConnectionController,
 	type OpenCodeGoSettingsProvider,
 	registerOpenCodeGoConnectionRoute,
 } from "./opencode-go-connection.js";
+import { installOpenCodeGoHeaderCompatibility, OpenCodeGoHeaderState } from "./opencode-go-header.js";
 import { acquireCodingOAuthProxy } from "./proxy.js";
 import { AccountPoolController, type GetQuotaWindows, type PoolMode } from "./quota-pool.js";
 import { GrokBuildSession } from "./session.js";
@@ -610,7 +612,10 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		settingsCtx.effect(() => release, "dsh-coding-subscription-oauth: capability settings");
 	});
 
+	let gatewayGoServices: { credentials: CredentialProvider; settings: OpenCodeGoSettingsProvider } | undefined;
 	const gateway = createCodingOAuthGatewayController({
+		getGoPreview: () => gatewayGoPreview(gatewayGoServices?.settings),
+		resolveGoCredential: async (ref) => (await gatewayGoServices?.credentials.resolve(credentialRef(ref)))?.value,
 		...(config.gateway === undefined ? {} : { config: config.gateway }),
 		grok,
 		subscriptions,
@@ -628,12 +633,21 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 		return () => gateway.stop();
 	}, "dsh-coding-subscription-oauth: local API gateway");
 	ctx.inject(["webServer", "credentials", "settings"], (goCtx) => {
+		const services = {
+			credentials: goCtx.get("credentials") as CredentialProvider,
+			settings: goCtx.get("settings") as OpenCodeGoSettingsProvider,
+		};
+		gatewayGoServices = services;
+		goCtx.effect(() => () => {
+			if (gatewayGoServices === services) gatewayGoServices = undefined;
+		});
 		registerOpenCodeGoConnectionRoute(
 			goCtx,
 			createOpenCodeGoConnectionController({
 				credentials: goCtx.get("credentials") as CredentialProvider,
 				settings: goCtx.get("settings") as OpenCodeGoSettingsProvider,
 				callStatus: () => opencodeGo.snapshot(),
+				onConfigurationChange: () => opencodeGo.invalidate(),
 			}),
 			ownerRequestPolicy,
 		);

@@ -1,13 +1,3 @@
-/**
- * Optional xAI Grok Build bundle with OAuth, account model catalog,
- * and an account section inside dsh Settings.
- *
- * Ported from the grok-build `src/index.ts` into the usage-stats plugin.
- * The public plugin entry point here is `applyCodingOAuth` (not the Cordis
- * `apply`), and the plugin identity string is kept compatible under
- * `CODING_OAUTH_PLUGIN_NAME` so logs/settings remain compatible.
- * @module dsh-coding-subscription-oauth
- */
 import type { Context } from "@deepseek-ai/cordis";
 import { type RetryPolicyConfig } from "@deepseek-ai/dsh-llm";
 import z from "@deepseek-ai/schemastery";

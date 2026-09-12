@@ -1,3 +1,4 @@
+import { type GatewayGoRoute, parseGatewayGoRoute } from "./gateway-go-routing.js";
 /**
  * Owner-only gateway API key file.
  * @module dsh-coding-subscription-oauth/gateway-auth
@@ -21,6 +22,7 @@ export interface GatewayKeyDocument {
 	enabled?: boolean;
 	port?: number;
 	opencodeGoEnabled?: boolean;
+	opencodeGoRoute?: GatewayGoRoute | null;
 }
 
 export function gatewayKeyPath(dshHome?: string): string {
@@ -42,6 +44,17 @@ export function maskGatewayApiKey(apiKey: string): string {
 	return `****${apiKey.slice(-4)}`;
 }
 
+function documentExtras(
+	existing: GatewayKeyDocument | undefined,
+): Pick<GatewayKeyDocument, "enabled" | "port" | "opencodeGoEnabled" | "opencodeGoRoute"> {
+	return {
+		...(existing?.opencodeGoRoute === undefined ? {} : { opencodeGoRoute: existing.opencodeGoRoute }),
+		...(existing?.enabled === undefined ? {} : { enabled: existing.enabled }),
+		...(existing?.port === undefined ? {} : { port: existing.port }),
+		...(existing?.opencodeGoEnabled === undefined ? {} : { opencodeGoEnabled: existing.opencodeGoEnabled }),
+	};
+}
+
 export async function loadGatewayKeyDocument(path: string): Promise<GatewayKeyDocument | undefined> {
 	try {
 		const text = (await readHardenedOAuthSourceFile(path)).text;
@@ -51,19 +64,24 @@ export async function loadGatewayKeyDocument(path: string): Promise<GatewayKeyDo
 		}
 		const document = value as Record<string, unknown>;
 		if (
-			document.version !== KEY_FORMAT_VERSION ||
-			typeof document.apiKey !== "string" ||
-			document.apiKey.length === 0
+			document["version"] !== KEY_FORMAT_VERSION ||
+			typeof document["apiKey"] !== "string" ||
+			document["apiKey"].length === 0
 		) {
 			throw new Error("gateway key file is invalid");
 		}
-		const port = document.port;
+		const port = document["port"];
 		return {
 			version: KEY_FORMAT_VERSION,
-			apiKey: document.apiKey,
-			...(typeof document.enabled === "boolean" ? { enabled: document.enabled } : {}),
+			apiKey: document["apiKey"],
+			...(document["opencodeGoRoute"] === undefined
+				? {}
+				: { opencodeGoRoute: parseGatewayGoRoute(document["opencodeGoRoute"]) }),
+			...(typeof document["enabled"] === "boolean" ? { enabled: document["enabled"] } : {}),
 			...(typeof port === "number" && Number.isSafeInteger(port) && port >= 1024 && port <= 65_535 ? { port } : {}),
-			...(typeof document.opencodeGoEnabled === "boolean" ? { opencodeGoEnabled: document.opencodeGoEnabled } : {}),
+			...(typeof document["opencodeGoEnabled"] === "boolean"
+				? { opencodeGoEnabled: document["opencodeGoEnabled"] }
+				: {}),
 		};
 	} catch (error) {
 		if (error instanceof OAuthSourceError && error.code === "not_found") return undefined;
@@ -77,9 +95,7 @@ export async function loadOrCreateGatewayApiKey(path: string, configured?: strin
 		await persistGatewayKeyDocument(path, {
 			version: KEY_FORMAT_VERSION,
 			apiKey: configured,
-			...(existing?.enabled === undefined ? {} : { enabled: existing.enabled }),
-			...(existing?.port === undefined ? {} : { port: existing.port }),
-			...(existing?.opencodeGoEnabled === undefined ? {} : { opencodeGoEnabled: existing.opencodeGoEnabled }),
+			...documentExtras(existing),
 		});
 		return configured;
 	}
@@ -94,9 +110,7 @@ export async function persistGatewayApiKey(path: string, apiKey: string): Promis
 	await persistGatewayKeyDocument(path, {
 		version: KEY_FORMAT_VERSION,
 		apiKey,
-		...(existing?.enabled === undefined ? {} : { enabled: existing.enabled }),
-		...(existing?.port === undefined ? {} : { port: existing.port }),
-		...(existing?.opencodeGoEnabled === undefined ? {} : { opencodeGoEnabled: existing.opencodeGoEnabled }),
+		...documentExtras(existing),
 	});
 }
 

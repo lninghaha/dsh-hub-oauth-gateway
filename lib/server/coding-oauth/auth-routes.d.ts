@@ -25,6 +25,7 @@ export type GrokBuildWebAuthStatus = {
     models: string[];
     available: string[];
     selected: string[];
+    selectionMode?: "default" | "selected";
     catalogSource: CatalogSource;
     catalogError?: string;
     grokImportAvailable: boolean;
@@ -48,6 +49,7 @@ export declare class GrokBuildWebAuth {
     private readonly session;
     private state;
     private operation;
+    private lastLoginError;
     private cancellation;
     private method;
     private loginPersist;
@@ -55,7 +57,9 @@ export declare class GrokBuildWebAuth {
     private challengeWaiters;
     private codeResolver;
     constructor(session: GrokBuildSession);
-    status(): Promise<GrokBuildWebAuthStatus>;
+    status(): Promise<GrokBuildWebAuthStatus & {
+        operationError?: string;
+    }>;
     /** Start (or join) a login. A different method aborts and restarts the flow. */
     signIn(method: GrokBuildLoginMethod, persist?: LoginPersistOptions): Promise<LoginChallenge>;
     /** Hand a pasted authorization code (or redirect URL) to a pending PKCE login. */
@@ -63,7 +67,7 @@ export declare class GrokBuildWebAuth {
     /** Abort a pending login without touching any stored credential. */
     cancel(): Promise<void>;
     importGrok(): Promise<void>;
-    setModels(ids: readonly string[]): Promise<void>;
+    setModels(ids: readonly string[] | undefined): Promise<void>;
     setActiveAccount(id: string): Promise<void>;
     removeAccount(id: string): Promise<void>;
     signOut(): Promise<void>;
@@ -85,6 +89,7 @@ export type SubscriptionWebAuthStatus = {
     models: string[];
     available: string[];
     selected: string[];
+    selectionMode?: "default" | "selected";
 } & ({
     status: "signed-out";
 } | {
@@ -112,6 +117,7 @@ export declare class SubscriptionWebAuth {
     private readonly challengeTimeoutMs;
     private state;
     private operation;
+    private lastLoginError;
     private cancellation;
     private method;
     private loginPersist;
@@ -119,11 +125,13 @@ export declare class SubscriptionWebAuth {
     private challengeWaiters;
     private codeResolver;
     constructor(session: OAuthProviderSession, challengeTimeoutMs?: number);
-    status(): Promise<SubscriptionWebAuthStatus>;
+    status(): Promise<SubscriptionWebAuthStatus & {
+        operationError?: string;
+    }>;
     signIn(method: SubscriptionLoginMethod, persist?: LoginPersistOptions): Promise<SubscriptionLoginChallenge>;
     submitCode(code: string): Promise<void>;
     cancel(): Promise<void>;
-    setModels(ids: readonly string[]): Promise<void>;
+    setModels(ids: readonly string[] | undefined): Promise<void>;
     setActiveAccount(id: string): Promise<void>;
     removeAccount(id: string): Promise<void>;
     signOut(): Promise<void>;

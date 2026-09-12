@@ -6,12 +6,14 @@ import { hubApiHeaders } from "./hub-headers.js";
 export class UsageStatsApiError extends Error {
 	readonly code: string;
 	readonly status: number;
+	readonly latest: unknown;
 
-	constructor(code: string, message: string, status: number) {
+	constructor(code: string, message: string, status: number, latest?: unknown) {
 		super(message);
 		this.name = "UsageStatsApiError";
 		this.code = code;
 		this.status = status;
+		this.latest = latest;
 	}
 }
 
@@ -23,7 +25,7 @@ function apiError(payload: unknown, status: number): UsageStatsApiError {
 			const value = error as { code?: unknown; message?: unknown };
 			const code = typeof value.code === "string" && value.code !== "" ? value.code : "http-error";
 			const message = typeof value.message === "string" && value.message !== "" ? value.message : `HTTP ${status}`;
-			return new UsageStatsApiError(code, message, status);
+			return new UsageStatsApiError(code, message, status, "latest" in payload ? payload.latest : undefined);
 		}
 	}
 	return new UsageStatsApiError("http-error", `HTTP ${status}`, status);

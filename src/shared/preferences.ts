@@ -153,6 +153,43 @@ export const UserPreferencesPatchSchema = z
 	.strict();
 export type UserPreferencesPatch = z.infer<typeof UserPreferencesPatchSchema>;
 
+export const PreferencePathOperationSchema = z.discriminatedUnion("op", [
+	z.object({ op: z.literal("set"), path: z.array(z.string()).nonempty(), value: z.unknown() }).strict(),
+	z.object({ op: z.literal("unset"), path: z.array(z.string()).nonempty() }).strict(),
+]);
+export type PreferencePathOperation = z.infer<typeof PreferencePathOperationSchema>;
+
+/** 旧 section patch 保持原契约；新编辑器用路径操作避免覆盖未编辑字段。 */
+export function applyPreferenceOperations(
+	current: UserPreferences,
+	operations: readonly PreferencePathOperation[],
+): UserPreferences {
+	const next = structuredClone(current) as unknown as Record<string, unknown>;
+	for (const raw of operations) {
+		const operation = PreferencePathOperationSchema.parse(raw);
+		const [section] = operation.path;
+		if (
+			!section ||
+			!["display", "providers", "privacy", "alerts"].includes(section) ||
+			operation.path.length < 2 ||
+			operation.path.some((part) => ["__proto__", "prototype", "constructor"].includes(part))
+		) {
+			throw new z.ZodError([{ code: "custom", path: operation.path, message: "invalid preference path" }]);
+		}
+		let parent = next;
+		for (const part of operation.path.slice(0, -1)) {
+			const value = parent[part];
+			if (value === null || typeof value !== "object" || Array.isArray(value))
+				throw new z.ZodError([{ code: "custom", path: operation.path, message: "invalid preference parent" }]);
+			parent = value as Record<string, unknown>;
+		}
+		const key = operation.path.at(-1)!;
+		if (operation.op === "unset") delete parent[key];
+		else parent[key] = structuredClone(operation.value);
+	}
+	return UserPreferencesSchema.parse(next);
+}
+
 export function patchUserPreferences(current: UserPreferences, patch: UserPreferencesPatch): UserPreferences {
 	return UserPreferencesSchema.parse({
 		...current,

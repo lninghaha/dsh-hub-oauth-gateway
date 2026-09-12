@@ -427,9 +427,15 @@ export function registerV1Routes(
 			if (body === undefined) return;
 			if (request.method === "PATCH") {
 				const input = PreferencesPatchRequestSchema.parse(body);
-				const updated = dependencies.preferences.patch(input.expectedRevision, input.patch);
+				const updated = dependencies.preferences.patch(
+					input.expectedRevision,
+					"operations" in input ? input.operations : input.patch,
+				);
 				if (updated === undefined) {
-					writeJson(response, 409, failure(dependencies, "settings-conflict", "settings changed; reload and retry"));
+					writeJson(response, 409, {
+						...failure(dependencies, "settings-conflict", "settings changed; reload and retry"),
+						latest: dependencies.preferences.snapshot("UTC"),
+					});
 					return;
 				}
 				dependencies.queries.setBaseCurrency(updated.preferences.display.baseCurrency);

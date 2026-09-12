@@ -1,5 +1,6 @@
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import type { PreferencesPatchRequest } from "../shared/contracts.js";
 import {
 	AccountsDataSchema,
 	ActivityDataSchema,
@@ -21,7 +22,7 @@ import {
 	LocalUsageResponseSchema,
 	LocalUsageScanResultSchema,
 } from "../shared/local-monitor.js";
-import { type UserPreferences, type UserPreferencesPatch, UserPreferencesSchema } from "../shared/preferences.js";
+import { type UserPreferences, UserPreferencesSchema } from "../shared/preferences.js";
 import { ProvidersDataSchema } from "../shared/providers.js";
 import { StatusProbesResponseSchema } from "../shared/status-probes.js";
 import { fetchApi, mutateApi } from "./api.js";
@@ -225,9 +226,10 @@ export function usePreferencesStateQuery(enabled = true) {
 export function usePatchPreferencesMutation() {
 	return useMutation(
 		{
-			mutationFn: ({ patch, expectedRevision }: { patch: UserPreferencesPatch; expectedRevision: number }) =>
-				mutateApi(API_PATHS.settings, "PATCH", { patch, expectedRevision }, PreferencesSnapshotSchema),
-			onSuccess: async () => {
+			mutationFn: (input: PreferencesPatchRequest) =>
+				mutateApi(API_PATHS.settings, "PATCH", input, PreferencesSnapshotSchema),
+			onSuccess: async (response) => {
+				if (response.ok) usageQueryClient.setQueryData(["usage-stats", "settings-state"], response);
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "settings-state"] });
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "settings"] });
 				await usageQueryClient.invalidateQueries({ queryKey: ["usage-stats", "overview"] });

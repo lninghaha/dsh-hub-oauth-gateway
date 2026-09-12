@@ -8,7 +8,7 @@ import {
 	UsageMetricSchema,
 } from "./domain.js";
 import { FeesDataSchema } from "./fees.js";
-import { UserPreferencesPatchSchema, UserPreferencesSchema } from "./preferences.js";
+import { PreferencePathOperationSchema, UserPreferencesPatchSchema, UserPreferencesSchema } from "./preferences.js";
 
 export const API_BASE = "/api/usage-stats/v1";
 
@@ -87,9 +87,13 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 export const PreferencesSnapshotSchema = z
 	.object({ preferences: UserPreferencesSchema, revision: z.number().int().nonnegative() })
 	.strict();
-export const PreferencesPatchRequestSchema = z
-	.object({ patch: UserPreferencesPatchSchema, expectedRevision: z.number().int().nonnegative() })
-	.strict();
+export const PreferencesPatchRequestSchema = z.union([
+	z.object({ patch: UserPreferencesPatchSchema, expectedRevision: z.number().int().nonnegative() }).strict(),
+	z
+		.object({ operations: z.array(PreferencePathOperationSchema), expectedRevision: z.number().int().nonnegative() })
+		.strict(),
+]);
+export type PreferencesPatchRequest = z.infer<typeof PreferencesPatchRequestSchema>;
 
 export const CostEstimateSchema = z
 	.object({

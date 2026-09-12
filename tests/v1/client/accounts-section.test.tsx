@@ -69,13 +69,7 @@ describe("AccountsDashboardSection", () => {
 	});
 
 	it("does not render manage button when onConfigureAccounts is omitted", () => {
-		render(
-			<AccountsDashboardSection
-				accounts={[account]}
-				emptyLabel="No accounts"
-				t={t}
-			/>,
-		);
+		render(<AccountsDashboardSection accounts={[account]} emptyLabel="No accounts" t={t} />);
 		expect(screen.queryByRole("button", { name: "管理订阅账号" })).toBeNull();
 	});
 });
