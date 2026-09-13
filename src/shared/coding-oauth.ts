@@ -180,6 +180,10 @@ export const OpenCodeGoModelSchema = z.object({
 	name: z.string().min(1).optional(),
 	contextWindow: z.number().int().positive().optional(),
 	maxTokens: z.number().int().positive().optional(),
+	input: z.array(z.enum(["text", "image"])).optional(),
+	protocol: z.string().min(1).optional(),
+	reasoningEfforts: z.union([z.literal(false), z.record(z.string(), z.union([z.string(), z.null()]))]).optional(),
+	compat: z.record(z.string(), z.unknown()).optional(),
 });
 export type OpenCodeGoModel = z.infer<typeof OpenCodeGoModelSchema>;
 

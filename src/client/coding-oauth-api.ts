@@ -150,20 +150,20 @@ export function useOpenCodeGoApplyMutation() {
 		{
 			mutationFn: ({
 				credentialRef,
-				model,
+				models,
 				expectedRevision,
 				confirmConflicts,
 				api,
 			}: {
 				credentialRef: string;
-				model: OpenCodeGoModel;
+				models: readonly OpenCodeGoModel[];
 				expectedRevision: number;
 				confirmConflicts: boolean;
 				api?: GoApi;
 			}) =>
 				postCodingOAuth(
 					CODING_OAUTH_PATHS.opencodeGo,
-					{ action: "apply", credentialRef, model, expectedRevision, confirmConflicts, ...(api ? { api } : {}) },
+					{ action: "apply", credentialRef, models, expectedRevision, confirmConflicts, ...(api ? { api } : {}) },
 					OpenCodeGoConnectionStatusSchema,
 				),
 			onSuccess: async (response) => {

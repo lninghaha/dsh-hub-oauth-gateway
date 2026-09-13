@@ -80,6 +80,7 @@ import { OAuthProviderSession } from "./oauth-session.js";
 import type { OAuthSourceCredential } from "./oauth-sources.js";
 import {
 	createOpenCodeGoConnectionController,
+	installOpenCodeGoCredentialReinject,
 	type OpenCodeGoSettingsProvider,
 	registerOpenCodeGoConnectionRoute,
 } from "./opencode-go-connection.js";
@@ -638,19 +639,20 @@ export function applyCodingOAuth(ctx: Context, config: Config): CodingOAuthRunti
 			settings: goCtx.get("settings") as OpenCodeGoSettingsProvider,
 		};
 		gatewayGoServices = services;
-		goCtx.effect(() => () => {
-			if (gatewayGoServices === services) gatewayGoServices = undefined;
+		const goController = createOpenCodeGoConnectionController({
+			credentials: goCtx.get("credentials") as CredentialProvider,
+			settings: goCtx.get("settings") as OpenCodeGoSettingsProvider,
+			callStatus: () => opencodeGo.snapshot(),
+			onConfigurationChange: () => opencodeGo.invalidate(),
 		});
-		registerOpenCodeGoConnectionRoute(
-			goCtx,
-			createOpenCodeGoConnectionController({
-				credentials: goCtx.get("credentials") as CredentialProvider,
-				settings: goCtx.get("settings") as OpenCodeGoSettingsProvider,
-				callStatus: () => opencodeGo.snapshot(),
-				onConfigurationChange: () => opencodeGo.invalidate(),
-			}),
-			ownerRequestPolicy,
-		);
+		goCtx.effect(() => {
+			const stopReinject = installOpenCodeGoCredentialReinject(goCtx, goController);
+			return () => {
+				stopReinject();
+				if (gatewayGoServices === services) gatewayGoServices = undefined;
+			};
+		});
+		registerOpenCodeGoConnectionRoute(goCtx, goController, ownerRequestPolicy);
 	});
 
 	let webRoutesMounted = false;

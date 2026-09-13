@@ -1,100 +1,272 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { type CredentialProvider } from "@deepseek-ai/dsh-credentials";
 import { type GoApi } from "../../shared/opencode-go-protocol.js";
+import { type ProviderDirectoryModel } from "../../shared/provider-auth-catalog.js";
 import type { OpenCodeGoStatus } from "./opencode-go-header.js";
 import type { OwnerRequestPolicy } from "./web-origin.js";
 export declare const OPENCODE_GO_CONNECTION_PATH = "/plugins/dsh-grok-build/opencode-go";
 export declare const OPENCODE_GO_BASE_URL = "https://opencode.ai/zen/go/v1";
 export declare const OPENCODE_GO_API = "openai-completions";
 export { OPENCODE_GO_LEGACY_PROVIDER_ID, OPENCODE_GO_PROVIDER_ID } from "../../shared/opencode-go-ids.js";
-type SettingsPathOp = {
-    readonly op: "set";
-    readonly path: readonly string[];
-    readonly value: unknown;
+type SettingsOp = {
+    op: "set";
+    path: readonly string[];
+    value: unknown;
 } | {
-    readonly op: "unset";
-    readonly path: readonly string[];
+    op: "unset";
+    path: readonly string[];
 };
-interface SettingsDescriptor {
-    readonly ns: string;
-    readonly value?: unknown;
-    readonly revision?: number;
-}
 export interface OpenCodeGoSettingsProvider {
     readonly writable?: boolean;
     describe(options?: {
-        readonly redactSecrets?: boolean;
-    }): readonly SettingsDescriptor[];
-    mutate(ns: string, ops: readonly SettingsPathOp[], expectedRevision?: number): Promise<void>;
+        redactSecrets?: boolean;
+    }): readonly {
+        ns: string;
+        value?: unknown;
+        revision?: number;
+    }[];
+    mutate(ns: string, ops: readonly SettingsOp[], expectedRevision?: number): Promise<void>;
 }
-export interface OpenCodeGoModel {
+export interface OpenCodeGoModel extends ProviderDirectoryModel {
     readonly id: string;
-    readonly name?: string;
-    readonly contextWindow?: number;
-    readonly maxTokens?: number;
 }
-type ConfigurationConflict = "protocol" | "base-url" | "static-session-header";
-export interface OpenCodeGoConnectionStatus {
-    readonly providerId: string;
-    readonly credential: {
-        readonly selectedRef: string;
-        readonly configured: boolean;
-        readonly writable: boolean;
-        readonly source: string | null;
-        readonly requiresChoice: boolean;
-        readonly candidates: readonly {
-            readonly ref: string;
-            readonly configured: boolean;
-            readonly writable: boolean;
-            readonly source: string | null;
+export type OpenCodeGoConnectionStatus = ReturnType<typeof statusDocument> extends Promise<infer T> ? T : never;
+interface Options {
+    credentials: CredentialProvider;
+    settings: OpenCodeGoSettingsProvider;
+    callStatus: () => OpenCodeGoStatus;
+    onConfigurationChange?: () => void;
+    fetchImpl?: typeof fetch;
+}
+declare function statusDocument(options: Options, preferredRef?: string): Promise<{
+    providerId: "coding-opencode-go";
+    credential: {
+        selectedRef: string;
+        configured: boolean;
+        writable: boolean;
+        source: string | null;
+        requiresChoice: boolean;
+        candidates: {
+            ref: string;
+            configured: boolean;
+            writable: boolean;
+            source: string | null;
         }[];
     };
-    readonly configuration: {
-        readonly revision: number | null;
-        readonly writable: boolean;
-        readonly api: string | null;
-        readonly baseURL: string | null;
-        readonly models: readonly OpenCodeGoModel[];
-        readonly ready: boolean;
-        readonly conflicts: readonly ConfigurationConflict[];
+    configuration: {
+        revision: number | null;
+        writable: boolean;
+        api: string | null;
+        baseURL: string | null;
+        models: OpenCodeGoModel[];
+        ready: boolean;
+        conflicts: ("protocol" | "base-url" | "static-session-header")[];
     };
-    readonly legacy: {
-        readonly providerId: string;
-        readonly present: boolean;
-        readonly migratable: boolean;
-        readonly targetProviderId: string;
+    legacy: {
+        providerId: "opencode-go";
+        present: boolean;
+        migratable: boolean;
+        targetProviderId: "coding-opencode-go";
     };
-    readonly call: OpenCodeGoStatus;
-}
-export interface OpenCodeGoConnectionController {
-    status(preferredRef?: string): Promise<OpenCodeGoConnectionStatus>;
-    models(preferredRef?: string): Promise<readonly OpenCodeGoModel[]>;
+    call: OpenCodeGoStatus;
+}>;
+export declare function createOpenCodeGoConnectionController(options: Options): {
+    status: (preferredRef?: string) => Promise<{
+        providerId: "coding-opencode-go";
+        credential: {
+            selectedRef: string;
+            configured: boolean;
+            writable: boolean;
+            source: string | null;
+            requiresChoice: boolean;
+            candidates: {
+                ref: string;
+                configured: boolean;
+                writable: boolean;
+                source: string | null;
+            }[];
+        };
+        configuration: {
+            revision: number | null;
+            writable: boolean;
+            api: string | null;
+            baseURL: string | null;
+            models: OpenCodeGoModel[];
+            ready: boolean;
+            conflicts: ("protocol" | "base-url" | "static-session-header")[];
+        };
+        legacy: {
+            providerId: "opencode-go";
+            present: boolean;
+            migratable: boolean;
+            targetProviderId: "coding-opencode-go";
+        };
+        call: OpenCodeGoStatus;
+    }>;
+    models(preferredRef?: string): Promise<ProviderDirectoryModel[]>;
     saveCredential(input: {
-        readonly credentialRef: string;
-        readonly apiKey?: string;
-    }): Promise<OpenCodeGoConnectionStatus>;
-    applyConfiguration(input: {
-        readonly api?: GoApi;
-        readonly credentialRef: string;
-        readonly model: OpenCodeGoModel;
-        readonly expectedRevision: number;
-        readonly confirmConflicts: boolean;
-    }): Promise<OpenCodeGoConnectionStatus>;
+        credentialRef: string;
+        apiKey?: string;
+    }): Promise<{
+        providerId: "coding-opencode-go";
+        credential: {
+            selectedRef: string;
+            configured: boolean;
+            writable: boolean;
+            source: string | null;
+            requiresChoice: boolean;
+            candidates: {
+                ref: string;
+                configured: boolean;
+                writable: boolean;
+                source: string | null;
+            }[];
+        };
+        configuration: {
+            revision: number | null;
+            writable: boolean;
+            api: string | null;
+            baseURL: string | null;
+            models: OpenCodeGoModel[];
+            ready: boolean;
+            conflicts: ("protocol" | "base-url" | "static-session-header")[];
+        };
+        legacy: {
+            providerId: "opencode-go";
+            present: boolean;
+            migratable: boolean;
+            targetProviderId: "coding-opencode-go";
+        };
+        call: OpenCodeGoStatus;
+    }>;
+    /**
+     * If DSH model settings created/updated the isolated plugin provider
+     * without `apiKeyEnv`, reinject the selected configured credential reference.
+     */
+    reinjectCredential(input?: {
+        credentialRef?: string;
+        expectedRevision?: number;
+    }): Promise<{
+        providerId: "coding-opencode-go";
+        credential: {
+            selectedRef: string;
+            configured: boolean;
+            writable: boolean;
+            source: string | null;
+            requiresChoice: boolean;
+            candidates: {
+                ref: string;
+                configured: boolean;
+                writable: boolean;
+                source: string | null;
+            }[];
+        };
+        configuration: {
+            revision: number | null;
+            writable: boolean;
+            api: string | null;
+            baseURL: string | null;
+            models: OpenCodeGoModel[];
+            ready: boolean;
+            conflicts: ("protocol" | "base-url" | "static-session-header")[];
+        };
+        legacy: {
+            providerId: "opencode-go";
+            present: boolean;
+            migratable: boolean;
+            targetProviderId: "coding-opencode-go";
+        };
+        call: OpenCodeGoStatus;
+    }>;
+    /**
+     * Copy a prior plugin-shaped `opencode-go` takeover into the isolated
+     * `coding-opencode-go` provider. Leaves the builtin slot untouched.
+     */
     migrateLegacyConfiguration(input?: {
-        readonly expectedRevision?: number;
-        readonly confirmConflicts?: boolean;
-    }): Promise<OpenCodeGoConnectionStatus>;
-}
-interface ControllerOptions {
-    readonly credentials: CredentialProvider;
-    readonly settings: OpenCodeGoSettingsProvider;
-    readonly callStatus: () => OpenCodeGoStatus;
-    onConfigurationChange?: () => void;
-    readonly fetchImpl?: typeof fetch;
-}
-export declare function createOpenCodeGoConnectionController(options: ControllerOptions): OpenCodeGoConnectionController;
-export interface OpenCodeGoConnectionRouteContext {
-    readonly webServer: {
+        expectedRevision?: number;
+        confirmConflicts?: boolean;
+    }): Promise<{
+        providerId: "coding-opencode-go";
+        credential: {
+            selectedRef: string;
+            configured: boolean;
+            writable: boolean;
+            source: string | null;
+            requiresChoice: boolean;
+            candidates: {
+                ref: string;
+                configured: boolean;
+                writable: boolean;
+                source: string | null;
+            }[];
+        };
+        configuration: {
+            revision: number | null;
+            writable: boolean;
+            api: string | null;
+            baseURL: string | null;
+            models: OpenCodeGoModel[];
+            ready: boolean;
+            conflicts: ("protocol" | "base-url" | "static-session-header")[];
+        };
+        legacy: {
+            providerId: "opencode-go";
+            present: boolean;
+            migratable: boolean;
+            targetProviderId: "coding-opencode-go";
+        };
+        call: OpenCodeGoStatus;
+    }>;
+    applyConfiguration(input: {
+        api?: GoApi;
+        credentialRef: string;
+        model?: OpenCodeGoModel;
+        models?: readonly OpenCodeGoModel[];
+        expectedRevision: number;
+        confirmConflicts: boolean;
+    }): Promise<{
+        providerId: "coding-opencode-go";
+        credential: {
+            selectedRef: string;
+            configured: boolean;
+            writable: boolean;
+            source: string | null;
+            requiresChoice: boolean;
+            candidates: {
+                ref: string;
+                configured: boolean;
+                writable: boolean;
+                source: string | null;
+            }[];
+        };
+        configuration: {
+            revision: number | null;
+            writable: boolean;
+            api: string | null;
+            baseURL: string | null;
+            models: OpenCodeGoModel[];
+            ready: boolean;
+            conflicts: ("protocol" | "base-url" | "static-session-header")[];
+        };
+        legacy: {
+            providerId: "opencode-go";
+            present: boolean;
+            migratable: boolean;
+            targetProviderId: "coding-opencode-go";
+        };
+        call: OpenCodeGoStatus;
+    }>;
+};
+/**
+ * Watch DSH model settings and reinject the Go credential when the isolated
+ * plugin provider is updated without `apiKeyEnv`. Does not touch builtin
+ * `opencode-go`.
+ */
+export declare function installOpenCodeGoCredentialReinject(ctx: {
+    on(event: string, listener: (...args: never[]) => unknown): () => unknown;
+}, controller: ReturnType<typeof createOpenCodeGoConnectionController>): () => void;
+export declare function registerOpenCodeGoConnectionRoute(ctx: {
+    webServer: {
         register(route: {
             readonly kind: "exact" | "prefix";
             readonly path: string;
@@ -102,6 +274,5 @@ export interface OpenCodeGoConnectionRouteContext {
         }): () => void;
     };
     effect(callback: () => () => void | Promise<void>, label?: string): unknown;
-}
-export declare function registerOpenCodeGoConnectionRoute(ctx: OpenCodeGoConnectionRouteContext, controller: OpenCodeGoConnectionController, ownerRequestPolicy: OwnerRequestPolicy): () => void;
+}, controller: ReturnType<typeof createOpenCodeGoConnectionController>, policy: OwnerRequestPolicy): () => void;
 //# sourceMappingURL=opencode-go-connection.d.ts.map
