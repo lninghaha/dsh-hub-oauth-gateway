@@ -1,5 +1,6 @@
 /** Controls the opt-in loopback OpenAI/Anthropic-compatible OAuth gateway. */
 import { useState } from "react";
+import { OPENCODE_GO_GATEWAY_PREFIX, OPENCODE_GO_LEGACY_GATEWAY_PREFIX } from "../../../shared/opencode-go-ids.js";
 import {
 	useGatewayPatchMutation,
 	useGatewayRevealMutation,
@@ -13,6 +14,10 @@ import { type GoGatewayRoute, GoGatewayRouteView } from "./GoGatewayRouteView.js
 const RANDOM_PORT_MIN = 18_100;
 const RANDOM_PORT_MAX = 18_999;
 type SnippetId = "curl" | "python" | "node" | "cursor";
+
+function isNonGoGatewayModel(id: string): boolean {
+	return !id.startsWith(OPENCODE_GO_GATEWAY_PREFIX) && !id.startsWith(OPENCODE_GO_LEGACY_GATEWAY_PREFIX);
+}
 
 function randomPort(): number {
 	return RANDOM_PORT_MIN + Math.floor(Math.random() * (RANDOM_PORT_MAX - RANDOM_PORT_MIN + 1));
@@ -327,7 +332,7 @@ export function GatewayTab({ t }: { readonly t: Translate }) {
 					<GatewaySnippets
 						bind={data.bind}
 						port={data.port}
-						model={data.models.find((id) => !id.startsWith("opencode-go/")) ?? null}
+						model={data.models.find((id) => isNonGoGatewayModel(id)) ?? null}
 						keyAvailable={data.keyAvailable}
 						apiKey={revealedKey}
 						t={t}

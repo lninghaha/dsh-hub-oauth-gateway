@@ -7,7 +7,7 @@ export const zh = {
 	"capabilities.accountRequired": "连接该服务的账户后，这些能力才能实际使用。",
 	"gateway.go.title": "外部工具使用 OpenCode Go",
 	"gateway.go.hint":
-		"客户端需使用下面的完整模型名和对应协议，每段对话发送稳定的 x-opencode-session 请求头。现有本地密钥只用于客户端认证；上游密钥从所选凭据来源读取。",
+		"客户端需使用下面的完整模型名和对应协议（coding-opencode-go/<model-id>；过渡期仍接受 opencode-go/<model-id>），每段对话发送稳定的 x-opencode-session 请求头。现有本地密钥只用于客户端认证；上游密钥从所选凭据来源读取。",
 	"gateway.go.migration": "检测到旧的全局转发模式。请先检查客户端调整预览，再应用模型路由。本地密钥保持不变。",
 	"gateway.go.empty": "尚未选择 Go 路由。请先在“账户与模型”连接 Go，再在此查看已配置模型。",
 	"gateway.go.edit": "查看 Go 路由预览",
@@ -483,7 +483,12 @@ export const zh = {
 	"oauth.importDone.unchanged": "无需变更",
 	"oauth.importDone.overwritten": "已覆盖",
 	"oauth.opencodeGo.title": "OpenCode Go",
-	"oauth.opencodeGo.description": "连接 OpenCode Go，在 DSH 选择模型并对话，无需开启外部网关。",
+	"oauth.opencodeGo.description":
+		"在独立供应商 coding-opencode-go 下连接 OpenCode Go，再在 DSH 选择模型对话；无需开启外部网关，也不占用原生 opencode-go。",
+	"oauth.opencodeGo.providerIdHint": "插件供应商 id：{providerId}（与 DSH 原生 opencode-go 隔离）",
+	"oauth.opencodeGo.legacyMigration":
+		"检测到旧版插件配置仍写在 {legacyId}。迁移到 {providerId} 后，对话不再与 DSH 原生供应商共用同一槽位。",
+	"oauth.opencodeGo.migrate": "迁移到独立供应商",
 	"oauth.opencodeGo.compatibilityNote": "以上状态仅表示请求头兼容，不代表 OAuth 登录，也不代表配额或模型调用成功。",
 	"oauth.opencodeGo.credential": "凭据来源",
 	"oauth.opencodeGo.configured": "已配置",
@@ -593,7 +598,7 @@ export const en = {
 	"capabilities.accountRequired": "Connect the related account before using these capabilities.",
 	"gateway.go.title": "OpenCode Go for external tools",
 	"gateway.go.hint":
-		"Use the exact model name and protocol below. Each conversation must send a stable x-opencode-session header. Your existing local key only authenticates the client; the upstream key is resolved from the selected credential reference.",
+		"Use the exact model name and protocol below (coding-opencode-go/<model-id>; legacy opencode-go/<model-id> is still accepted). Each conversation must send a stable x-opencode-session header. Your existing local key only authenticates the client; the upstream key is resolved from the selected credential reference.",
 	"gateway.go.migration":
 		"The old global forwarding mode needs migration. Review these client changes before applying. The local key will stay unchanged.",
 	"gateway.go.empty": "No Go route selected. Connect Go in Accounts & Models, then review its configured models here.",
@@ -1103,7 +1108,12 @@ export const en = {
 	"oauth.importDone.unchanged": "No change",
 	"oauth.importDone.overwritten": "Overwritten",
 	"oauth.opencodeGo.title": "OpenCode Go",
-	"oauth.opencodeGo.description": "Connect OpenCode Go and select its model in DSH. No external gateway is required.",
+	"oauth.opencodeGo.description":
+		"Connect OpenCode Go under the isolated provider coding-opencode-go, then select its model in DSH. No external gateway is required.",
+	"oauth.opencodeGo.providerIdHint": "Plugin provider id: {providerId} (separate from DSH-native opencode-go)",
+	"oauth.opencodeGo.legacyMigration":
+		"A previous plugin configuration was found under {legacyId}. Migrate it to {providerId} so chat no longer shares the DSH-native provider slot.",
+	"oauth.opencodeGo.migrate": "Migrate to isolated provider",
 	"oauth.opencodeGo.compatibilityNote":
 		"This is header compatibility, not OAuth. It does not represent quota or a successful model call.",
 	"oauth.opencodeGo.credential": "Credential source",

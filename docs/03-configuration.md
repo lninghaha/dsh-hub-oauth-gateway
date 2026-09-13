@@ -117,6 +117,7 @@ general
 new-api
 sub2api
 opencode-go
+coding-opencode-go
 zai-token-plan
 zai-team-plan
 kimi-token-plan

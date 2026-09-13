@@ -28,7 +28,7 @@ function setup() {
 	return { listener: () => listener!, release, state };
 }
 
-function options(sessionId?: string, provider = "opencode-go"): GenerateOptions {
+function options(sessionId?: string, provider = "coding-opencode-go"): GenerateOptions {
 	return {
 		provider,
 		model: "deepseek-v4.1-flash",
@@ -261,4 +261,14 @@ describe("OpenCode Go session header compatibility", () => {
 			release();
 		}
 	});
+});
+
+it("ignores the native opencode-go provider slot", async () => {
+	const { listener, release, state } = setup();
+	async function* stream() {
+		yield { type: "finish", reason: { kind: "stop" } } as StreamChunk;
+	}
+	await exhaust(listener()(options(undefined, "opencode-go"), stream));
+	expect(state.snapshot()).toMatchObject({ lastCall: "no-call" });
+	release();
 });

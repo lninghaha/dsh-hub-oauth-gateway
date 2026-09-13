@@ -5,6 +5,11 @@
 
 import type { Server } from "node:http";
 import {
+	OPENCODE_GO_GATEWAY_PREFIX,
+	OPENCODE_GO_LEGACY_GATEWAY_PREFIX,
+	openCodeGoGatewayModelId,
+} from "../../shared/opencode-go-ids.js";
+import {
 	gatewayKeyPath,
 	generateGatewayApiKey,
 	loadGatewayKeyDocument,
@@ -126,8 +131,10 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 			// Status stays usable when no provider credential can currently list models.
 		}
 		models = [
-			...models.filter((id) => !id.startsWith("opencode-go/")),
-			...(goRoute?.models.map((model) => "opencode-go/" + model.id) ?? []),
+			...models.filter(
+				(id) => !id.startsWith(OPENCODE_GO_GATEWAY_PREFIX) && !id.startsWith(OPENCODE_GO_LEGACY_GATEWAY_PREFIX),
+			),
+			...(goRoute?.models.map((model) => openCodeGoGatewayModelId(model.id)) ?? []),
 		];
 		return {
 			enabled: enabled ?? (await desiredEnabled()),
@@ -228,7 +235,7 @@ export function createCodingOAuthGatewayController(options: StartGatewayOptions)
 				throw new GatewayRequestError(
 					409,
 					"go_migration_required",
-					"Review and apply the explicit opencode-go/<model> route",
+					"Review and apply the explicit coding-opencode-go/<model> route",
 				);
 			let wantedPort: number | undefined;
 			try {

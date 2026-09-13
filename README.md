@@ -54,7 +54,7 @@ Release history lives in [`CHANGELOG.md`](CHANGELOG.md).
 - **CSV / JSON export** — filtered, daily, or bundle layouts; optional session redaction; spreadsheet-injection defense.
 - **Coding-subscription OAuth** — Grok Build, Codex, Kimi Code, Claude Code via device code / browser / PKCE paste; optional GitHub Copilot LLM route when `oauthDevice.copilotClientId` is set; multi-account store (max 8) with optional `codingOAuth.pool` (`off` | `priority` | `quota_aware`); Claude Code import via **Import Claude Code** (macOS Keychain `Claude Code-credentials` or file fallback; preview → commit; overwrite still needs confirm); models appear as `(OAuth)`; one-way CLI credential Pull.
 - **Optional loopback API gateway** — default-off OpenAI/Anthropic-compatible server for your own tools.
-- **OpenCode Go** — Connect OpenCode Go in **Accounts & Models** and use the existing DSH model route without enabling Gateway. External tools use explicitly configured `opencode-go/<model-id>` routes and the matching protocol, with a stable conversation header. The local gateway key and upstream credential are separate; missing session IDs are rejected. Review the migration preview before replacing the old global mode.
+- **OpenCode Go** — Connect OpenCode Go in **Accounts & Models** under the isolated provider `coding-opencode-go` (separate from DSH-native `opencode-go`). External tools use `coding-opencode-go/<model-id>` (legacy `opencode-go/<model-id>` still accepted) with the matching protocol and a stable conversation header. The local gateway key and upstream credential are separate; missing session IDs are rejected. If an older plugin config still lives under native `opencode-go`, migrate it from the Accounts card.
 - **Optional capabilities** — Codex search / images / usage / Fast and Grok Imagine default off; apply live.
 - **Opt-in local monitor** — read-only CLI auth snapshots and cross-tool token scans (never conversation content).
 - **Opt-in vendor status probes** — allowlisted public Statuspage GETs (default off; no credentials; isolated from Usage).
@@ -185,7 +185,7 @@ Allowlisted official CLI OAuth files are discovered read-only. Sync is an explic
 
 Default **off**. When enabled, an isolated `node:http` listener (not the DSH web port) serves `GET /healthz`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /v1/messages` on loopback, reusing signed-in OAuth sessions. Bind stays YAML-only; non-loopback bind requires a Bearer key. This is not a remote relay. Details: [`docs/01-install.md`](docs/01-install.md).
 
-Connect OpenCode Go in **Accounts & Models** and use the existing DSH model route without enabling Gateway. External tools use explicitly configured `opencode-go/<model-id>` routes and the matching protocol, with a stable conversation header. The local gateway key and upstream credential are separate; missing session IDs are rejected. Review the migration preview before replacing the old global mode. [Migration / 迁移](docs/repair-candidate.md).
+Connect OpenCode Go in **Accounts & Models** under `coding-opencode-go` without enabling Gateway. External tools use `coding-opencode-go/<model-id>` (legacy `opencode-go/<model-id>` still accepted) with the matching protocol and a stable conversation header. The local gateway key and upstream credential are separate; missing session IDs are rejected. Migrate any prior plugin takeover of native `opencode-go` from the Accounts card. [Migration / 迁移](docs/repair-candidate.md).
 
 ## Optional capabilities
 

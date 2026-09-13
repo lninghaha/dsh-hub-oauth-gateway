@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { openCodeGoGatewayModelId } from "../../../shared/opencode-go-ids.js";
 import type { GoGatewayRoute } from "../../go-gateway-route.js";
 
 export type { GoGatewayRoute } from "../../go-gateway-route.js";
@@ -42,7 +43,7 @@ export function GoGatewayRouteView({
 					<ul>
 						{chosen.models.map((model) => (
 							<li key={model.id}>
-								<code>opencode-go/{model.id}</code> · {model.protocol}
+								<code>{openCodeGoGatewayModelId(model.id)}</code> · {model.protocol}
 							</li>
 						))}
 					</ul>

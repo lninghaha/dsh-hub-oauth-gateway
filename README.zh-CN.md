@@ -50,7 +50,7 @@
 - **CSV / JSON 导出** —— 过滤、日序列或打包；可选会话脱敏；电子表格公式注入防护。
 - **编码订阅 OAuth** —— Grok Build、Codex、Kimi Code、Claude Code（设备码 / 浏览器 / PKCE 粘贴）；配置 `oauthDevice.copilotClientId` 后可选 GitHub Copilot LLM 路由；多账号存储（最多 8）与可选 `codingOAuth.pool`（`off` | `priority` | `quota_aware`）；Claude Code 导入走 **Import Claude Code**（macOS Keychain `Claude Code-credentials` 或文件回退；preview → commit；覆盖仍需确认）；模型标注 `(OAuth)`；单向 CLI 凭据拉取。
 - **可选回环 API 网关** —— 默认关闭的 OpenAI/Anthropic 兼容服务，仅供本机工具。
-- **OpenCode Go** — 在**账户与模型**连接 OpenCode Go，即可通过 DSH 原有模型路径对话，无需开启网关。外部工具需使用明确配置的 `opencode-go/<model-id>` 与对应协议，并发送稳定的会话标识。本地网关密钥与上游凭据分开；缺少会话标识会明确失败。旧全局模式需先查看迁移预览再应用。
+- **OpenCode Go** — 在**账户与模型**下以独立供应商 `coding-opencode-go` 连接（与 DSH 原生 `opencode-go` 隔离）。外部工具使用 `coding-opencode-go/<model-id>`（过渡期仍接受 `opencode-go/<model-id>`）与对应协议，并发送稳定会话标识。本地网关密钥与上游凭据分开；缺少会话标识会明确失败。若旧版插件配置仍在原生槽，可在账户卡片迁移。
 - **可选能力** —— Codex 搜索 / 图像 / 用量 / Fast 与 Grok Imagine 默认关闭，打开后立即生效。
 - **可选本机监控** —— 只读 CLI 认证快照与跨工具 Token 扫描（从不读取对话内容）。
 - **可选供应商状态页探测** —— 白名单公开 Statuspage GET（默认关；无凭据；与用量主路径隔离）。
@@ -181,7 +181,7 @@ GitHub Copilot LLM 路由（`github-copilot-oauth`）在配置 `oauthDevice.copi
 
 默认**关闭**。启用后在独立 `node:http` 监听器（非 DSH web 端口）上提供 `GET /healthz`、`GET /v1/models`、`POST /v1/chat/completions`、`POST /v1/responses`、`POST /v1/messages`，复用已登录 OAuth 会话。bind 仅 YAML；非回环 bind 必须有 Bearer key。不是远程中继。细节见 [`docs/01-install.md`](docs/01-install.md)。
 
-在**账户与模型**连接 OpenCode Go，即可通过 DSH 原有模型路径对话，无需开启网关。外部工具需使用明确配置的 `opencode-go/<model-id>` 与对应协议，并发送稳定的会话标识。本地网关密钥与上游凭据分开；缺少会话标识会明确失败。旧全局模式需先查看迁移预览再应用。 [Migration / 迁移](docs/repair-candidate.md).
+在**账户与模型**下以独立供应商 `coding-opencode-go` 连接（与 DSH 原生 `opencode-go` 隔离）。外部工具使用 `coding-opencode-go/<model-id>`（过渡期仍接受 `opencode-go/<model-id>`）与对应协议，并发送稳定会话标识。本地网关密钥与上游凭据分开；缺少会话标识会明确失败。若旧版插件配置仍在原生槽，可在账户卡片迁移。 [Migration / 迁移](docs/repair-candidate.md).
 
 ## 可选能力
 
