@@ -8,6 +8,7 @@ export interface GoModel {
 	readonly maxTokens?: number | undefined;
 }
 export interface GoSnapshot {
+	readonly providerId?: string | undefined;
 	readonly credential: {
 		readonly selectedRef: string;
 		readonly configured: boolean;
@@ -23,6 +24,14 @@ export interface GoSnapshot {
 		readonly conflicts: readonly string[];
 		readonly models: readonly GoModel[];
 	};
+	readonly legacy?:
+		| {
+				readonly providerId: string;
+				readonly present: boolean;
+				readonly migratable: boolean;
+				readonly targetProviderId: string;
+		  }
+		| undefined;
 	readonly call: {
 		readonly active: boolean;
 		readonly lastCall: "no-call" | "success" | "failure" | "missing-session";
@@ -58,6 +67,9 @@ export type GoViewKey =
 	| "configurationChanged"
 	| "conflictPreview"
 	| "confirmConflict"
+	| "legacyMigration"
+	| "migrate"
+	| "providerIdHint"
 	| "status.no-call"
 	| "status.success"
 	| "status.failure"
@@ -80,6 +92,7 @@ export interface GoViewProps {
 		expectedRevision: number;
 		confirmConflicts: boolean;
 	}) => Promise<GoSnapshot>;
+	readonly onMigrateLegacy?: (input: { expectedRevision: number; confirmConflicts: boolean }) => Promise<GoSnapshot>;
 	readonly onStartConversation?: (() => void) | undefined;
 }
 
@@ -104,6 +117,7 @@ export function OpenCodeGoConnectionView({
 	onSaveCredential,
 	onLoadModels,
 	onApply,
+	onMigrateLegacy,
 	onStartConversation,
 }: GoViewProps) {
 	const [editing, setEditing] = useState<boolean | null>(null);
@@ -180,6 +194,50 @@ export function OpenCodeGoConnectionView({
 				{status?.configuration.ready ? <span>{t("configured")}</span> : null}
 			</div>
 			<p style={{ margin: 0 }}>{t(callKey)}</p>
+			{status?.providerId ? (
+				<p style={{ margin: 0, opacity: 0.85, fontSize: "0.9em" }}>
+					{t("providerIdHint", { providerId: status.providerId })}
+				</p>
+			) : null}
+			{status?.legacy?.migratable && onMigrateLegacy ? (
+				<div
+					role="status"
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						gap: 8,
+						padding: 10,
+						borderRadius: 8,
+						border: "1px solid var(--dsw-alias-border-subtle, #777)",
+					}}
+				>
+					<p style={{ margin: 0 }}>
+						{t("legacyMigration", {
+							legacyId: status.legacy.providerId,
+							providerId: status.legacy.targetProviderId,
+						})}
+					</p>
+					<button
+						type="button"
+						style={control}
+						disabled={pending || status.configuration.revision === null || !status.configuration.writable}
+						onClick={() => {
+							if (status.configuration.revision === null) return;
+							run(async () => {
+								await onMigrateLegacy({
+									expectedRevision: status.configuration.revision!,
+									confirmConflicts: true,
+								});
+								setEditing(false);
+								setDirty(false);
+								setNotice("applied");
+							});
+						}}
+					>
+						{t("migrate")}
+					</button>
+				</div>
+			) : null}
 			{status?.configuration.ready ? (
 				<p style={{ margin: 0, overflowWrap: "anywhere" }}>
 					{status.configuration.models.map((model) => model.name ?? model.id).join(" · ")}

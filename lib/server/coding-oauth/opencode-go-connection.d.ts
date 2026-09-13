@@ -6,6 +6,7 @@ import type { OwnerRequestPolicy } from "./web-origin.js";
 export declare const OPENCODE_GO_CONNECTION_PATH = "/plugins/dsh-grok-build/opencode-go";
 export declare const OPENCODE_GO_BASE_URL = "https://opencode.ai/zen/go/v1";
 export declare const OPENCODE_GO_API = "openai-completions";
+export { OPENCODE_GO_LEGACY_PROVIDER_ID, OPENCODE_GO_PROVIDER_ID } from "../../shared/opencode-go-ids.js";
 type SettingsPathOp = {
     readonly op: "set";
     readonly path: readonly string[];
@@ -34,6 +35,7 @@ export interface OpenCodeGoModel {
 }
 type ConfigurationConflict = "protocol" | "base-url" | "static-session-header";
 export interface OpenCodeGoConnectionStatus {
+    readonly providerId: string;
     readonly credential: {
         readonly selectedRef: string;
         readonly configured: boolean;
@@ -56,6 +58,12 @@ export interface OpenCodeGoConnectionStatus {
         readonly ready: boolean;
         readonly conflicts: readonly ConfigurationConflict[];
     };
+    readonly legacy: {
+        readonly providerId: string;
+        readonly present: boolean;
+        readonly migratable: boolean;
+        readonly targetProviderId: string;
+    };
     readonly call: OpenCodeGoStatus;
 }
 export interface OpenCodeGoConnectionController {
@@ -71,6 +79,10 @@ export interface OpenCodeGoConnectionController {
         readonly model: OpenCodeGoModel;
         readonly expectedRevision: number;
         readonly confirmConflicts: boolean;
+    }): Promise<OpenCodeGoConnectionStatus>;
+    migrateLegacyConfiguration(input?: {
+        readonly expectedRevision?: number;
+        readonly confirmConflicts?: boolean;
     }): Promise<OpenCodeGoConnectionStatus>;
 }
 interface ControllerOptions {
@@ -92,5 +104,4 @@ export interface OpenCodeGoConnectionRouteContext {
     effect(callback: () => () => void | Promise<void>, label?: string): unknown;
 }
 export declare function registerOpenCodeGoConnectionRoute(ctx: OpenCodeGoConnectionRouteContext, controller: OpenCodeGoConnectionController, ownerRequestPolicy: OwnerRequestPolicy): () => void;
-export {};
 //# sourceMappingURL=opencode-go-connection.d.ts.map

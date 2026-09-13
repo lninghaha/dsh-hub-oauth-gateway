@@ -184,6 +184,7 @@ export const OpenCodeGoModelSchema = z.object({
 export type OpenCodeGoModel = z.infer<typeof OpenCodeGoModelSchema>;
 
 export const OpenCodeGoConnectionStatusSchema = z.object({
+	providerId: z.string().min(1).optional(),
 	credential: z.object({
 		selectedRef: z.string().min(1),
 		configured: z.boolean(),
@@ -208,6 +209,14 @@ export const OpenCodeGoConnectionStatusSchema = z.object({
 		ready: z.boolean(),
 		conflicts: z.array(z.enum(["protocol", "base-url", "static-session-header"])),
 	}),
+	legacy: z
+		.object({
+			providerId: z.string().min(1),
+			present: z.boolean(),
+			migratable: z.boolean(),
+			targetProviderId: z.string().min(1),
+		})
+		.optional(),
 	call: z.object({
 		active: z.boolean(),
 		lastCall: z.enum(["no-call", "success", "failure", "missing-session"]),

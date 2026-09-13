@@ -485,6 +485,7 @@ export declare const OpenCodeGoModelSchema: z.ZodObject<{
 }, z.core.$strip>;
 export type OpenCodeGoModel = z.infer<typeof OpenCodeGoModelSchema>;
 export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
+    providerId: z.ZodOptional<z.ZodString>;
     credential: z.ZodObject<{
         selectedRef: z.ZodString;
         configured: z.ZodBoolean;
@@ -516,6 +517,12 @@ export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
             "static-session-header": "static-session-header";
         }>>;
     }, z.core.$strip>;
+    legacy: z.ZodOptional<z.ZodObject<{
+        providerId: z.ZodString;
+        present: z.ZodBoolean;
+        migratable: z.ZodBoolean;
+        targetProviderId: z.ZodString;
+    }, z.core.$strip>>;
     call: z.ZodObject<{
         active: z.ZodBoolean;
         lastCall: z.ZodEnum<{
@@ -545,6 +552,7 @@ export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
 export type OpenCodeGoConnectionStatus = z.infer<typeof OpenCodeGoConnectionStatusSchema>;
 export declare const OpenCodeGoModelsResponseSchema: z.ZodObject<{
     status: z.ZodObject<{
+        providerId: z.ZodOptional<z.ZodString>;
         credential: z.ZodObject<{
             selectedRef: z.ZodString;
             configured: z.ZodBoolean;
@@ -576,6 +584,12 @@ export declare const OpenCodeGoModelsResponseSchema: z.ZodObject<{
                 "static-session-header": "static-session-header";
             }>>;
         }, z.core.$strip>;
+        legacy: z.ZodOptional<z.ZodObject<{
+            providerId: z.ZodString;
+            present: z.ZodBoolean;
+            migratable: z.ZodBoolean;
+            targetProviderId: z.ZodString;
+        }, z.core.$strip>>;
         call: z.ZodObject<{
             active: z.ZodBoolean;
             lastCall: z.ZodEnum<{

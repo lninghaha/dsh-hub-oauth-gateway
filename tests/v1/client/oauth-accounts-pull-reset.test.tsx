@@ -33,6 +33,13 @@ vi.mock("../../../src/client/coding-oauth-api.js", () => ({
 	useOpenCodeGoCredentialMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
 	useOpenCodeGoModelsMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
 	useOpenCodeGoApplyMutation: () => ({ mutate: vi.fn(), isPending: false, data: undefined, error: null }),
+	useOpenCodeGoMigrateMutation: () => ({
+		mutateAsync: vi.fn(),
+		mutate: vi.fn(),
+		isPending: false,
+		data: undefined,
+		error: null,
+	}),
 	useCodingOAuthLoginMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useCodingOAuthCodeMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),
 	useCodingOAuthCancelMutation: () => ({ mutate: vi.fn(), isPending: false, error: null }),

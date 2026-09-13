@@ -5,6 +5,7 @@ import {
 	type CredentialRef,
 	credentialRef,
 } from "@deepseek-ai/dsh-credentials";
+import { OPENCODE_GO_LEGACY_PROVIDER_ID, OPENCODE_GO_PROVIDER_ID } from "../../shared/opencode-go-ids.js";
 import { type GoApi, goBaseURL, isGoApi, protocolMismatch } from "../../shared/opencode-go-protocol.js";
 import { authorizeCodingOAuthRequest } from "./authorize-request.js";
 import { readJsonRequest } from "./http-json.js";
@@ -16,6 +17,7 @@ import { registerWebRouteSetupAtomically } from "./web-routes.js";
 export const OPENCODE_GO_CONNECTION_PATH = "/plugins/dsh-grok-build/opencode-go";
 export const OPENCODE_GO_BASE_URL = "https://opencode.ai/zen/go/v1";
 export const OPENCODE_GO_API = "openai-completions";
+export { OPENCODE_GO_LEGACY_PROVIDER_ID, OPENCODE_GO_PROVIDER_ID } from "../../shared/opencode-go-ids.js";
 
 const KNOWN_CREDENTIAL_REFS = ["OPENCODE_GO_API_KEY", "OPENCODE_API_KEY"] as const;
 
@@ -46,6 +48,7 @@ export interface OpenCodeGoModel {
 type ConfigurationConflict = "protocol" | "base-url" | "static-session-header";
 
 export interface OpenCodeGoConnectionStatus {
+	readonly providerId: string;
 	readonly credential: {
 		readonly selectedRef: string;
 		readonly configured: boolean;
@@ -68,6 +71,12 @@ export interface OpenCodeGoConnectionStatus {
 		readonly ready: boolean;
 		readonly conflicts: readonly ConfigurationConflict[];
 	};
+	readonly legacy: {
+		readonly providerId: string;
+		readonly present: boolean;
+		readonly migratable: boolean;
+		readonly targetProviderId: string;
+	};
 	readonly call: OpenCodeGoStatus;
 }
 
@@ -84,6 +93,10 @@ export interface OpenCodeGoConnectionController {
 		readonly model: OpenCodeGoModel;
 		readonly expectedRevision: number;
 		readonly confirmConflicts: boolean;
+	}): Promise<OpenCodeGoConnectionStatus>;
+	migrateLegacyConfiguration(input?: {
+		readonly expectedRevision?: number;
+		readonly confirmConflicts?: boolean;
 	}): Promise<OpenCodeGoConnectionStatus>;
 }
 
@@ -159,17 +172,75 @@ function apiKeyOf(value: unknown): string | undefined {
 	return key;
 }
 
-function settingsSnapshot(settings: OpenCodeGoSettingsProvider): {
+function providersMap(settings: OpenCodeGoSettingsProvider): {
 	readonly revision: number | null;
-	readonly provider: JsonRecord;
+	readonly providers: JsonRecord;
 } {
 	const descriptor = settings.describe({ redactSecrets: true }).find((entry) => entry.ns === "llm-pi-ai");
 	const section = recordOf(descriptor?.value);
-	const providers = recordOf(section?.providers);
 	return {
 		revision: typeof descriptor?.revision === "number" ? descriptor.revision : null,
-		provider: recordOf(providers?.["opencode-go"]) ?? {},
+		providers: recordOf(section?.providers) ?? {},
 	};
+}
+
+function settingsSnapshot(settings: OpenCodeGoSettingsProvider): {
+	readonly revision: number | null;
+	readonly provider: JsonRecord;
+	readonly legacy: JsonRecord;
+} {
+	const current = providersMap(settings);
+	return {
+		revision: current.revision,
+		provider: recordOf(current.providers[OPENCODE_GO_PROVIDER_ID]) ?? {},
+		legacy: recordOf(current.providers[OPENCODE_GO_LEGACY_PROVIDER_ID]) ?? {},
+	};
+}
+
+/** Detect prior plugin takeover of the pi-ai builtin `opencode-go` slot. */
+function isPluginShapedLegacy(provider: JsonRecord): boolean {
+	if (Object.keys(provider).length === 0) return false;
+	const api = stringOf(provider.api);
+	const baseURL = stringOf(provider.baseURL)?.replace(/\/+$/u, "");
+	const apiKeyEnv = stringOf(provider.apiKeyEnv);
+	const hasModels = modelsOf(provider.models).length > 0;
+	const matchesBase = baseURL === "https://opencode.ai/zen/go/v1" || baseURL === "https://opencode.ai/zen/go";
+	const knownRef = apiKeyEnv !== undefined && (KNOWN_CREDENTIAL_REFS as readonly string[]).includes(apiKeyEnv);
+	return (isGoApi(api) && (matchesBase || hasModels || knownRef)) || (matchesBase && hasModels);
+}
+
+function legacyMigrationState(legacy: JsonRecord, primary: JsonRecord) {
+	const present = isPluginShapedLegacy(legacy);
+	const primaryReady =
+		stringOf(primary.apiKeyEnv) !== undefined ||
+		modelsOf(primary.models).length > 0 ||
+		stringOf(primary.api) !== undefined;
+	return {
+		providerId: OPENCODE_GO_LEGACY_PROVIDER_ID,
+		present,
+		migratable: present && !primaryReady,
+		targetProviderId: OPENCODE_GO_PROVIDER_ID,
+	};
+}
+
+function copyProviderOps(from: JsonRecord, expectedApi?: GoApi): SettingsPathOp[] {
+	const api = (expectedApi ?? stringOf(from.api)) as GoApi | undefined;
+	const ops: SettingsPathOp[] = [];
+	const apiKeyEnv = stringOf(from.apiKeyEnv);
+	if (apiKeyEnv !== undefined)
+		ops.push({ op: "set", path: ["providers", OPENCODE_GO_PROVIDER_ID, "apiKeyEnv"], value: apiKeyEnv });
+	if (isGoApi(api)) {
+		ops.push({ op: "set", path: ["providers", OPENCODE_GO_PROVIDER_ID, "api"], value: api });
+		ops.push({ op: "set", path: ["providers", OPENCODE_GO_PROVIDER_ID, "baseURL"], value: goBaseURL(api) });
+	}
+	const catalog = modelsOf(from.models);
+	if (catalog.length > 0)
+		ops.push({
+			op: "set",
+			path: ["providers", OPENCODE_GO_PROVIDER_ID, "models"],
+			value: catalog,
+		});
+	return ops;
 }
 
 function conflictsOf(provider: JsonRecord, desired?: GoApi): ConfigurationConflict[] {
@@ -225,9 +296,15 @@ async function connectionSnapshot(
 	preferredRef?: string,
 ): Promise<OpenCodeGoConnectionStatus> {
 	const current = settingsSnapshot(options.settings);
-	const candidates = await credentialCandidates(options.credentials, current.provider);
+	const credentialSource =
+		Object.keys(current.provider).length > 0
+			? current.provider
+			: isPluginShapedLegacy(current.legacy)
+				? current.legacy
+				: current.provider;
+	const candidates = await credentialCandidates(options.credentials, credentialSource);
 	const configured = candidates.filter((candidate) => candidate.info.configured);
-	const configuredRef = stringOf(current.provider.apiKeyEnv);
+	const configuredRef = stringOf(current.provider.apiKeyEnv) ?? stringOf(credentialSource.apiKeyEnv);
 	const requestedRef = stringOf(preferredRef);
 	const selected =
 		candidates.find((candidate) => candidate.ref === requestedRef) ??
@@ -254,12 +331,14 @@ async function connectionSnapshot(
 	)
 		conflicts.push("protocol");
 	return {
+		providerId: OPENCODE_GO_PROVIDER_ID,
 		credential: {
 			selectedRef: selected.ref,
 			configured: selected.info.configured,
 			writable: selected.info.writable,
 			source: selected.info.source ?? null,
-			requiresChoice: configuredRef === undefined && configured.length > 1 && distinctValues.size > 1,
+			requiresChoice:
+				stringOf(current.provider.apiKeyEnv) === undefined && configured.length > 1 && distinctValues.size > 1,
 			candidates: candidates.map((candidate) => ({
 				ref: candidate.ref,
 				configured: candidate.info.configured,
@@ -274,7 +353,7 @@ async function connectionSnapshot(
 			baseURL,
 			models,
 			ready:
-				selected.ref === configuredRef &&
+				selected.ref === stringOf(current.provider.apiKeyEnv) &&
 				selected.info.configured &&
 				isGoApi(api) &&
 				baseURL?.replace(/\/+$/u, "") === goBaseURL(api) &&
@@ -282,6 +361,7 @@ async function connectionSnapshot(
 				conflicts.length === 0,
 			conflicts,
 		},
+		legacy: legacyMigrationState(current.legacy, current.provider),
 		call: options.callStatus(),
 	};
 }
@@ -345,6 +425,56 @@ export function createOpenCodeGoConnectionController(options: ControllerOptions)
 			}
 			return connectionSnapshot(options, input.credentialRef);
 		},
+		async migrateLegacyConfiguration(input) {
+			const current = settingsSnapshot(options.settings);
+			if (options.settings.writable === false)
+				throw new OpenCodeGoConnectionError("settings-readonly", "DSH settings are read-only", 403);
+			if (current.revision === null)
+				throw new OpenCodeGoConnectionError("settings-unavailable", "DSH model settings are unavailable", 503);
+			const migration = legacyMigrationState(current.legacy, current.provider);
+			if (!migration.present)
+				throw new OpenCodeGoConnectionError(
+					"legacy-missing",
+					"No plugin-shaped OpenCode Go configuration was found under the legacy provider id",
+					404,
+				);
+			if (!migration.migratable)
+				throw new OpenCodeGoConnectionError(
+					"legacy-already-migrated",
+					"Isolated OpenCode Go settings already exist; clear them before migrating the legacy provider",
+					409,
+				);
+			const api = stringOf(current.legacy.api);
+			if (api !== undefined && !isGoApi(api))
+				throw new OpenCodeGoConnectionError("invalid-protocol", "Legacy OpenCode Go protocol is unsupported", 400);
+			const conflicts = conflictsOf(current.legacy, isGoApi(api) ? api : undefined);
+			if (conflicts.length > 0 && input?.confirmConflicts !== true)
+				throw new OpenCodeGoConnectionError(
+					"configuration-conflict",
+					"Review legacy OpenCode Go settings before migrating",
+					409,
+				);
+			const ops = copyProviderOps(current.legacy, isGoApi(api) ? api : undefined);
+			if (ops.length === 0)
+				throw new OpenCodeGoConnectionError(
+					"legacy-empty",
+					"Legacy OpenCode Go settings do not contain a migratable credential or model list",
+					409,
+				);
+			if (conflicts.includes("static-session-header")) {
+				const headers = recordOf(current.legacy.headers) ?? {};
+				for (const key of Object.keys(headers))
+					if (key.toLowerCase() === "x-opencode-session")
+						ops.push({ op: "unset", path: ["providers", OPENCODE_GO_PROVIDER_ID, "headers", key] });
+			}
+			const revision =
+				input?.expectedRevision !== undefined && Number.isSafeInteger(input.expectedRevision)
+					? input.expectedRevision
+					: current.revision;
+			await options.settings.mutate("llm-pi-ai", ops, revision);
+			options.onConfigurationChange?.();
+			return connectionSnapshot(options, stringOf(current.legacy.apiKeyEnv));
+		},
 		async applyConfiguration(input) {
 			const ref = credentialName(input.credentialRef);
 			const info = await options.credentials.describe(ref);
@@ -381,22 +511,26 @@ export function createOpenCodeGoConnectionController(options: ControllerOptions)
 				);
 			}
 			const ops: SettingsPathOp[] = [
-				{ op: "set", path: ["providers", "opencode-go", "apiKeyEnv"], value: input.credentialRef },
-				{ op: "set", path: ["providers", "opencode-go", "api"], value: api },
-				{ op: "set", path: ["providers", "opencode-go", "baseURL"], value: goBaseURL(api) },
-				{ op: "set", path: ["providers", "opencode-go", "models"], value: mergedModels(current.provider, model) },
+				{ op: "set", path: ["providers", OPENCODE_GO_PROVIDER_ID, "apiKeyEnv"], value: input.credentialRef },
+				{ op: "set", path: ["providers", OPENCODE_GO_PROVIDER_ID, "api"], value: api },
+				{ op: "set", path: ["providers", OPENCODE_GO_PROVIDER_ID, "baseURL"], value: goBaseURL(api) },
+				{
+					op: "set",
+					path: ["providers", OPENCODE_GO_PROVIDER_ID, "models"],
+					value: mergedModels(current.provider, model),
+				},
 			];
 			if (conflicts.includes("static-session-header")) {
 				const headers = recordOf(current.provider.headers) ?? {};
 				for (const key of Object.keys(headers))
 					if (key.toLowerCase() === "x-opencode-session")
-						ops.push({ op: "unset", path: ["providers", "opencode-go", "headers", key] });
+						ops.push({ op: "unset", path: ["providers", OPENCODE_GO_PROVIDER_ID, "headers", key] });
 			}
 			await options.settings.mutate("llm-pi-ai", ops, input.expectedRevision);
 			options.onConfigurationChange?.();
 			return connectionSnapshot(options, input.credentialRef);
 		},
-	} as OpenCodeGoConnectionController;
+	};
 }
 
 export interface OpenCodeGoConnectionRouteContext {
@@ -472,6 +606,17 @@ async function handleConnectionRoute(
 			);
 			return;
 		}
+		if (action === "migrate") {
+			writeJson(
+				res,
+				200,
+				await controller.migrateLegacyConfiguration({
+					...(body.expectedRevision === undefined ? {} : { expectedRevision: Number(body.expectedRevision) }),
+					confirmConflicts: body.confirmConflicts === true,
+				}),
+			);
+			return;
+		}
 		if (action === "apply") {
 			writeJson(
 				res,
@@ -486,7 +631,11 @@ async function handleConnectionRoute(
 			);
 			return;
 		}
-		throw new OpenCodeGoConnectionError("invalid-action", "OpenCode Go action must be credential or apply", 400);
+		throw new OpenCodeGoConnectionError(
+			"invalid-action",
+			"OpenCode Go action must be credential, apply, or migrate",
+			400,
+		);
 	} catch (error) {
 		errorResponse(res, error);
 	}

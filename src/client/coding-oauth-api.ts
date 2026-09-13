@@ -175,6 +175,24 @@ export function useOpenCodeGoApplyMutation() {
 	);
 }
 
+export function useOpenCodeGoMigrateMutation() {
+	return useMutation(
+		{
+			mutationFn: ({ expectedRevision, confirmConflicts }: { expectedRevision: number; confirmConflicts: boolean }) =>
+				postCodingOAuth(
+					CODING_OAUTH_PATHS.opencodeGo,
+					{ action: "migrate", expectedRevision, confirmConflicts },
+					OpenCodeGoConnectionStatusSchema,
+				),
+			onSuccess: async (response) => {
+				usageQueryClient.setQueryData([CODING_OAUTH_KEY, "opencode-go"], response);
+				await invalidateCodingOAuthQueries();
+			},
+		},
+		usageQueryClient,
+	);
+}
+
 export function useCodingOAuthLoginMutation() {
 	return useMutation(
 		{

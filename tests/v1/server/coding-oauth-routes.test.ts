@@ -335,7 +335,7 @@ describe("coding OAuth gateway routes", () => {
 
 		const enabled = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: true });
 		expect(enabled.status).toBe(409);
-		expect(enabled.payload).toMatchObject({ error: expect.stringContaining("opencode-go/<model>") });
+		expect(enabled.payload).toMatchObject({ error: expect.stringContaining("coding-opencode-go/<model>") });
 
 		const disabled = await callRoute(mock, GATEWAY_SETTINGS_PATH, "PATCH", { opencodeGoEnabled: false });
 		expect(disabled.status).toBe(200);

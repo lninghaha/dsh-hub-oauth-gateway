@@ -3,6 +3,7 @@ import {
 	useOpenCodeGoApplyMutation,
 	useOpenCodeGoConnectionQuery,
 	useOpenCodeGoCredentialMutation,
+	useOpenCodeGoMigrateMutation,
 	useOpenCodeGoModelsMutation,
 } from "../../coding-oauth-api.js";
 import type { Translate } from "../../locales.js";
@@ -19,6 +20,7 @@ export function OpenCodeGoConnectionCard({
 	const credential = useOpenCodeGoCredentialMutation();
 	const directory = useOpenCodeGoModelsMutation();
 	const apply = useOpenCodeGoApplyMutation();
+	const migrate = useOpenCodeGoMigrateMutation();
 	const fromRuntime = runtime.data?.opencodeGo;
 	const call =
 		fromRuntime && (fromRuntime.updatedAt ?? 0) >= (status.data?.call.updatedAt ?? 0) ? fromRuntime : status.data?.call;
@@ -32,6 +34,7 @@ export function OpenCodeGoConnectionCard({
 			onSaveCredential={(input) => credential.mutateAsync(input)}
 			onLoadModels={(ref) => directory.mutateAsync(ref)}
 			onApply={(input) => apply.mutateAsync(input)}
+			onMigrateLegacy={(input) => migrate.mutateAsync(input)}
 			onStartConversation={onStartConversation}
 		/>
 	);
