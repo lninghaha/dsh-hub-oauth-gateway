@@ -7,6 +7,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.3
+
+### Fixed
+
+- Isolate `coding-opencode-go` from DSH-native OpenCode Go so Hub owns a dedicated provider catalog, connection flow, and gateway route (`#46`).
+- Restore legal `reasoningEfforts` and full model UI parity for the OpenCode Go connection path (`#47`, equivalent to prior `#44` intent).
+
 ## 1.13.2
 
 - 修复设置草稿冲突、空模型集合持久化、多账户默认与定向重新授权。
