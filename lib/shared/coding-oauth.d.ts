@@ -482,6 +482,13 @@ export declare const OpenCodeGoModelSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     contextWindow: z.ZodOptional<z.ZodNumber>;
     maxTokens: z.ZodOptional<z.ZodNumber>;
+    input: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+        text: "text";
+        image: "image";
+    }>>>;
+    protocol: z.ZodOptional<z.ZodString>;
+    reasoningEfforts: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>]>>;
+    compat: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, z.core.$strip>;
 export type OpenCodeGoModel = z.infer<typeof OpenCodeGoModelSchema>;
 export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
@@ -509,6 +516,13 @@ export declare const OpenCodeGoConnectionStatusSchema: z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
             contextWindow: z.ZodOptional<z.ZodNumber>;
             maxTokens: z.ZodOptional<z.ZodNumber>;
+            input: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+                text: "text";
+                image: "image";
+            }>>>;
+            protocol: z.ZodOptional<z.ZodString>;
+            reasoningEfforts: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>]>>;
+            compat: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         }, z.core.$strip>>;
         ready: z.ZodBoolean;
         conflicts: z.ZodArray<z.ZodEnum<{
@@ -576,6 +590,13 @@ export declare const OpenCodeGoModelsResponseSchema: z.ZodObject<{
                 name: z.ZodOptional<z.ZodString>;
                 contextWindow: z.ZodOptional<z.ZodNumber>;
                 maxTokens: z.ZodOptional<z.ZodNumber>;
+                input: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+                    text: "text";
+                    image: "image";
+                }>>>;
+                protocol: z.ZodOptional<z.ZodString>;
+                reasoningEfforts: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>]>>;
+                compat: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
             }, z.core.$strip>>;
             ready: z.ZodBoolean;
             conflicts: z.ZodArray<z.ZodEnum<{
@@ -621,6 +642,13 @@ export declare const OpenCodeGoModelsResponseSchema: z.ZodObject<{
         name: z.ZodOptional<z.ZodString>;
         contextWindow: z.ZodOptional<z.ZodNumber>;
         maxTokens: z.ZodOptional<z.ZodNumber>;
+        input: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+            text: "text";
+            image: "image";
+        }>>>;
+        protocol: z.ZodOptional<z.ZodString>;
+        reasoningEfforts: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>]>>;
+        compat: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 export declare const LoginChallengeSchema: z.ZodObject<{
