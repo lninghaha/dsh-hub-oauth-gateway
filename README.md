@@ -1,12 +1,10 @@
 <!-- banner -->
 
-> Repair candidate / 修复候选：1.13.2-rc.1。See [usage, migration and rollback](docs/repair-candidate.md). It uses the npm `next` tag and does not replace the stable `latest` release.
-
 <div align="center">
 
 # dsh-hub-oauth-gateway
 
-**v1.13.1** · formerly `dsh-usage-stats`
+**v1.13.2** · formerly `dsh-usage-stats`
 
 **Local-first usage center for [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Tokens, estimated cost, account balances, subscription quotas, trends, forecasts, alerts, and exports — plus coding-subscription OAuth (Grok Build, Codex, Kimi Code, Claude Code), an optional loopback API gateway, and opt-in local auth/usage monitoring. **No tokens in chat.**
 
@@ -20,7 +18,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.1` and Subscription `0.8.1` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin. Published `dsh-coding-oauth-core@0.1.2` (helpers + subpath exports) is consumed from npm; Hub still keeps `vendor/dsh-coding-oauth-core` as the editable publish source.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.2` and Subscription `0.8.1` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once. Core remains a shared npm dependency, not a separate DSH plugin. Published `dsh-coding-oauth-core@0.1.2` (helpers + subpath exports) is consumed from npm; Hub still keeps `vendor/dsh-coding-oauth-core` as the editable publish source.
 
 ### Shared core `dsh-coding-oauth-core@0.1.2`
 

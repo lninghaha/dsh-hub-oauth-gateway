@@ -7,7 +7,7 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
-## 1.13.2-rc.1
+## 1.13.2
 
 - 修复设置草稿冲突、空模型集合持久化、多账户默认与定向重新授权。
 - Go 连接复用凭据引用、保留模型配置并明确协议及流终态；兼容层保持真实会话关联。
@@ -17,6 +17,12 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 ### Fixed
 
 - 初始化 coding-OAuth provider 的 `modelErrors`，避免 DSH 0.1.5 在模型解析阶段对缺失的 map 调用 `.get`。
+- 固定跨平台发布产物路径，避免 Windows 与 POSIX 打包清单不一致。
+- 稳定客户端 source map 路径，保证发布产物可复现。
+
+## 1.13.2-rc.1
+
+- Candidate channel (`npm` `next`) for the account/model/Go repair set later promoted to `1.13.2`.
 
 ## 1.13.1
 
