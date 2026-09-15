@@ -2,8 +2,6 @@ import type { Context } from "@deepseek-ai/cordis";
 import type { CredentialProvider } from "@deepseek-ai/dsh-credentials";
 import type { GenerateOptions, StreamChunk } from "@deepseek-ai/dsh-llm";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { OPENCODE_GO_KNOWN_MODELS } from "../../../src/shared/opencode-go-catalog.js";
-import { OPENCODE_GO_LEGACY_PROVIDER_ID, OPENCODE_GO_PROVIDER_ID } from "../../../src/shared/opencode-go-ids.js";
 import {
 	createOpenCodeGoConnectionController,
 	OPENCODE_GO_API,
@@ -14,6 +12,8 @@ import {
 	installOpenCodeGoHeaderCompatibility,
 	OpenCodeGoHeaderState,
 } from "../../../src/server/coding-oauth/opencode-go-header.js";
+import { OPENCODE_GO_KNOWN_MODELS } from "../../../src/shared/opencode-go-catalog.js";
+import { OPENCODE_GO_LEGACY_PROVIDER_ID, OPENCODE_GO_PROVIDER_ID } from "../../../src/shared/opencode-go-ids.js";
 
 /** Upstream OpenCode Go + plugin catalog DeepSeek ids (wire ids stay unprefixed). */
 const PLUGIN_DEEPSEEK_IDS = [
@@ -25,11 +25,7 @@ const PLUGIN_DEEPSEEK_IDS = [
 ] as const;
 
 /** `@deepseek-ai/dsh-llm-deepseek` default advisory catalog (provider `deepseek-official`). */
-const OFFICIAL_DEEPSEEK_DEFAULTS = [
-	"deepseek-v4-flash",
-	"deepseek-v4-pro",
-	"deepseek-v4-flash-vision-exp",
-] as const;
+const OFFICIAL_DEEPSEEK_DEFAULTS = ["deepseek-v4-flash", "deepseek-v4-pro", "deepseek-v4-flash-vision-exp"] as const;
 
 const originalFetch = globalThis.fetch;
 
