@@ -512,6 +512,8 @@ export const zh = {
 	"oauth.opencodeGo.status.success": "最近一次 Go 调用已正常完成。",
 	"oauth.opencodeGo.status.failure": "最近一次 OpenCode Go 对话请求失败；检查 DSH 模型配置后重试。",
 	"oauth.opencodeGo.status.missing-session": "DSH 未提供会话标识。返回对话后重试。",
+	"oauth.opencodeGo.regionOptIn":
+		"该模型仅在中国托管，需在 OpenCode 工作区显式开启（China workspace opt-in）。",
 	"gateway.intro": "可选的本机 OpenAI/Anthropic 兼容网关，复用已登录的订阅会话，仅供本机工具使用，不是公网中继。",
 	"gateway.enabled": "启用本地 API 网关",
 	"gateway.opencodeGoEnabled": "将聊天代理到 OpenCode Go",
@@ -1146,6 +1148,8 @@ export const en = {
 		"The latest OpenCode Go conversation request failed. Check DSH model settings and retry.",
 	"oauth.opencodeGo.status.missing-session":
 		"DSH did not provide a session identity. Return to the conversation and retry.",
+	"oauth.opencodeGo.regionOptIn":
+		"This model is China-hosted and needs an explicit OpenCode workspace opt-in.",
 	"gateway.intro":
 		"An optional loopback OpenAI/Anthropic-compatible gateway that reuses your signed-in subscription sessions. It serves only your local tools and is not a public relay.",
 	"gateway.enabled": "Enable the local API gateway",

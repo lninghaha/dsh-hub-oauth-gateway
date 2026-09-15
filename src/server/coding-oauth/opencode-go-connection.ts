@@ -11,10 +11,16 @@ import {
 } from "../../shared/provider-auth-catalog.js";
 import { authorizeCodingOAuthRequest } from "./authorize-request.js";
 import { readJsonRequest } from "./http-json.js";
+import { classifyOpenCodeGoDirectoryFailure } from "./opencode-go-errors.js";
 import type { OpenCodeGoStatus } from "./opencode-go-header.js";
 import { safeMessage } from "./redact.js";
 import type { OwnerRequestPolicy } from "./web-origin.js";
 import { registerWebRouteSetupAtomically } from "./web-routes.js";
+export {
+	classifyOpenCodeGoDirectoryFailure,
+	classifyOpenCodeGoUpstreamError,
+	parseOpenCodeGoRegionError,
+} from "./opencode-go-errors.js";
 
 export const OPENCODE_GO_CONNECTION_PATH = "/plugins/dsh-grok-build/opencode-go";
 export const OPENCODE_GO_BASE_URL = "https://opencode.ai/zen/go/v1";
@@ -297,12 +303,11 @@ export function createOpenCodeGoConnectionController(options: Options) {
 				headers: { authorization: `Bearer ${resolved.value}`, accept: "application/json" },
 				redirect: "error",
 			});
-			if (!response.ok)
-				throw new ConnectionError(
-					response.status === 401 || response.status === 403 ? "credential-rejected" : "model-directory-failed",
-					`OpenCode Go model directory returned HTTP ${response.status}`,
-					response.status,
-				);
+			if (!response.ok) {
+				const bodyText = await response.text().catch(() => "");
+				const failure = classifyOpenCodeGoDirectoryFailure(response.status, bodyText);
+				throw new ConnectionError(failure.code, failure.message, response.status);
+			}
 			const catalog = models(await response.json()).map((entry) =>
 				enrichDirectoryModel(entry, knownOpenCodeGoModel(entry.id)),
 			);

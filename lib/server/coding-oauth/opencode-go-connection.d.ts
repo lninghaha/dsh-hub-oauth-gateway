@@ -4,6 +4,7 @@ import { type GoApi } from "../../shared/opencode-go-protocol.js";
 import { type ProviderDirectoryModel } from "../../shared/provider-auth-catalog.js";
 import type { OpenCodeGoStatus } from "./opencode-go-header.js";
 import type { OwnerRequestPolicy } from "./web-origin.js";
+export { classifyOpenCodeGoDirectoryFailure, classifyOpenCodeGoUpstreamError, parseOpenCodeGoRegionError, } from "./opencode-go-errors.js";
 export declare const OPENCODE_GO_CONNECTION_PATH = "/plugins/dsh-grok-build/opencode-go";
 export declare const OPENCODE_GO_BASE_URL = "https://opencode.ai/zen/go/v1";
 export declare const OPENCODE_GO_API = "openai-completions";
