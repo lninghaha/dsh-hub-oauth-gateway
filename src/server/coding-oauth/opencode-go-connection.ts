@@ -16,6 +16,7 @@ import type { OpenCodeGoStatus } from "./opencode-go-header.js";
 import { safeMessage } from "./redact.js";
 import type { OwnerRequestPolicy } from "./web-origin.js";
 import { registerWebRouteSetupAtomically } from "./web-routes.js";
+
 export {
 	classifyOpenCodeGoDirectoryFailure,
 	classifyOpenCodeGoUpstreamError,
