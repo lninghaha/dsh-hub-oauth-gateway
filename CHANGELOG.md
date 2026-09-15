@@ -7,6 +7,13 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.4
+
+### Fixed
+
+- Map OpenCode Go `RegionError` to `region-opt-in-required` so region opt-in failures surface a clear action (`#49`).
+- Lock DeepSeek model ids on the Go path so they stay isolated from the official DeepSeek provider catalog (`#48`).
+
 ## 1.13.3
 
 ### Fixed
