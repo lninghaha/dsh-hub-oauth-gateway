@@ -30,6 +30,28 @@ interface ModelsCacheDocument {
 	selected: string[];
 }
 
+function accessTokenFromResolvedAuth(
+	auth: { apiKey?: string; headers?: Readonly<Record<string, string | null>> } | undefined,
+): string | undefined {
+	const apiKey = auth?.apiKey?.trim();
+	if (apiKey !== undefined && apiKey.length > 0) return apiKey;
+	const authorization = authorizationHeader(auth?.headers);
+	if (authorization === undefined) return undefined;
+	// Kimi toAuth 只放 Authorization Bearer，不填 apiKey。
+	const match = /^Bearer\s+(\S+)$/i.exec(authorization);
+	return match?.[1];
+}
+
+function authorizationHeader(headers: Readonly<Record<string, string | null>> | undefined): string | undefined {
+	if (headers === undefined) return undefined;
+	for (const [name, value] of Object.entries(headers)) {
+		if (name.toLowerCase() !== "authorization" || typeof value !== "string") continue;
+		const trimmed = value.trim();
+		return trimmed.length === 0 ? undefined : trimmed;
+	}
+	return undefined;
+}
+
 function isENOENT(error: unknown): boolean {
 	return (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
 }
@@ -158,7 +180,7 @@ export class OAuthProviderSession {
 		const resolved = await this.models.getAuth(this.definition.nativeProviderId);
 		// Prefer the resolved auth surface so a pool override (request-scoped
 		// account) is not replaced by a subsequent active-account file read.
-		return resolved?.auth.apiKey;
+		return accessTokenFromResolvedAuth(resolved?.auth);
 	}
 
 	/**
