@@ -7,6 +7,8 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.5
+
 ### Fixed
 
 - Read a Bearer token from resolved OAuth auth when `apiKey` is absent, so Kimi Code subscription sends no longer report "not signed in" after a completed login (`#45`).
