@@ -7,6 +7,12 @@ defined in [`docs/00-project-rules.md`](docs/00-project-rules.md).
 
 ## Unreleased
 
+## 1.13.6
+
+### Fixed
+
+- Install accepts DSH `0.1.x`–`0.2.x` via `engines.dsh` plus SemVer peer ranges (align with subscription [#51](https://github.com/lninghaha/dsh-coding-subscription-oauth/issues/51)). Verified build BOM remains `0.1.1-rc.2`; `0.2.1-rc.2` is recorded as an unverified candidate.
+
 ## 1.13.5
 
 ### Fixed

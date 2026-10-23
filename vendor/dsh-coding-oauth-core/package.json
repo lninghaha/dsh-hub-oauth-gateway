@@ -80,7 +80,7 @@
     "undici": "7.29.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2"
+    "@deepseek-ai/dsh-llm": ">=0.1.1-rc.2 <0.3.0"
   },
   "devDependencies": {
     "@types/node": "22.20.1",

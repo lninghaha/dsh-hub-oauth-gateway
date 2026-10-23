@@ -1,15 +1,20 @@
 import assert from "node:assert/strict";
 import { access, readdir, readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+const require = createRequire(import.meta.url);
+const semver = require(require.resolve("semver", { paths: [require.resolve("vitest/package.json")] }));
 const root = resolve(".");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 assert.equal(manifest.name, "dsh-hub-oauth-gateway");
-assert.equal(manifest.version, "1.13.5");
+assert.equal(manifest.version, "1.13.6");
 assert.notEqual(manifest.private, true, "release package must not be private");
 assert.equal(manifest.dependencies?.["dsh-coding-oauth-core"], "0.1.2");
 assert.equal(manifest.dependencies?.undici, "7.29.0");
+assert.equal(typeof manifest.engines?.dsh, "string", "engines.dsh must declare the install range");
+assert.notEqual(manifest.engines.dsh.trim(), "", "engines.dsh must be a non-empty SemVer range");
 
 for (const path of [
 	"lib/index.js",
@@ -43,6 +48,25 @@ const verifiedBom = JSON.parse(await readFile(resolve(root, "compatibility/dsh-b
 assert.equal(manifest.dsh?.compatibility?.verifiedBom, "./compatibility/dsh-bom.json");
 assert.equal(manifest.dsh?.compatibility?.coreAbi, verifiedBom.coreAbi);
 assert.deepEqual(manifest.dsh?.compatibility?.verified, verifiedBom.verified);
+assert.ok(
+	semver.satisfies(verifiedBom.verified.dshVersion, manifest.engines.dsh, { includePrerelease: true }),
+	`engines.dsh must accept verified runtime ${verifiedBom.verified.dshVersion}`,
+);
+for (const [name, expected] of Object.entries(verifiedBom.verified.packages)) {
+	const peer = manifest.peerDependencies?.[name];
+	if (peer === undefined) continue;
+	assert.notEqual(peer, "*", `peer ${name} must not be "*"`);
+	assert.equal(peer.startsWith("workspace:"), false, `peer ${name} must not use workspace protocol`);
+	assert.ok(
+		semver.satisfies(expected, peer, { includePrerelease: true }),
+		`peer ${name} range ${peer} must satisfy verified ${expected}`,
+	);
+}
+assert.ok(
+	Array.isArray(verifiedBom.candidates) &&
+		verifiedBom.candidates.every((candidate) => candidate?.status === "unverified"),
+	"every untested DSH candidate must remain explicitly unverified",
+);
 assert.equal(
 	manifest.exports?.["./invariant"]?.import ?? manifest.exports?.["./invariant"]?.default,
 	"./lib/invariant.js",
