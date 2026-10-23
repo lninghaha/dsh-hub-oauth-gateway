@@ -4,7 +4,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.13.5** · 旧称 `dsh-usage-stats`
+**v1.13.6** · 旧称 `dsh-usage-stats`
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 向けのローカルファースト用量センター。** Token、推定コスト、口座残高、サブスクリプションクォータ、トレンド、予測、アラート、エクスポート — 加えてコーディングサブスクリプション OAuth（Grok Build、Codex、Kimi Code、Claude Code）、オプションのループバック API ゲートウェイ、オプトインのローカル認証/用量モニター。**チャットに token を貼り付けないでください。**
 
@@ -18,7 +18,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.5` and Subscription `0.8.6` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.6` and Subscription `0.8.6` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -134,7 +134,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## 要件
 
-- DeepSeek Harness Web、`@deepseek-ai/dsh 0.1.1-rc.2` で検証済み
+- DeepSeek Harness Web、`@deepseek-ai/dsh 0.1.1-rc.2` 検証済みビルドピン（インストール範囲は 0.1.x–0.2.x；`0.2.1-rc.2` は未検証）
 - Node.js `^22.19.0 || >=24.0.0`
 - ループバック DSH Web バックエンド；認証済みプライベートネットワークへの制御されたローカル HTTPS リバースプロキシは可。プラグイン API 単体の公開や無認証の公インターネット公開はしないでください。
 

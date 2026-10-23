@@ -4,7 +4,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.13.5** · 原名 `dsh-usage-stats`
+**v1.13.6** · 原名 `dsh-usage-stats`
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web 的本地优先用量中心。** Token、估算成本、账户余额、订阅配额、趋势、预测、提醒与导出——外加编码订阅 OAuth（Grok Build、Codex、Kimi Code、Claude Code）、可选回环 API 网关，以及可选的本机认证/用量监控。**不要把 token 粘贴进聊天。**
 
@@ -18,7 +18,7 @@
 
 ---
 
-> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.13.5` 与 Subscription `0.8.6` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
+> **升级：** 按 [`docs/01-install.md`](docs/01-install.md) 的版本化步骤操作。Hub `1.13.6` 与 Subscription `0.8.6` 共用已验证的 DSH `0.1.1-rc.2` 契约，并精确固定 `dsh-coding-oauth-core@0.1.2` 与 `undici@7.29.0`。保留 profile、配置和凭据文件，在同一个 Web profile 中更新两个插件，再重启一次现有 DSH Web 进程。Core 仍是共享 npm 依赖，不是需要单独安装的 DSH 插件。已发布的 `dsh-coding-oauth-core@0.1.2`（含 helper 与 subpath exports）从 npm 消费；Hub 仍保留 `vendor/dsh-coding-oauth-core` 作为后续发版源。
 
 ---
 
@@ -135,7 +135,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## 要求
 
-- DeepSeek Harness Web，已验证 `@deepseek-ai/dsh 0.1.1-rc.2`（精确 BOM）。`0.1.5-rc.1` 等未验证候选仅记在 `compatibility/dsh-bom.json`，见 [`docs/01-install.md`](docs/01-install.md)。
+- DeepSeek Harness Web：已验证构建钉 `@deepseek-ai/dsh 0.1.1-rc.2`（精确 BOM）。安装范围（`engines.dsh`）覆盖 `0.1.x`–`0.2.x`，因此宿主如 `0.2.1-rc.2` 不会在安装时被拒；`0.2.1-rc.2` / `0.1.5-rc.1` 在 `compatibility/dsh-bom.json` 中仍为未验证候选，见 [`docs/01-install.md`](docs/01-install.md)。
 - Node.js `^22.19.0 || >=24.0.0`
 - DSH Web 后端保持回环；可通过受控本机 HTTPS 反向代理向已认证私网提供完整 Web。不要单独暴露插件 API，也不要无认证发布到公网。
 

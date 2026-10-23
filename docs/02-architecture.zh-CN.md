@@ -37,7 +37,7 @@ DSH Web slots ──> classic client bundle ──> TanStack Query ──> Quick
 
 精确宿主钉死版本见 `compatibility/dsh-bom.json`（`verified` 与 `candidates`）。当实测存在方言分裂时，Hub 不得只硬编码一种宿主 API 形状：
 
-| 表面 | 已验证 `0.1.1-rc.2` | 候选 `0.1.5-rc.1` |
+| 表面 | 已验证 `0.1.1-rc.2` | 候选 `0.1.5-rc.1` / `0.2.1-rc.2`（未验证） |
 |---|---|---|
 | `sessionPersistence` | `list` + `readFrom` | `list` + `open` → `read` → `close` / `asyncDispose` |
 | 客户端 inject | 可能包含 `@deepseek-ai/dsh-client-runtime` 及相关 UI 包 | 这些包不存在；`ClientContext` 来自 `@deepseek-ai/cordis`；缺失的可选 inject 为 soft-skip |

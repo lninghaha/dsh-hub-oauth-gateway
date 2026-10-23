@@ -37,7 +37,7 @@ It never registers a `root` application or starts a second web server.
 
 Exact host pins live in `compatibility/dsh-bom.json` (`verified` vs `candidates`). Hub must not hard-code a single host API shape when a measured dialect split exists:
 
-| Surface | Verified `0.1.1-rc.2` | Candidate `0.1.5-rc.1` |
+| Surface | Verified `0.1.1-rc.2` | Candidate `0.1.5-rc.1` / `0.2.1-rc.2` (unverified) |
 |---|---|---|
 | `sessionPersistence` | `list` + `readFrom` | `list` + `open` → `read` → `close` / `asyncDispose` |
 | Client inject | May include `@deepseek-ai/dsh-client-runtime` and related UI packages | Those packages are absent; `ClientContext` comes from `@deepseek-ai/cordis`; missing optional inject is soft-skip |

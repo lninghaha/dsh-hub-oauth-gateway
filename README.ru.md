@@ -4,7 +4,7 @@
 
 # dsh-hub-oauth-gateway
 
-**v1.13.5** · ранее `dsh-usage-stats`
+**v1.13.6** · ранее `dsh-usage-stats`
 
 **Локальный центр учёта использования для [DeepSeek Harness](https://github.com/deepseek-ai/dsh) Web.** Токены, оценочная стоимость, балансы аккаунтов, квоты подписок, тренды, прогнозы, оповещения и экспорт — плюс OAuth для coding-подписок (Grok Build, Codex, Kimi Code, Claude Code), опциональный loopback API-шлюз и опциональный локальный мониторинг auth/usage. **Не вставляйте токены в чат.**
 
@@ -18,7 +18,7 @@
 
 ---
 
-> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.5` and Subscription `0.8.6` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
+> **Upgrade / 升级：** Follow the versioned steps in [`docs/01-install.md`](docs/01-install.md). Hub `1.13.6` and Subscription `0.8.6` share the verified DSH `0.1.1-rc.2` contract and pin `dsh-coding-oauth-core@0.1.2` with `undici@7.29.0`. Keep profile, configuration, and credential files, update both plugins in the same Web profile, then restart the existing DSH Web process once.
 
 ---
 
@@ -134,7 +134,7 @@ dsh plugin --profile web add dsh-hub-oauth-gateway
 
 ## Требования
 
-- DeepSeek Harness Web, проверено с `@deepseek-ai/dsh 0.1.1-rc.2`
+- DeepSeek Harness Web, проверенный build pin `@deepseek-ai/dsh 0.1.1-rc.2` (диапазон установки 0.1.x–0.2.x; `0.2.1-rc.2` не проверен)
 - Node.js `^22.19.0 || >=24.0.0`
 - Loopback backend DSH Web; допустим контролируемый локальный HTTPS reverse proxy к аутентифицированной частной сети. Не выставляйте API плагина отдельно и не публикуйте без аутентификации в публичный интернет.
 
